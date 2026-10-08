@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Prepare deterministic Unity assets from the Cocos UI migration output.
 
-The generated Unity tree mirrors the legacy client resource root:
+Native Unity maintenance performs no Cocos import or asset writes.
+The archived conversion workflow mirrors the legacy client resource root:
 client/ProjectX/res/<legacy path> -> unityclient/Assets/ProjectX/res/<legacy path>.
 """
 
@@ -569,6 +570,18 @@ def _runtime_csb_path(source: str, ir_path: Path, kind: str) -> str:
         return PurePosixPath(source).with_suffix(".csb").as_posix().lower()
 
 
+_SUPPORTED_SCOPES = ("all", "baseline", "referenced", "welfare")
+
+
+def _validate_scope(scope: str) -> None:
+    if scope == "timeline":
+        raise ValueError(
+            "Cocos Timeline Prefab generation is retired; author active animations in Unity."
+        )
+    if scope not in _SUPPORTED_SCOPES:
+        raise ValueError(f"Unsupported UI migration scope: {scope}")
+
+
 def _document_specs(migration_root: Path, scope: str) -> list[dict[str, Any]]:
     baseline_manifest = _read_json(migration_root / "baselines" / "manifest.json")
     baseline_sources = {
@@ -607,35 +620,51 @@ def _document_specs(migration_root: Path, scope: str) -> list[dict[str, Any]]:
                     ),
                 }
             )
-    if scope in {"referenced", "welfare", "timeline"}:
+    if scope in {"referenced", "welfare"}:
         usage = _read_json(migration_root / "runtime-ui-usage.json")
         selected = {
             str(value).lower()
-            for value in usage["sets"][
-                "welfare" if scope == "welfare" else "timeline" if scope == "timeline" else "referenced"
-            ]
+            for value in usage["sets"][scope]
         }
         specs = [item for item in specs if item["runtimePath"] in selected]
     return specs
 
 
 def prepare(unity_project: Path, migration_root: Path, scope: str = "all") -> dict[str, Any]:
+    _validate_scope(scope)
     assets_root = unity_project / "Assets" / "ProjectX" / "res"
     data_root = assets_root / "csd" / "UnityMigration"
+    existing_manifest_path = data_root / "unity-import-manifest.json"
+    native_settings_path = unity_project / "ProjectSettings/ProjectXUiMaintenance.json"
+    native_settings = _read_json(native_settings_path) if native_settings_path.exists() else {}
+    if native_settings.get("maintenanceMode") == "unity-native-only" and not existing_manifest_path.exists():
+        return {"maintenanceMode": "unity-native-only", "documents": [], "resources": [], "statistics": {"documents": 0, "logicalResources": 0}}
+    if existing_manifest_path.exists():
+        existing_manifest = _read_json(existing_manifest_path)
+        if native_settings.get("maintenanceMode") == "unity-native-only" or existing_manifest.get("maintenanceMode") == "unity-native-only":
+            if existing_manifest.get("documents"):
+                raise ValueError("Unity native maintenance manifest must contain no Cocos documents")
+            return existing_manifest
     asset_manifest = _read_json(migration_root / "asset-manifest.json")
     asset_lookup = {item["key"]: item for item in asset_manifest["assets"]}
 
     documents: list[dict[str, Any]] = []
     pending_documents: list[tuple[dict[str, Any], dict[str, Any], str, Path]] = []
     resources: dict[str, dict[str, Any]] = {}
+    # Unity-owned Prefabs are the maintenance source. Do not recreate their
+    # retired Cocos documents or collect their exclusive legacy resources.
+    native_prefab_root = unity_project / "Assets" / "Prefabs"
+    native_prefab_names = {path.stem.casefold() for path in native_prefab_root.rglob("*.prefab")}
     for spec in _document_specs(migration_root, scope):
-        ir = _read_json(migration_root / _safe_relative(spec["irPath"]))
         source = str(spec["source"])
         prefab_relative = (
             Path("csb") / Path(spec["runtimePath"]).with_suffix(".prefab")
             if spec.get("kind") == "csb"
             else _prefab_relative(source, spec["name"])
         )
+        if prefab_relative.stem.casefold() in native_prefab_names:
+            continue
+        ir = _read_json(migration_root / _safe_relative(spec["irPath"]))
         document_relative = Path("documents") / prefab_relative.with_suffix(".json")
         pending_documents.append((spec, ir, source, document_relative))
         documents.append(
@@ -777,12 +806,7 @@ def prepare(unity_project: Path, migration_root: Path, scope: str = "all") -> di
         "artRecoveryPlaceholders": sorted(placeholders),
         "decodableImageSubstitutions": sorted(source_substitutions),
     }
-    manifest_name = (
-        "unity-import-manifest.timeline.json"
-        if scope == "timeline"
-        else "unity-import-manifest.json"
-    )
-    _write_json(data_root / manifest_name, result)
+    _write_json(data_root / "unity-import-manifest.json", result)
     return result
 
 
@@ -791,9 +815,7 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--unity-project", type=Path)
     parser.add_argument("--migration-root", type=Path)
-    parser.add_argument(
-        "--scope", choices=("all", "baseline", "referenced", "welfare", "timeline"), default="all"
-    )
+    parser.add_argument("--scope", choices=_SUPPORTED_SCOPES, default="all")
     args = parser.parse_args()
     repo_root = args.repo_root.resolve()
     unity_project = (args.unity_project or repo_root / "unityclient").resolve()

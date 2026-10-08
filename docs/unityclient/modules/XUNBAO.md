@@ -16,7 +16,7 @@
 
 - 入口：玩法大厅 `function_id=9`，15 级开启。
 - Cocos：`WanFa.XunBaoMainUI` → `csd/wanfa/XunbaoLayer.csb`。
-- Unity：导入 `wanfa/XunbaoLayer.prefab`，保持主布局、次数区、法宝合成区与返回路径。
+- Unity：Main XunBao 页面使用 Unity-owned `Prefabs/XunBao/XunbaoLayer.prefab`、Unity Catalog/Reference、独立视觉资源副本和原生 Animator；Cocos 原始 Prefab仅作历史/比较输入。
 - 搜索列表必须按 `hecheng.type=8` 动态生成：品质 3 且 `id != 615` 默认显示，品质 4 以上仅在任一所需碎片数量大于 0 时显示；当前 Steam V0 资源包默认可见 1001/1002/1003。
 - UI 闭包包含帮助、体力/金币/元宝加号、寻宝任务列表/领取、动态卡片、品质面板、碎片槽、搜索与合成边界；不能用空任务弹窗、固定三卡或只统计 Button 绑定数代替。
 
@@ -47,7 +47,10 @@
 - `XunBaoPresenter` 直接绑定正式导入Button；次数、倒计时、动态法宝、碎片图标/灰态/粒子、品质Open/Compose时间轴均由权威状态与正式配置驱动，不再增加透明命中层。
 - `XunBaoResultPresenter` 使用用户调整后的 `Xunbao_souxunLayer.prefab` 每0.3秒追加一次搜索结果，并等待全部批次渲染完成；结果道具保持底框根节点、图标内嵌并按正式`quality`切换品质框，隐藏底部按钮并复用`Xunbao_popupLayer`同源右上关闭。`XunBaoPopupPresenter` 实现mode=1合成反馈、mode=2一键搜索确认和mode=3正式任务列表/领取；119条任务复用统一`VirtualList`，任务奖励补横向布局与正式品质框，保持来源ListView裁剪与拖动。
 - mode=3 必须按 Cocos `QueryGotTaskList(3) -> WanFaDailyTaskInfo -> DataSort/ShowRewardList` 链路消费正式 `daily.json`，不能继续使用空白边界或客户端编造奖励。
-- 正式Cocos `op36` 成功路径是 `Common.SaoDangUI -> csd/common/saodang.csb`；Unity已改用同源 `common/saodang.prefab` 和 `XunBaoComposeAllPresenter` 展示一键合成奖励，不再用通用奖励弹窗近似替代。
+- 正式Cocos `op36` 成功路径是 `Common.SaoDangUI -> csd/common/saodang.csb`；Unity `XunBaoComposeAllPresenter` 使用 Unity-owned `Prefabs/XunBao/saodang.prefab`、复制到 UnityNativeXunBao 的艺术资源和可编辑 Animator。Cocos源仅留作G5比较基线，不参与Unity运行或活动Importer。
+- W8 资源独立化复验（2026-09-29）：从 Main `btn_wanfa` → 玩法 `Function_9/EnterBtn` → XunBao `Btn_3` 通过 Unity MCP EventSystem/Raycast 真实触发 `/319 op=36`；服务端返回“一键合成完成”，原生 SaoDang Prefab 显示 13 项奖励，真实关闭按钮返回 XunBao。Prefab 为 37 节点、无 Identity/Timeline/CocosBinding；Catalog/Reference 和活动 UI/Timeline manifests 均指向/排除到位，精确 `Assets/ProjectX/res/` 依赖为 0。Slot01 临时夹具变更、恢复与残留清理通过；画面仍待用户验收。完整证据：[W8 XunBao native route](../../.local/unity-validation/w8-xunbao-saodang-native-route-20260929.md)。
+- XunBao 四类活动页面/结果/弹窗已转为 Unity-owned Prefab/资源链：主页面 `XunbaoLayer`（P-0096）、搜索结果 `Xunbao_souxunLayer`（P-0095）、一键合成结果 `saodang`（P-0094）、任务列表/搜索确认/合成反馈弹窗 `Xunbao_popupLayer`（P-0097）。主页→玩法→XunBao→任务按钮的 mode=3 正式查询和任务弹窗关闭已通过 Unity MCP；搜索确认 mode=2 打开、取消关闭已通过 MCP，未触发搜索或领取。P-0097 的 Unity Prefab 无 Identity/Timeline/CocosBinding、旧 `Assets/ProjectX/res/` 依赖为 0，24 项视觉资产导入 parity 通过；`ComposePopup.anim` 的 363 帧/轨道比较最大误差 0。视觉正确性由用户最终验收。仍未整体脱离 Cocos：主页面与弹窗的 Unity 原生 Clips 在一次性生成/源帧对照时仍以保留的 Cocos Prefab 为输入；全局 Cocos 兼容加载器与未迁移模块的 importer/资源维护链仍待按实际入口处理。mode=1 合成反馈未在本轮触发，不能标记为运行时验收通过。
+- W8 源组件收口（2026-09-30，P-0160）：`UIMigrationPreview.unity` 的旧 XunbaoLayer 实例是唯一旧 Prefab GUID 引用，现已移除；旧 227 节点 Prefab 的 `UiPrefabIdentity` 与 115 轨道 `CocosTimelinePlayer` 已移除，GUID、节点层级和 `.meta` 保留。Unity-owned 主页面与 8 个 Unity Clip 不变；Unity MCP 复核主 Prefab Animator 存在、`Assets/ProjectX/res/` 递归依赖为 0。运行路线与视觉未改动，不重复验收。
 - 搜宝令402与任务奖励1211“高级法宝箱”均来自正式 `item.xlsx`；服务端与Unity `item.json` 为同源记录，没有本地假配置。60028奖励按子类型615/616/617解析正式`fabao.json`。
 - `Invoke-XunBaoSqliteFixture.ps1/.py` 只操作 `Application.persistentDataPath/LocalServer/projectx.db`：固定 Unity SQLite 身份`7200057/1000003 (T00057)`、20次搜索、2个搜宝令、清除bit629、写入正式type=3任务25..143并令任务25可领取，同时冻结`save_val`每日标记防止登录重置；Cocos MySQL 对照身份为同名`7200057/1000115`，由跨后端身份合同关联；整库快照、变更断言、恢复SHA、重登和零残留均为硬合同。
 - `ProjectXApp.EnterGameplay(9)` 完成玩法大厅进入，关闭按钮和 Esc 返回玩法大厅。

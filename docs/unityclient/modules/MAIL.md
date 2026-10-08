@@ -5,6 +5,7 @@
 - 2026-09-07用户完成已打开Unity Editor内的Mail整模块测试并明确要求直接标记G6。当前门禁为`G0-G6 passed / 13/13 complete / manualPassed=true`；最终证据：`.local/unity-validation/mail-final-user-acceptance-latest.json`，复盘：`.local/unity-validation/mail-retrospective-latest.json`。
 - 一键删除语义与Cocos一致：只删除已处理的本地历史，未读/未领取的服务端邮件继续保留；左侧列表立即刷新，提示文案为`删除成功`/`没有可删除的邮件`。证据：`.local/unity-validation/mail-delete-all-user-acceptance-latest.json`。
 - 用户明确规定后续Unity验收只能操作已打开Unity的GameView；BatchMode/Runner仅保留编译、夹具、oracle和诊断用途，不再作为G4/G6验收通过证据。
+- 2026-09-30 W8 P-0120 定向复验：Unity-owned Mail Prefab 经 JingJie 真实页签加载 `/128`，fixture 单附件邮件可打开共享 Unity `BagItemSource` 并通过真实关闭按钮返回 Mail。修正页签缺少列表请求、附件图像 `raycastTarget=false` 两处入口问题；Main HUD 绑定与 `HandleMailClick()` 未变，复用 2026-09-07 已接受的 Main 路线证据，不重复跑相同功能。完整步骤、夹具恢复和 ledger 见 `.local/unity-validation/w8-mail-jingjie-mail-source-route-20260930.md`。
 
 - 2026-09-07当前输入复核：原生Cocos真实主界面邮件入口已稳定产生`/128`并打开页面，2026-09-05的“无`/128`且退出”未复现。固定双端四状态已按同一选择重采/重跑；Unity清除验证截图中的登录广播、附件视口由5格修为6格，并按Cocos `ItemCatalog`的`id优先/type兜底`读取附件说明和来源。四状态现仅保留已批准的Cocos列表不滚与详情数量0两项差异；视觉证据为`.local/unity-validation/mail-g5-current-visual-ready-20260907.md`及`.local/ui-fidelity/Mail/compare/g5-20260907/`。用户最终验收后正式门禁已升级为`G0-G6 passed`。
 

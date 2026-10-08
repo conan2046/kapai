@@ -6,7 +6,7 @@
 - 完成主体仅为 `主界面 → btn_chuandai → tankuang2/btn_zhuangbei → 装备`。Hero、Bag、HUD、HuiShou只做影响回归；法宝只做兄弟入口、5..6槽和共享`/319`游标隔离，不计入本模块完成率。
 - 当前G0机器分母：`HERO_EQUIPMENT_COVERAGE.json`登记14个源码/配置来源、974个来源记录；控件矩阵登记86项。新增的40项来自真实链 `PetEquipPiecesSubUI:GetBtnClicked → item_dat(4605..4644).item_source`，另有7项品质精炼倍率及4项精炼材料ID 610..613；不得用较小分母替代。
 - G1实机发现：勾选“隐藏已穿戴”后计数与空态文案已切到空态，但四张旧装备卡片仍残留；这是Cocos当前真实显示缺陷，G5必须分别断言计数/空态和不应残留的旧卡片。装备碎片40个“获取”入口均有`item_source={{17}}`，不存在可由本模块真实控件打开的“碎片空来源弹窗”，因此不伪造`source-empty`视觉状态；空来源装备模板仍保留为配置/安全失败覆盖。
-- G2已完成所有权裁决：新增Unity精炼51、觉醒60、神铸155及大师100条服务端权威JSON；客户端神铸150级仅保留为Cocos显示边界。五次强化、自动精炼、Imod 1..9及外部事务重登oracle纳入G3实现合同；源Prefab内一键兑换/一键升星/一键升阶/一键升层四入口均为`m_IsActive=0`且`BtnStateCheck()`为空，对应弹层不可达，Unity必须保持隐藏并在G4/G5同时断言“不应显示”。
+- G2已完成所有权裁决：新增Unity精炼51、觉醒60、神铸155及大师100条服务端权威JSON；客户端神铸150级仅保留为Cocos显示边界。五次强化、自动精炼、Unity原生 AnimationClip 1..9 及外部事务重登oracle纳入G3实现合同；源Prefab内一键兑换/一键升星/一键升阶/一键升层四入口均为`m_IsActive=0`且`BtnStateCheck()`为空，对应弹层不可达，Unity必须保持隐藏并在G4/G5同时断言“不应显示”。
 - 当前40个装备碎片的配置来源均为`function_id=17`血战商店；血战及其商店已按Steam边界排除，且当前`GameplayShopController`只保留`function_id=15/type=2`。来源弹窗与“前往”真实Button仍保留，但点击必须走统一`EnterGameplay(17)`边界，显示暂未开放反馈并留在装备流程；不得调用缺失Lua路由、打开玩法商店或发送`/221`。
 - 历史装备/法宝批处理、`33/33`控件、`20/20`视觉、MCP、BuildBatch、SQLite/MySQL结果全部只作诊断线索，不计入2026-08-21后的任何门禁。
 

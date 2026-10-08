@@ -10,6 +10,7 @@ param(
     [switch]$DataPreflightOnly,
     [switch]$G3RuntimeOnly,
     [switch]$G5VisualOnly,
+    [switch]$AllowUnityEditorForDataPreflight,
     [switch]$FinalFull
 )
 
@@ -20,6 +21,9 @@ if (@(@($PreflightOnly, $DataPreflightOnly, $G3RuntimeOnly, $G5VisualOnly) | Whe
 if ($FinalFull -and @(@($PreflightOnly, $DataPreflightOnly, $G3RuntimeOnly, $G5VisualOnly) |
     Where-Object { $_ }).Count -gt 0) {
     throw "-FinalFull cannot be combined with a focused preflight/runtime/visual mode."
+}
+if ($AllowUnityEditorForDataPreflight -and -not $DataPreflightOnly) {
+    throw "-AllowUnityEditorForDataPreflight can only be used together with -DataPreflightOnly."
 }
 if (-not $FinalFull -and -not $PreflightOnly -and -not $DataPreflightOnly -and -not $G3RuntimeOnly -and -not $G5VisualOnly) {
     throw "Full fixed-account validation is reserved for final convergence. Use a focused mode while diagnosing, or add -FinalFull after targeted hybrid checks pass."
@@ -49,8 +53,10 @@ $extraFlags = @((Get-UnityMigrationPropertyValue -Object $fixed -Name "extraFlag
     ForEach-Object { [string]$_ })
 $postValidationAdapterAction = [string](Get-UnityMigrationPropertyValue `
     -Object $fixed -Name "postValidationAdapterAction" -Default "AssertSetup")
-$dataBackend = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "dataBackend" -Default "mysql")
-if ($dataBackend -notin @("mysql", "sqlite")) { throw "Unsupported fixed-account data backend: $dataBackend" }
+$dataBackend = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "dataBackend" -Default "")
+if ($dataBackend -ne "sqlite") {
+    throw "Unity fixed-account validation requires dataBackend='sqlite'; this runner does not support Cocos/MySQL fixtures."
+}
 $mutationReloginOracle = Get-UnityMigrationPropertyValue -Object $fixed -Name "mutationReloginOracle" -Default $null
 $requireBatchVisualArtifacts = [bool](Get-UnityMigrationPropertyValue `
     -Object $fixed -Name "requireBatchVisualArtifacts" -Default $true)
@@ -71,7 +77,19 @@ if ($dataBackend -eq "sqlite") {
     $sqliteRelative = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "sqlitePath" -Default "")
     $sqliteSchemaValue = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "sqliteSchema" -Default "")
     if (-not $sqliteRelative -or -not $sqliteSchemaValue) { throw "SQLite fixed-account contract requires sqlitePath and sqliteSchema." }
-    $fixedSqlitePath = if ([IO.Path]::IsPathRooted($sqliteRelative)) { $sqliteRelative } else { Join-Path $env:USERPROFILE $sqliteRelative }
+    $sqlitePathRoot = [string](Get-UnityMigrationPropertyValue -Object $fixed -Name "sqlitePathRoot" -Default "userProfile")
+    if ([IO.Path]::IsPathRooted($sqliteRelative)) {
+        $fixedSqlitePath = [IO.Path]::GetFullPath($sqliteRelative)
+    }
+    elseif ($sqlitePathRoot -eq "project") {
+        $fixedSqlitePath = Resolve-UnityMigrationPath -Root $root -Path $sqliteRelative
+    }
+    elseif ($sqlitePathRoot -eq "userProfile") {
+        $fixedSqlitePath = [IO.Path]::GetFullPath((Join-Path $env:USERPROFILE $sqliteRelative))
+    }
+    else {
+        throw "Unsupported fixed-account SQLite path root '$sqlitePathRoot' for module '$Module'."
+    }
     $serverStartParameters.SqlitePath = [IO.Path]::GetFullPath($fixedSqlitePath)
     $serverStartParameters.SqliteSchemaPath = Resolve-UnityMigrationPath -Root $root -Path $sqliteSchemaValue
 }
@@ -202,7 +220,6 @@ $fixtureCreated = $false
 $validationPassed = $false
 $fixtureActionHistory = New-Object System.Collections.Generic.List[string]
 $fixtureSetupCount = 0
-$startedMySqlIds = New-Object System.Collections.Generic.List[int]
 $hadPreviousResult = -not $PreflightOnly -and -not $DataPreflightOnly -and
     (Test-Path -LiteralPath $resultPath -PathType Leaf)
 $previousResultContent = if ($hadPreviousResult) {
@@ -213,7 +230,24 @@ try {
     if (-not (Test-Path -LiteralPath $adapter -PathType Leaf)) { throw "Fixed-account adapter is missing: $adapter" }
     if (-not (Test-Path -LiteralPath $unityExecutable -PathType Leaf)) { throw "Unity executable is missing: $unityExecutable" }
     if (-not (Test-Path -LiteralPath $unityProject -PathType Container)) { throw "Unity project is missing: $unityProject" }
-    if (@(Get-Process kapai,ProjectX,Unity -ErrorAction SilentlyContinue).Count -gt 0) {
+    $runningRuntimeProcesses = @(Get-Process kapai,ProjectX -ErrorAction SilentlyContinue)
+    $runningUnityProcesses = @(Get-Process Unity -ErrorAction SilentlyContinue)
+    if ($AllowUnityEditorForDataPreflight) {
+        $unityProcessMetadata = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'")
+        $interactiveUnityEditors = @(Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcessMetadata)
+        $unityCommandLines = @($interactiveUnityEditors | ForEach-Object { [string]$_.CommandLine })
+        $projectPathArgument = [IO.Path]::GetFullPath($unityProject)
+        $quotedProjectArgument = '-projectPath "' + $projectPathArgument + '"'
+        $plainProjectArgument = '-projectPath ' + $projectPathArgument
+        if ($interactiveUnityEditors.Count -ne 1 -or $unityCommandLines.Count -ne 1 -or
+            ($unityCommandLines[0].IndexOf($quotedProjectArgument, [StringComparison]::OrdinalIgnoreCase) -lt 0 -and
+             $unityCommandLines[0].IndexOf($plainProjectArgument, [StringComparison]::OrdinalIgnoreCase) -lt 0) -or
+            $unityCommandLines[0] -match '(^|\s)-batchmode(\s|$)') {
+            throw "-AllowUnityEditorForDataPreflight requires the one interactive Unity Editor for this exact project."
+        }
+    }
+    if ($runningRuntimeProcesses.Count -gt 0 -or
+        ($runningUnityProcesses.Count -gt 0 -and -not $AllowUnityEditorForDataPreflight)) {
         throw "Stop kapai.exe, ProjectX.exe and Unity.exe before fixed-account validation."
     }
 
@@ -223,19 +257,23 @@ try {
         }
         $adapterArguments = @("-NoProfile", "-File", $adapter, "-Action", $Action,
             "-UserId", $UserId, "-RoleId", $RoleId, "-EvidencePath", $snapshot)
-        if ($dataBackend -eq "sqlite") { $adapterArguments += @("-DatabasePath", $fixedSqlitePath) }
+        $adapterArguments += @("-DatabasePath", $fixedSqlitePath)
+        if ($AllowUnityEditorForDataPreflight) { $adapterArguments += "-AllowUnityEditorForDataPreflight" }
         & $pwshExecutable @adapterArguments
         if ($LASTEXITCODE -ne 0) { throw "Fixed-account adapter action failed: $Action" }
         $fixtureActionHistory.Add($Action)
         if ($Action -match '^Setup') { $script:fixtureSetupCount++ }
     }
 
-    function Wait-FixedRuntimeRelease {
+    function Wait-FixedRuntimeRelease([switch]$AllowUnityEditor) {
         $deadline = [DateTime]::UtcNow.AddSeconds(15)
         do {
-            $runtimeProcesses = @(Get-Process Unity,kapai,ProjectX -ErrorAction SilentlyContinue)
+            $runtimeProcesses = @(Get-Process kapai,ProjectX -ErrorAction SilentlyContinue)
+            if (-not $AllowUnityEditor) {
+                $runtimeProcesses += @(Get-Process Unity -ErrorAction SilentlyContinue)
+            }
             $databaseReleased = $true
-            if ($dataBackend -eq 'sqlite' -and (Test-Path -LiteralPath $fixedSqlitePath -PathType Leaf)) {
+            if (Test-Path -LiteralPath $fixedSqlitePath -PathType Leaf) {
                 try {
                     $stream = [IO.File]::Open($fixedSqlitePath, [IO.FileMode]::Open,
                         [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
@@ -294,32 +332,14 @@ try {
         return
     }
 
-    $mysqlTiming = Start-UnityMigrationTiming
+    $sqliteTiming = Start-UnityMigrationTiming
     try {
-        if ($dataBackend -eq "mysql") {
-            $mysqlListenerPid = Get-UnityMigrationTcpListenerPid -Port 3306
-            if ($null -ne $mysqlListenerPid) {
-                if (-not (Test-UnityMigrationWorkspaceMySqlOwnership -Root $root -ProcessId $mysqlListenerPid)) {
-                    throw "Port 3306 is not owned by the workspace-local MySQL process."
-                }
-            }
-            else {
-                $beforeMySqlIds = @(Get-Process mysqld -ErrorAction SilentlyContinue | ForEach-Object { [int]$_.Id })
-                & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-LocalMySql.ps1")
-                if ($LASTEXITCODE -ne 0) { throw "Fixed-account MySQL startup failed." }
-                foreach ($process in @(Get-Process mysqld -ErrorAction SilentlyContinue)) {
-                    if ([int]$process.Id -notin $beforeMySqlIds) { $startedMySqlIds.Add([int]$process.Id) }
-                }
-                if ($null -eq (Get-UnityMigrationTcpListenerPid -Port 3306)) {
-                    throw "Workspace-local MySQL did not listen on 3306."
-                }
-            }
-        } elseif (-not (Test-Path -LiteralPath $fixedSqlitePath -PathType Leaf)) {
+        if (-not (Test-Path -LiteralPath $fixedSqlitePath -PathType Leaf)) {
             throw "Fixed-account SQLite database is missing: $fixedSqlitePath"
         }
     }
     finally {
-        Complete-UnityMigrationTiming -Timings $timings -Name "mysqlReadiness" -Timing $mysqlTiming
+        Complete-UnityMigrationTiming -Timings $timings -Name "sqliteReadiness" -Timing $sqliteTiming
     }
 
     if ($DataPreflightOnly) {
@@ -348,13 +368,25 @@ try {
                 Start-Sleep -Seconds 5
                 Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 2
-                Wait-FixedRuntimeRelease
+                Wait-FixedRuntimeRelease -AllowUnityEditor:$AllowUnityEditorForDataPreflight
             }
             $postLoginAssertAction = [string](Get-UnityMigrationPropertyValue `
                 -Object $fixed -Name "postLoginDataPreflightAssertAction" -Default "AssertSetup")
             Invoke-FixedAdapter $postLoginAssertAction
             Invoke-FixedAdapter "Restore"
             Invoke-FixedAdapter "AssertRestored"
+            if ($Module -eq "World") {
+                & $startServerScript @serverStartParameters
+                if (-not $?) { throw "World post-restore relogin server startup failed." }
+                & $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Invoke-ProtocolSmoke.ps1") `
+                    -UserId $UserId -RoleId $RoleId -PythonExecutable $pythonExecutable
+                if ($LASTEXITCODE -ne 0) { throw "World post-restore relogin protocol failed." }
+                Start-Sleep -Seconds 5
+                Get-Process kapai -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds 2
+                Wait-FixedRuntimeRelease -AllowUnityEditor:$AllowUnityEditorForDataPreflight
+                Invoke-FixedAdapter "AssertReloginHash"
+            }
             Invoke-FixedAdapter "Cleanup"
             Invoke-FixedAdapter "AssertCleanup"
             $fixtureCreated = $false
@@ -858,12 +890,6 @@ finally {
         }
         catch {
             Write-Warning "Fixed-account emergency restore failed: $($_.Exception.Message)"
-        }
-    }
-    foreach ($mysqlId in @($startedMySqlIds)) {
-        $process = Get-Process -Id $mysqlId -ErrorAction SilentlyContinue
-        if ($process -and $process.ProcessName -eq "mysqld") {
-            Stop-Process -Id $mysqlId -Force -ErrorAction SilentlyContinue
         }
     }
     if (-not $PreflightOnly -and -not $DataPreflightOnly) {

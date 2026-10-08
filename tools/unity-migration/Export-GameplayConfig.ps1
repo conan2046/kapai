@@ -1,8 +1,8 @@
 [CmdletBinding()]
 param(
     [string]$FunctionJson = (Join-Path $PSScriptRoot '..\..\server\config\json\function.json'),
-    [string]$RouteJson = (Join-Path $PSScriptRoot '..\..\unityclient\Assets\ProjectX\Resources\Configs\function-routes.json'),
-    [string]$OutputJson = (Join-Path $PSScriptRoot '..\..\unityclient\Assets\ProjectX\Resources\Configs\gameplay.json')
+    [string]$RouteJson = (Join-Path $PSScriptRoot '..\..\unityclient\Assets\Resources\ProjectXData\Configs\function-routes.json'),
+    [string]$OutputJson = (Join-Path $PSScriptRoot '..\..\unityclient\Assets\Resources\ProjectXData\Configs\gameplay.json')
 )
 
 $ErrorActionPreference = 'Stop'

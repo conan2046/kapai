@@ -8,6 +8,7 @@
 - 固定运行身份：`userId=7200057 / roleId=1000115`；切号隔离身份：`userId=705213 / roleId=1000006`；原生客户区 `1334×750`、Windows 100%。
 - 设置本体是设备级本地配置，不读写服务端业务数据，登记 `no-server-fixture`；账号只决定角色/服务器展示和切号后的角色态清理。
 - 设置自有页面只有 `OneLevelLayer + zhujue/SystemLayer`，无设置自有弹窗。公告、兑换码、商城、体力入口只验证路由边界，不迁移其页面或业务。
+- W8（2026-09-30）：设置页已切到 Unity-owned Prefab/Catalog/Provider 和 `UnityUiView` Transform 绑定，退出活动 UI importer；49 节点、Identity/Timeline/CocosBinding=0、递归旧 `res/` 依赖=0。共享 OneLevel 帧复用 P-0107，不重复迁移。新 provider 资源链和 14 个节点绑定已过 MCP；Main `btn_xitong` 实际入口待本次改动后复验，最终画面由用户验收。证据见 `../W8_COCOS_DEPENDENCY_RETIREMENT.md` P-0122 与 `.local/unity-validation/w8-settings-native-prefab-provider-20260930.md`。
 
 ## G0 范围
 
@@ -56,7 +57,7 @@
 ## CSB、资源与场景
 
 - 当前 CSB：`client/ProjectX/res/csd/OneLevelLayer.csb`、`client/ProjectX/res/csd/zhujue/SystemLayer.csb`；可编辑 CSD 未随仓库提供。
-- Unity IR/Prefab：`documents/OneLevelLayer.json`（50 节点）与 `documents/zhujue/SystemLayer.json`（23 节点）；设置层 11 个唯一资源引用，Unity 均存在。
+- Unity Prefab：共享帧 `Assets/ProjectX/Prefabs/Shared/OneLevelLayer.prefab`（50 节点，P-0107）；设置页 `Assets/ProjectX/Prefabs/Settings/SystemLayer.prefab`（49 节点，P-0122）。设置页引用 Unity-owned 资源；递归旧 `res/` 依赖为 0。旧 Cocos JSON/Prefab 留作迁移历史，不再由活动 Settings UI manifest 维护。
 - 设置层无 Timeline/Imod；唯一动态节点是 `FirstClassBg:AddTabBtn` 克隆 `Panel_10/Button1` 两个页签。
 - `Bootstrap.unity` 已含禁用的 `SystemLayer`，但旧实现只推入该 View，未同步显示 `OneLevelLayer` 公共背景。
 

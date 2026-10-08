@@ -1,0 +1,102 @@
+local Protocol = require("Protocol")
+local LoginProtocol = require("Login.LoginProtocol")
+local LoginView = require("Login.LoginView")
+local PlayerController = require("Player.PlayerController")
+local ServerTimeController = require("Time.ServerTimeController")
+local TempActivityController = require("Activity.TempActivityController")
+local M = { roleId = 0, createdRole = false }
+
+function M.begin()
+    local autoInvoke = Bridge:IsAutomation() and not Bridge:HasCommandLineFlag("-projectXLoginValidation")
+    LoginView.show(autoInvoke)
+end
+function M.onLoginClicked() Bridge:Connect(Bridge:GetGameHost(), Bridge:GetGamePort()) end
+function M.onRoleCreateClicked() LoginProtocol.sendCreateRole() end
+function M.onRoleRandomClicked() LoginProtocol.requestRandomRoleNames() end
+function M.onConnected() LoginProtocol.sendLogin() end
+
+function M.onPacket(command, message)
+    if command == Protocol.ROLE_NAME_CHECK then
+        local op = message:ReadByte()
+        if op == 2 then
+            message:ReadByte()
+            local count = message:ReadByte()
+            local names = { "", "", "" }
+            for index = 1, count do
+                local value = message:ReadString()
+                if index <= 3 then names[index] = value end
+            end
+            Bridge:ApplyRoleNameCandidates(names[1], names[2], names[3])
+            return true
+        end
+        local detail = message.Remaining > 0 and message:ReadString() or "角色名不可用"
+        Bridge:ShowLoginError(detail)
+        return true
+    end
+    if command == Protocol.USER_LOGIN then
+        if message:ReadByte() ~= 1 then Bridge:ShowLoginError(message.Remaining > 0 and message:ReadString() or "登录失败"); return true end
+        message:ReadByte()
+        message:ReadUInt()
+        M.roleId = message:ReadUInt()
+        M.createdRole = M.roleId == 0
+        if M.roleId == 0 then
+            local autoCreate = Bridge:IsAutomation() and not Bridge:HasCommandLineFlag("-projectXLoginValidation")
+            LoginView.showRoleCreate(autoCreate)
+            Bridge:SetStatus("No role found. RoleCreateLayer is active.")
+        else LoginProtocol.sendSelectRole(M.roleId); Bridge:SetStatus("Lua sent PRO_SELECT_ROLE/1004 for role " .. tostring(M.roleId) .. ".") end
+        return true
+    end
+    if command == Protocol.CREATE_ROLE then
+        if message:ReadByte() ~= 1 then Bridge:ShowLoginError(message.Remaining > 0 and message:ReadString() or "创建角色失败"); return true end
+        M.roleId = message:ReadUInt()
+        LoginProtocol.sendSelectRole(M.roleId)
+        return true
+    end
+    if command == Protocol.SELECT_ROLE then
+        if message:ReadByte() ~= 1 then Bridge:ShowLoginError(message.Remaining > 0 and message:ReadString() or "登录失败"); return true end
+        local roleId = message:ReadUInt()
+        local name = message:ReadString()
+        local sex = message:ReadByte()
+        local model = message:ReadByte()
+        local head = message:ReadByte()
+        local level = message:ReadWord()
+        local experience = message:ReadULongInt()
+        local power = message:ReadULongInt()
+        local money = message:ReadInt()
+        local premium = message:ReadInt()
+        local boundPremium = message:ReadInt()
+        local potential = message:ReadUInt()
+        local soul = message:ReadUInt()
+        local packageCapacity = message:ReadWord()
+        message:ReadUInt() -- guild id
+        message:ReadByte() -- guild rank
+        message:ReadString() -- guild name
+        message:ReadByte() -- show guild name
+        local guildContribution = message:ReadUInt()
+        message:ReadByte() -- recharge open
+        message:ReadUInt() -- transform id
+        message:ReadByte() -- transform state
+        message:ReadUInt() -- charm
+        message:ReadUInt() -- registration time
+        message:ReadUInt() -- server id
+        if message.Remaining ~= 0 then
+            Bridge:Fail("PRO_SELECT_ROLE/1004 has " .. tostring(message.Remaining) .. " unread bytes.")
+            return true
+        end
+        Bridge:InitializePlayer(roleId, name, sex, model, head, level, experience, power,
+            money, premium, boundPremium, potential, soul, packageCapacity, guildContribution, M.createdRole)
+        LoginView.showMain(Bridge:IsAutomation())
+        ServerTimeController.request()
+        PlayerController.requestStamina()
+        PlayerController.requestVip()
+        TempActivityController.requestHudState()
+        if Bridge:HasCommandLineFlag("-projectXLoginValidation") and not Bridge:HasCommandLineFlag("-projectXRequireNoticeResponse") then
+            Bridge:CompleteLoginValidation(M.createdRole)
+        end
+        if Bridge:HasCommandLineFlag("-projectXPlayerHudValidation") then PlayerController.beginValidation() end
+        return true
+    end
+    return false
+end
+
+return M

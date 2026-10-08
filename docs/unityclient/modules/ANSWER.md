@@ -63,7 +63,7 @@ HUD玩法按钮
 ## 5. UI与资源
 
 - 原Cocos：`client/ProjectX/res/csd/dati/AnswerLayer.csb`。
-- Unity现有Prefab：`unityclient/Assets/ProjectX/res/csd/Prefabs/dati/AnswerLayer.prefab`，未重做、未修改布局。
+- Unity现有Prefab：`unityclient/Assets/ProjectX/res/csd/Prefabs/dati/AnswerLayer.prefab`，未重做、未修改布局；答题Presenter现用Unity Transform路径绑定，Prefab根节点的`UiPrefabIdentity`已移除。
 - `RewardBg/Reward` 作为Prefab内置品质框节点，`Reward/Icon` 直接引用金币图标，默认数量为当前兜底配置 `1000`；运行时只校验并复用节点，不动态创建品质框或图标节点。
 - Unity动态引用：`unityclient/Assets/ProjectX/Resources/UiPrefabs/AnswerLayer.asset`。
 - 大厅图标：`unityclient/Assets/ProjectX/Resources/GameplayIcons/ui_icon_wanfa_dati.png`，由正式Cocos plist帧提取。
@@ -87,7 +87,8 @@ HUD玩法按钮
 - 自动化标志：`-projectXAnswerValidation`。
 - 自动化目标：11/11控件、10题真实 `/198` 循环、最终金币、第二次入口上限提示、SQLite变更、恢复/重登哈希及零残留。
 - 预期截图：`bootstrap-answer-question.png`、`bootstrap-answer-result.png`、`bootstrap-answer-daily-limit.png`；每张图必须带相邻 `-ui-resource-map.md`。
-- 用户于2026-09-13明确反馈“测试通过”，当前控件矩阵记录 `manualPassed=true`。
+- 历史记录：用户于2026-09-13明确反馈“测试通过”；该验收仅适用于当时版本，已被2026-09-30的源码/Prefab改动作废，当前矩阵 `manualPassed=false`。
+- 2026-09-30 为移除答题UI的Cocos兼容依赖，将`AnswerPresenter`改为`UnityUiView`路径绑定，答题实例从Unity资源Provider加载，并将Catalog来源标记为`Unity/AnswerLayer`；Prefab已移除`UiPrefabIdentity`。Unity MCP资源探针通过，但该源码/Prefab变更使旧回归证据失效，控件矩阵当前`automationPassed=false`、`manualPassed=false`，待重新跑完整协议路线并由用户复测画面。
 
 ## 8. 当前已知项
 
@@ -106,5 +107,5 @@ HUD玩法按钮
 - 中文题库已写入Unity当前 `projectx.db` 与workspace-local MySQL：38行、英文占位题0行、SQLite完整性为`ok`；客户端仍完全通过 `/198` 收题。
 - SQLite夹具完成 ``Setup -> AssertSetup -> AssertMutated -> Restore -> AssertRestored -> AssertReloginHash -> Cleanup -> AssertCleanup`；进程与备份残留为0。
 - 中央迁移门禁仅标记G0通过；G1要求新鲜Cocos原生运行证据，本次Unity专属改动不伪造该证据，因此G2/G3中央状态仍待后续门禁任务。
-- `manualPassed=true`：用户于2026-09-13在Unity Player完成真实输入测试并明确反馈“测试通过”。
+- 历史 `manualPassed=true`：用户于2026-09-13在Unity Player完成真实输入测试并明确反馈“测试通过”；不覆盖2026-09-30改动后的版本，需用户重新复测后才能恢复通过状态。
 - 中央G1-G6仍保留待补：本需求明确不修改Cocos版本，当前没有伪造Cocos原生基线或标准双端视觉证据；本次发布只确认Unity答题功能的人测结果。

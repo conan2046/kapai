@@ -7,7 +7,7 @@ function Assert-Build([bool]$Condition, [string]$Message) {
 }
 
 $masterPath = Join-Path $Root 'server/config/json/hero_build_profile.json'
-$unityPath = Join-Path $Root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/hero_build_profile.json'
+$unityPath = Join-Path $Root 'unityclient/Assets/Resources/ProjectXData/Configs/hero_build_profile.json'
 Assert-Build ((Get-FileHash $masterPath).Hash -eq (Get-FileHash $unityPath).Hash) 'Build profile JSON copies differ.'
 $profiles = @(Get-Content -Raw -Encoding UTF8 $masterPath | ConvertFrom-Json)
 $roles = @(Get-Content -Raw -Encoding UTF8 (Join-Path $Root 'server/config/json/hero_skill_role.json') | ConvertFrom-Json)
@@ -33,7 +33,7 @@ foreach ($profile in $profiles) {
 }
 
 # Compile and execute the production C# scorer without opening Unity.
-$scorerPath = Join-Path $Root 'unityclient/Assets/ProjectX/src/Data/HeroBuildRecommendation.cs'
+$scorerPath = Join-Path $Root 'unityclient/Assets/src/Data/HeroBuildRecommendation.cs'
 if (-not ('ProjectX.Data.HeroBuildRecommendation' -as [type])) { Add-Type -Path $scorerPath }
 $typed = [ProjectX.Data.HeroBuildProfile[]]@($profiles | ForEach-Object {
     $profile = [ProjectX.Data.HeroBuildProfile]::new()
@@ -91,7 +91,7 @@ for ($index = 0; $index -lt $expected.Count; $index++) {
 
 # The UI must use display formation positions, never the helper's first-hero fallback.
 $cocos = Get-Content -Raw -Encoding UTF8 (Join-Path $Root 'client/ProjectX/src/View/PetEquip/EquipInfoUI.lua')
-$app = Get-Content -Raw -Encoding UTF8 (Join-Path $Root 'unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs')
+$app = Get-Content -Raw -Encoding UTF8 (Join-Path $Root 'unityclient/Assets/src/Core/ProjectXApp.cs')
 Assert-Build ($cocos.Contains('LRoleDataMgr.Pet.ShowPosList') -and $cocos.Contains('HeroBuildRecommendation.Describe')) 'Cocos build guidance/context is missing.'
 Assert-Build ($app.Contains('services.Formation.DisplayHeroes[position - 1]')) 'Unity equipment build context must use display formation.'
 Write-Host "PASS S8 builds: heroes=12, profiles=24, scoreCases=$($typed.Count * $keys.Count), parityLines=$($expected.Count), cocosUiCases=5, GUI=deferred"

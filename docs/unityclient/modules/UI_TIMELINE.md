@@ -1,5 +1,7 @@
 # Cocos UI Timeline 迁移证据
 
+> 现行结论（2026-09-30）：Cocos Timeline Prefab 生成链已退役。Unity Timeline manifest 当前为空；现行 UI manifest 的 302 份源 JSON 均无动画轨道。旧 Prefab 中仍存在的 22 个 `CocosTimelinePlayer`（461 轨道）属于历史/未迁入口资产，按功能继续处理，不能通过 Cocos 导入器重新生成。以下数量与命令记录均为历史迁移证据。
+
 ## 1. 范围
 
 - 旧 Lua 中 `cc.CSLoader:createTimeline` 共 29 条文本命中：28 条有效、1 条注释。
@@ -28,23 +30,14 @@
 - 支持整数帧区间、命名片段、循环、Pause/Stop、时间倍率、完成事件与 Cocos `FrameEaseType` 缓动。
 - `CocosUiBinding.FindActionTag` 作为轨道到节点的唯一绑定，不按节点名猜测。
 - `csb_dump.cpp` 解码 FlatBuffers `NodeAction/TimeLine/Frame/AnimationInfo`，不再只输出动画摘要。
-- `--scope timeline` 生成独立 manifest；Unity 只向 27 个目标 Prefab 增量补写 Timeline 组件，不重建既有层级，也不覆盖 `OneLevelLayer.prefab` 等非目标手工文件。
+- 历史上曾由 `--scope timeline` 生成独立 manifest，并向目标 Prefab 增量补写 Timeline 组件；该生成流程已禁用。现行动画维护改用 Unity `.anim`/Animator Controller。
 - 无有效贴图的 Panel/Button Image 使用透明图形，避免空资源渲染成白块。
 
-## 4. 验证
+## 4. 历史验证（不再作为现行生成流程）
 
 ```powershell
 python -m unittest discover -s tools/ui_migration/tests -v
 python tools/ui_migration/convert_ui.py --clean
-python tools/ui_migration/prepare_unity_project.py --scope timeline
-
-& 'D:/UnityPro/2022.3.62f3c1/Editor/Unity.exe' -batchmode -quit `
-  -projectPath unityclient `
-  -executeMethod ProjectX.Editor.CocosUiImporter.ImportTimelinePrefabsBatch
-
-& 'D:/UnityPro/2022.3.62f3c1/Editor/Unity.exe' -batchmode -quit `
-  -projectPath unityclient `
-  -executeMethod ProjectX.Editor.CocosUiImporter.ValidateTimelinePlaybackBatch
 ```
 
 结果：Python `15/15`；Unity 27 个 Prefab、34 个命名片段、3 个非空 FrameEvent 全部完成播放，严重异常 0。

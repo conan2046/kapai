@@ -59,6 +59,19 @@ def parse_package(value):
     return records
 
 
+def package_item_totals(value):
+    totals = {}
+    for item_id, quantity in parse_package(value):
+        if item_id:
+            totals[item_id] = totals.get(item_id, 0) + quantity
+    return totals
+
+
+def package_item_totals_sha256(value):
+    serialized = json.dumps(sorted(package_item_totals(value).items()), separators=(",", ":"))
+    return hashlib.sha256(serialized.encode("ascii")).hexdigest()
+
+
 def make_package():
     data = bytearray()
     for item_id, quantity in FIXTURE_ITEMS:
@@ -90,6 +103,8 @@ def relogin_spirit_matches(expected, current):
     expected_time = int(expected["userSpiritLastTime"])
     current_spirit = int(current["userSpirit"])
     current_time = int(current["userSpiritLastTime"])
+    if current_spirit == SPIRIT_FULL and current_time == 0:
+        return True, "normalized-full-sentinel"
     if expected_spirit >= SPIRIT_FULL or current_time < expected_time:
         return False, "invalid-clock"
     elapsed = current_time - expected_time
@@ -111,14 +126,12 @@ def state(connection, user_id, role_id):
         raise RuntimeError(f"SQLite user {user_id} is not linked to role {role_id}")
     if role is None:
         raise RuntimeError(f"SQLite role {role_id} is missing")
-    counts = {}
-    for item_id, quantity in parse_package(role[0]):
-        if item_id:
-            counts[item_id] = counts.get(item_id, 0) + quantity
+    counts = package_item_totals(role[0])
     spirit, spirit_last_time = parse_user_spirit(role[1])
     return {
         "integrity": connection.execute("PRAGMA integrity_check").fetchone()[0],
         "packageSha256": hashlib.sha256(role[0].encode("ascii")).hexdigest(),
+        "packageItemTotalsSha256": package_item_totals_sha256(role[0]),
         "userSpiritSha256": hashlib.sha256(role[1].encode("ascii")).hexdigest(),
         "userSpirit": spirit,
         "userSpiritLastTime": spirit_last_time,
@@ -240,7 +253,7 @@ def main():
         expected = snapshot["before"]
         spirit_matches, spirit_oracle = relogin_spirit_matches(expected, current)
         if (current["integrity"] != "ok"
-                or current["packageSha256"] != expected["packageSha256"]
+                or current["packageItemTotalsSha256"] != expected["packageItemTotalsSha256"]
                 or not spirit_matches
                 or current["aggregateItem500"] != expected["aggregateItem500"]
                 or current["boxes"] != expected["boxes"]

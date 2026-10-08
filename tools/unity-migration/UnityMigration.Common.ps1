@@ -23,10 +23,33 @@ function Resolve-UnityMigrationPath {
         [Parameter(Mandatory = $true)][string]$Root,
         [Parameter(Mandatory = $true)][string]$Path
     )
-    if ([System.IO.Path]::IsPathRooted($Path)) {
-        return [System.IO.Path]::GetFullPath($Path)
+    $resolved = if ([System.IO.Path]::IsPathRooted($Path)) {
+        [System.IO.Path]::GetFullPath($Path)
+    } else {
+        [System.IO.Path]::GetFullPath((Join-Path $Root $Path))
     }
-    return [System.IO.Path]::GetFullPath((Join-Path $Root $Path))
+    # Frozen gate evidence keeps its original paths; read from the relocated native assets.
+    $relocated = $resolved -replace '(?i)([\\/])Assets[\\/]ProjectX(?=([\\/](Animations|Art|Editor|Prefabs|Resources|Scenes|src|UnityOwned)([\\/]|$))|$)', '${1}Assets'
+    if ($relocated -ne $resolved -and -not (Test-Path -LiteralPath $resolved) -and (Test-Path -LiteralPath $relocated)) {
+        return $relocated
+    }
+    return $resolved
+}
+
+function Get-UnityMigrationInteractiveUnityEditors {
+    param([Parameter(Mandatory = $true)][object[]]$Processes)
+
+    return @($Processes | Where-Object {
+        $commandLine = [string](Get-UnityMigrationPropertyValue -Object $_ -Name "CommandLine" -Default "")
+        if (-not $commandLine) { return $false }
+        $normalizedCommandLine = $commandLine.Replace('"', '')
+        if ($normalizedCommandLine -match '(?i)(^|\s)-batchmode(\s|$)' -or
+            $normalizedCommandLine -match '(?i)(^|\s)-adb2(\s|$)' -or
+            $normalizedCommandLine -match '(?i)(^|\s)-name\s+AssetImportWorker\d*(\s|$)') {
+            return $false
+        }
+        return $true
+    })
 }
 
 function Resolve-UnityMigrationExistingPath {
@@ -718,7 +741,7 @@ function Get-UnityMigrationContextSummary {
                 rootCause = [string]$_.rootCause
                 retryDisposition = [string](Get-UnityMigrationPropertyValue -Object $_ -Name "retryDisposition" -Default "")
             } })
-        latestFailureSignature = if ($latestFailure.Count -eq 1) {
+        latestFailureSignature = if (@($latestFailure).Count -eq 1) {
             [string](Get-UnityMigrationPropertyValue -Object $latestFailure[0] -Name "failureSignature" -Default "legacy-unclassified")
         } else { "" }
         forbiddenBulkReads = @("docs/unityclient/history", ".local/unity-validation/*-operation-ledger.json", "full build logs")
@@ -1560,7 +1583,7 @@ function Get-UnityMigrationFixedAccountContractFailures {
     $failures = New-Object System.Collections.Generic.List[string]
     foreach ($name in @(
         "userId", "roleId", "adapter", "snapshot", "resultEvidence",
-        "reloginRequired", "extraFlags", "skipPostValidationFixtureAssert", "artifactCopies",
+        "reloginRequired", "extraFlags", "skipPostValidationFixtureAssert", "artifactCopies", "dataBackend",
         "dataPreflight"
     )) {
         if ($null -eq $FixedAccount.PSObject.Properties[$name]) {
@@ -1570,6 +1593,19 @@ function Get-UnityMigrationFixedAccountContractFailures {
     if ([uint32](Get-UnityMigrationPropertyValue -Object $FixedAccount -Name "userId" -Default 0) -eq 0 -or
         [uint32](Get-UnityMigrationPropertyValue -Object $FixedAccount -Name "roleId" -Default 0) -eq 0) {
         $failures.Add("Evidence contract $Module has no fixed userId/roleId.")
+    }
+    $dataBackend = [string](Get-UnityMigrationPropertyValue -Object $FixedAccount -Name "dataBackend" -Default "")
+    if ($dataBackend -ne "sqlite") {
+        $failures.Add("Evidence contract $Module fixedAccount must declare dataBackend 'sqlite'; Cocos/MySQL fixtures are not supported by Unity.")
+    }
+    foreach ($name in @("sqlitePath", "sqliteSchema")) {
+        if ([string]::IsNullOrWhiteSpace([string](Get-UnityMigrationPropertyValue -Object $FixedAccount -Name $name -Default ""))) {
+            $failures.Add("Evidence contract $Module fixedAccount is missing required field '$name'.")
+        }
+    }
+    $sqlitePathRoot = [string](Get-UnityMigrationPropertyValue -Object $FixedAccount -Name "sqlitePathRoot" -Default "userProfile")
+    if ($sqlitePathRoot -notin @("project", "userProfile")) {
+        $failures.Add("Evidence contract $Module SQLite fixedAccount has unsupported sqlitePathRoot '$sqlitePathRoot'.")
     }
     foreach ($name in @("adapter", "snapshot", "resultEvidence")) {
         if ([string]::IsNullOrWhiteSpace([string](Get-UnityMigrationPropertyValue -Object $FixedAccount -Name $name -Default ""))) {
@@ -1928,6 +1964,19 @@ function Complete-UnityMigrationTiming {
         startedUtc = ([DateTime]$Timing.startedUtc).ToString("O")
         durationMs = [long]$Timing.stopwatch.ElapsedMilliseconds
     }
+}
+
+function Get-UnityMigrationPlayModeState {
+    param(
+        [Parameter(Mandatory = $true)][bool]$IsPlaying,
+        [Parameter(Mandatory = $true)][bool]$IsChanging,
+        [Parameter(Mandatory = $true)][bool]$RuntimeReady
+    )
+
+    if ($IsPlaying -and $RuntimeReady) { return "runtime-ready" }
+    if ($IsPlaying) { return "playing" }
+    if ($IsChanging) { return "transitioning" }
+    return "edit-mode"
 }
 
 function Get-UnityMigrationScenario {
@@ -2880,63 +2929,10 @@ function Get-UnityMigrationTcpListenerPid {
     return $null
 }
 
-function Get-UnityMigrationRuntimeRoots {
-    param([Parameter(Mandatory = $true)][string]$Root)
-    $resolvedRoot = [IO.Path]::GetFullPath($Root)
-    $roots = New-Object System.Collections.Generic.List[string]
-    $roots.Add($resolvedRoot)
-    $gitEntry = Join-Path $resolvedRoot ".git"
-    if (Test-Path -LiteralPath $gitEntry -PathType Leaf) {
-        $match = [regex]::Match((Get-Content -LiteralPath $gitEntry -Raw -Encoding UTF8), '(?im)^gitdir:\s*(.+?)\s*$')
-        if ($match.Success) {
-            $gitDir = [IO.Path]::GetFullPath($match.Groups[1].Value.Trim())
-            $marker = "{0}.git{0}worktrees{0}" -f [IO.Path]::DirectorySeparatorChar
-            $markerIndex = $gitDir.IndexOf($marker, [StringComparison]::OrdinalIgnoreCase)
-            if ($markerIndex -gt 0) {
-                $primaryRoot = [IO.Path]::GetFullPath($gitDir.Substring(0, $markerIndex))
-                if (-not $roots.Contains($primaryRoot)) { $roots.Add($primaryRoot) }
-            }
-        }
-    }
-    return @($roots)
-}
-
-function Test-UnityMigrationWorkspaceMySqlOwnership {
-    param(
-        [Parameter(Mandatory = $true)][string]$Root,
-        [Parameter(Mandatory = $true)][int]$ProcessId
-    )
-    $process = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction SilentlyContinue
-    if (-not $process -or [string]$process.Name -ine "mysqld.exe" -or -not [string]$process.CommandLine) {
-        return $false
-    }
-    $normalizedCommandLine = ([string]$process.CommandLine).Replace('/', '\')
-    foreach ($runtimeRoot in @(Get-UnityMigrationRuntimeRoots -Root $Root)) {
-        $configPath = [IO.Path]::GetFullPath((Join-Path $runtimeRoot ".local\mysql-local.ini"))
-        if ((Test-Path -LiteralPath $configPath -PathType Leaf) -and
-            $normalizedCommandLine.IndexOf($configPath, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
-            return $true
-        }
-    }
-    if ([IO.Path]::GetFullPath($Root) -match '[^\x00-\x7F]') {
-        $workspaceAlias = "$(Split-Path -Qualifier $Root)\kapai-workspace"
-        $aliasItem = Get-Item -LiteralPath $workspaceAlias -Force -ErrorAction SilentlyContinue
-        $aliasTarget = if ($aliasItem -and $aliasItem.Target) { [string]$aliasItem.Target } else { "" }
-        $aliasConfig = [IO.Path]::GetFullPath((Join-Path $workspaceAlias ".local\mysql-local.ini"))
-        if ($aliasItem -and $aliasItem.PSIsContainer -and
-            [IO.Path]::GetFullPath($aliasTarget) -eq [IO.Path]::GetFullPath($Root) -and
-            (Test-Path -LiteralPath $aliasConfig -PathType Leaf) -and
-            $normalizedCommandLine.IndexOf($aliasConfig, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
-            return $true
-        }
-    }
-    return $false
-}
-
 function Get-UnityMigrationWorkspaceProcesses {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
-        [string[]]$Names = @("Unity.exe", "kapai.exe", "mysqld.exe", "ProjectX.exe")
+        [string[]]$Names = @("Unity.exe", "kapai.exe", "ProjectX.exe")
     )
     $escapedRoot = [Regex]::Escape([System.IO.Path]::GetFullPath($Root))
     try {

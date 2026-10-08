@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "fixedAccountDefaults": {
     "requiredHydratedRoots": [
-      "unityclient/Assets/ProjectX"
+      "unityclient/Assets"
     ]
   },
   "modules": [
@@ -188,12 +188,16 @@
     {
       "module": "Login",
       "fixedAccount": {
+        "dataBackend": "sqlite",
+        "sqlitePathRoot": "project",
+        "sqlitePath": ".local/unity-validation/login-sqlite/LocalServer/projectx.db",
+        "sqliteSchema": "unityserver/sql/sqlite/001_initial_schema.sql",
         "userId": 7200057,
-        "roleId": 1000115,
+        "roleId": 1000003,
         "terminalUserId": 7200057,
-        "terminalRoleId": 1000115,
-        "adapter": "tools/unity-migration/Invoke-LoginCocosFixture.ps1",
-        "snapshot": ".local/ui-fidelity/Login/unity/g5-20260801/login-fixed-fixture-snapshot.json",
+        "terminalRoleId": 1000003,
+        "adapter": "tools/unity-migration/Invoke-LoginSqliteFixture.ps1",
+        "snapshot": ".local/ui-fidelity/Login/unity/g5-sqlite/login-fixed-fixture-snapshot.json",
         "resultEvidence": ".local/ui-fidelity/Login/unity/g5-20260801/login-fixed-unity-result.json",
         "visualResultEvidence": ".local/ui-fidelity/Login/unity/g5-20260801/login-g5-visual-result.json",
         "visualValidationFlags": [
@@ -203,8 +207,9 @@
         "reloginRequired": true,
         "extraFlags": [
           "-projectXLoginClosureValidation",
+          "-projectXRequireNoticeResponse",
           "-projectXLoginCreateUserId=7300204",
-          "-projectXLoginIsolationUserId=705213"
+          "-projectXLoginIsolationUserId=1"
         ],
         "skipPostValidationFixtureAssert": true,
         "dataPreflight": {
@@ -212,11 +217,11 @@
           "requirements": [
             {
               "id": "primary-account-role-link",
-              "description": "固定 userId=7200057 必须唯一绑定 roleId=1000115/T00057"
+              "description": "Unity SQLite 固定 userId=7200057 必须唯一绑定 roleId=1000003/T00057"
             },
             {
               "id": "alternate-account-role-link",
-              "description": "隔离 userId=705213 必须唯一绑定 roleId=1000006/T67076"
+              "description": "Unity SQLite 终态隔离 userId=1 必须唯一绑定 roleId=1000001/S8D01"
             },
             {
               "id": "disposable-account-absent",
@@ -224,7 +229,7 @@
             },
             {
               "id": "notice-authority",
-              "description": "临时插入唯一 /88 公告，运行后精确删除并恢复原始行数"
+              "description": "Unity SQLite notice_login 在整库快照后插入唯一 /88 公告，恢复后精确还原整库哈希且无残留"
             },
             {
               "id": "exact-restore-surface",
@@ -491,21 +496,20 @@
           "-projectXGameplayValidation"
         ],
         "requiredHydratedRoots": [
-          "unityclient/Assets/ProjectX/Resources/ProjectXStartup",
-          "unityclient/Assets/ProjectX/Resources/GameplayIcons",
+          "unityclient/Assets/Resources/ProjectXStartup",
+          "unityclient/Assets/Resources/GameplayIcons",
           "unityclient/Assets/ProjectX/res/res/UI/ui_login",
-          "unityclient/Assets/ProjectX/Resources/RoleBust/5_touxiang.png"
+          "unityclient/Assets/Art/Portraits/Roles/5_touxiang.png",
+          "unityclient/Assets/Resources/UnityNativeMain"
         ],
         "requiredHydratedUiDocuments": [
-          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/LoginBgLayer.json",
-          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/loginLayer.json",
-          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/SeverListLayer.json",
-          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/RoleCreateLayer.json",
-          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImainLayer_new.json",
-          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImain_cloudLayer.json",
-          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/ChatLayer.json",
-          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shop/shop_bg.json",
-          "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/ActivityLayer.json"
+          "unityclient/Assets/Prefabs/Login/LoginBgLayer.prefab",
+          "unityclient/Assets/Prefabs/Login/loginLayer.prefab",
+          "unityclient/Assets/Prefabs/Login/SeverListLayer.prefab",
+          "unityclient/Assets/Prefabs/Login/RoleCreateLayer.prefab",
+          "unityclient/Assets/Animations/Main/CloudLoop.anim",
+          "unityclient/Assets/Prefabs/Common/shop_bg.prefab",
+          "unityclient/Assets/Prefabs/Gameplay/ActivityLayer.prefab"
         ],
         "g3ValidationFlags": [
           "-projectXGameplayValidation"
@@ -632,7 +636,7 @@
             "reason": "Closing the Gameplay hub is required to converge exactly on the same authoritative primary-role HUD used for entry; the distinct evidence is the real close-button control step, not a different terminal bitmap.",
             "sourceEvidence": [
               "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json::GAMEPLAY-02-FRAME-CLOSE",
-              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::RunGameplayValidationCoroutine"
+              "unityclient/Assets/src/Core/ProjectXApp.cs::RunGameplayValidationCoroutine"
             ]
           },
           {
@@ -643,7 +647,7 @@
             "reason": "A client restart must rebuild the same authoritative 13-entry list at the same top scroll position; exact bitmap convergence is the expected lifecycle result.",
             "sourceEvidence": [
               "docs/unityclient/matrices/GAMEPLAY_CONTROLS.json::gameplay-scroll-lifecycle-isolation",
-              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::RunGameplayValidationCoroutine"
+              "unityclient/Assets/src/Core/ProjectXApp.cs::RunGameplayValidationCoroutine"
             ]
           }
         ],
@@ -797,7 +801,7 @@
             ],
             "reason": "The Unity route returns to the authoritative type-2 soul-shop frame after the real Draw Shop click; the route distinction is validated by the EventSystem transition and the paired Cocos baseline, not by inventing a second bitmap.",
             "sourceEvidence": [
-              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CaptureGameplayShopsValidation",
+              "unityclient/Assets/src/Core/ProjectXApp.cs::CaptureGameplayShopsValidation",
               "docs/unityclient/matrices/GAMEPLAY_SHOPS_CONTROLS.json::GPS-03-DRAW-SHOP"
             ]
           }
@@ -1257,9 +1261,9 @@
           "client/ProjectX/res/csd/chouka/dancichouka.csb",
           "client/ProjectX/res/csd/chouka/shilianchouka.csb",
           "client/ProjectX/res/csd/chouka/jiangliyulan.csb",
-          "unityclient/Assets/ProjectX/Resources/Lua/Draw/DrawController.lua.txt",
-          "unityclient/Assets/ProjectX/src/UI/DrawPresenter.cs",
-          "unityclient/Assets/ProjectX/src/Data/DrawStore.cs",
+          "unityclient/Assets/Resources/Lua/Draw/DrawController.lua.txt",
+          "unityclient/Assets/src/UI/DrawPresenter.cs",
+          "unityclient/Assets/src/Data/DrawStore.cs",
           "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/shenjiangzhaomu.prefab",
           "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/dancichouka.prefab",
           "unityclient/Assets/ProjectX/res/csd/Prefabs/chouka/shilianchouka.prefab",
@@ -1272,9 +1276,9 @@
           "client/ProjectX/src/Validation/Sha256.lua",
           "client/ProjectX/src/Validation/RuntimeSnapshotCollector.lua",
           "client/ProjectX/src/Validation/RuntimeSnapshotReplay.lua",
-          "unityclient/Assets/ProjectX/src/Core/RuntimeInputDispatcher.cs",
-          "unityclient/Assets/ProjectX/src/Validation/RuntimeSnapshotCollector.cs",
-          "unityclient/Assets/ProjectX/src/Network/ProtocolPacketTrace.cs",
+          "unityclient/Assets/src/Core/RuntimeInputDispatcher.cs",
+          "unityclient/Assets/src/Validation/RuntimeSnapshotCollector.cs",
+          "unityclient/Assets/src/Network/ProtocolPacketTrace.cs",
           "tools/unity-migration/runtime-snapshot.schema.json",
           "tools/unity-migration/runtime-scenarios/draw.json",
           "tools/unity-migration/Compare-UnityRuntimeSnapshots.ps1",
@@ -1965,7 +1969,7 @@
             ],
             "reason": "These lifecycle states intentionally converge on the same authoritative primary-role HUD after transient menus are collapsed; the looping cloud Timeline can make any subset pixel-identical.",
             "sourceEvidence": [
-              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CapturePlayerHudFrame lifecycle captures",
+              "unityclient/Assets/src/Core/ProjectXApp.cs::CapturePlayerHudFrame lifecycle captures",
               "docs/unityclient/matrices/PLAYERHUD_CONTROLS.json::HUD-53-REFRESH-REENTER,HUD-54-RESTART-RECONNECT"
             ]
           }
@@ -2665,8 +2669,8 @@
           "-projectXBagG3Validation"
         ],
         "requiredHydratedRoots": [
-          "unityclient/Assets/ProjectX/Resources/ProjectXStartup",
-          "unityclient/Assets/ProjectX/Resources/ItemIcons",
+          "unityclient/Assets/Resources/ProjectXStartup",
+          "unityclient/Assets/Resources/ItemIcons",
           "unityclient/Assets/ProjectX/res/res/UI",
           "unityclient/Assets/ProjectX/res/csd/UnityMigration/Sliced",
           "unityclient/Assets/ProjectX/res/csd/UnityMigration/Marked",
@@ -3299,9 +3303,9 @@
           "-projectXEnhanceMasterG3Validation"
         ],
         "requiredHydratedRoots": [
-          "unityclient/Assets/ProjectX/Resources/ProjectXStartup",
-          "unityclient/Assets/ProjectX/Resources/UiPrefabs",
-          "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs",
+          "unityclient/Assets/Resources/ProjectXStartup",
+          "unityclient/Assets/Resources/UiPrefabs",
+          "unityclient/Assets/Resources/ProjectXData/Configs",
           "unityclient/Assets/ProjectX/res/res/UI",
           "unityclient/Assets/ProjectX/res/csd/UnityMigration/Sliced",
           "unityclient/Assets/ProjectX/res/xiaokaiSJ2.ttf"

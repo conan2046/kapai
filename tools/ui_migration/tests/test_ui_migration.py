@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import plistlib
 import struct
 import sys
@@ -16,6 +17,7 @@ sys.path.insert(0, str(TOOLS_DIR))
 from csd_ir import parse_csd  # noqa: E402
 from ani_ir import AniFormatError, parse_ani_bytes  # noqa: E402
 from convert_ui import duplicate_status  # noqa: E402
+from convert_animations import convert as convert_animations  # noqa: E402
 from imod_usage import collect_imod_usage  # noqa: E402
 from ir_enrichment import (  # noqa: E402
     attach_paths_and_collect_resources,
@@ -29,6 +31,8 @@ from runtime_usage import (  # noqa: E402
     normalize_csb_path,
 )
 from prepare_unity_project import (  # noqa: E402
+    prepare,
+    _validate_scope,
     _extract_frame,
     _normalize_node,
     _normalize_animation,
@@ -85,6 +89,112 @@ class AniParserTests(unittest.TestCase):
             parse_ani_bytes(b"\x00\x00\x00\x99", "trailing.ani")
         with self.assertRaises(AniFormatError):
             parse_ani_bytes(b"\x01", "truncated.ani")
+
+
+class UnityAnimationPreparationTests(unittest.TestCase):
+    def test_native_prefab_excludes_retired_document_and_legacy_resource_generation(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            unity = root / "unity"
+            native = unity / "Assets/Prefabs/Common/tanchuangjiangli.prefab"
+            native.parent.mkdir(parents=True)
+            native.write_text("authored Unity prefab", encoding="utf-8")
+            migration = root / "output/migration"
+            (migration / "baselines").mkdir(parents=True)
+            font = root / "client/ProjectX/res/MicrosoftArial.ttf"
+            font.parent.mkdir(parents=True)
+            font.write_bytes(b"test font copy fixture")
+            (migration / "baselines/manifest.json").write_text(json.dumps({"baselines": [{
+                "name": "tanchuangjiangli", "source": "cocosstudio/csd/common/tanchuangjiangli.csd",
+                "irPath": "reward.json"
+            }]}), encoding="utf-8")
+            (migration / "asset-manifest.json").write_text('{"assets": []}', encoding="utf-8")
+            (migration / "reward.json").write_text(json.dumps({
+                "root": {}, "resources": [{"path": "res/reward-exclusive.png", "type": "Normal"}]
+            }), encoding="utf-8")
+            result = prepare(unity, migration, "baseline")
+            self.assertEqual(result["documents"], [])
+            self.assertEqual(result["generatedAssets"], ["Assets/ProjectX/res/MicrosoftArial.ttf"])
+            self.assertEqual(result["statistics"]["logicalResources"], 0)
+            self.assertEqual(native.read_text(encoding="utf-8"), "authored Unity prefab")
+            self.assertFalse((unity / "Assets/ProjectX/res/csd/UnityMigration/documents/common/tanchuangjiangli.json").exists())
+
+    def test_unity_native_login_and_monster_animation_families_are_excluded(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            resource_root = root / "client/ProjectX/res"
+            data = bytearray([1])
+            data.extend(struct.pack("<hhhh", 0, 0, 10, 20))
+            data.extend([1, 1])
+            data.extend(struct.pack("<hh", -5, -10))
+            data.extend([0, 3, 1, 1, 0, 1])
+            excluded_paths = (
+                "res2/fx/loading",
+                "res2/animation/effect_chuangjue_1",
+                "res2/create/Create_4",
+                "res2/create/Create_5",
+                "res2/animation/battle/quality2",
+                "res2/animation/battle/quality3",
+                "res2/animation/battle/quality7",
+                "res2/animation/battle/quality8",
+                "Skill/skill_commen_shoot",
+                "res2/Skill/buff_attackup",
+                "UI/shaizi",
+                "Monster/btm123_zd_show",
+                "Monster/btm123_zd",
+                "Monster/btm123_gj",
+                "Monster/btm123_sf1",
+                "Monster/btm123_sf2",
+                "Monster/btm123_sw",
+                "Monster/btm123_bj",
+            )
+            for relative in excluded_paths:
+                source_ani = resource_root / f"{relative}.ani"
+                source_ani.parent.mkdir(parents=True, exist_ok=True)
+                source_ani.write_bytes(data)
+                Image.new("RGBA", (10, 20), (255, 255, 255, 255)).save(
+                    source_ani.with_suffix(".png")
+                )
+
+            unity_root = root / "unityclient"
+            for relative in excluded_paths:
+                unity_assets = unity_root / "Assets/ProjectX/Resources/ProjectXAnimation" / Path(relative).parent
+                unity_assets.mkdir(parents=True, exist_ok=True)
+                for suffix in (".json", ".png"):
+                    asset = unity_assets / f"{Path(relative).name}{suffix}"
+                    asset.write_bytes(b"stale generated asset")
+                    Path(f"{asset}.meta").write_text("stale metadata", encoding="utf-8")
+
+            manifest = convert_animations(resource_root, root / "build/ui-migration", "all", unity_root)
+            entries = {entry["source"][:-4]: entry for entry in manifest["entries"]}
+            catalog = (unity_root / "Assets/ProjectX/Resources/ProjectXAnimation/catalog.json").read_text(
+                encoding="utf-8"
+            )
+            removed_assets = all(
+                not (unity_root / "Assets/ProjectX/Resources/ProjectXAnimation" / Path(relative).parent / f"{Path(relative).name}{suffix}").exists()
+                for relative in excluded_paths
+                for suffix in (".json", ".json.meta", ".png", ".png.meta")
+            )
+            retained_ir = all(
+                (root / "build/ui-migration/ani" / f"{relative}.ani.json").is_file()
+                for relative in excluded_paths
+            )
+            cocos_sources_unchanged = all(
+                (resource_root / f"{relative}.ani").read_bytes() == data
+                for relative in excluded_paths
+            )
+
+        self.assertEqual(set(entries), set(excluded_paths))
+        for entry in entries.values():
+            self.assertIn("unityExcludedReason", entry)
+            self.assertNotIn("unityResourceKey", entry)
+        self.assertEqual(manifest["statistics"]["unityPrepared"], 0)
+        self.assertEqual(manifest["statistics"]["unityExcluded"], len(excluded_paths))
+        for relative in excluded_paths:
+            self.assertNotIn(relative, catalog)
+        self.assertTrue(removed_assets)
+        self.assertTrue(retained_ir)
+        self.assertTrue(cocos_sources_unchanged)
 
 
 class RuntimeUsageTests(unittest.TestCase):
@@ -153,6 +263,10 @@ class RuntimeUsageTests(unittest.TestCase):
 
 
 class TimelineNormalizationTests(unittest.TestCase):
+    def test_cocos_timeline_prefab_generation_scope_is_retired(self) -> None:
+        with self.assertRaisesRegex(ValueError, "Cocos Timeline Prefab generation is retired"):
+            _validate_scope("timeline")
+
     def test_preserves_named_clips_events_tween_and_effective_duration(self) -> None:
         animation = {
             "attributes": {"Duration": 0, "Speed": 1, "ActivedAnimationName": "open"},
@@ -529,6 +643,45 @@ class ResourceValidationTests(unittest.TestCase):
         self.assertEqual(normalized["outlineSize"], 2.0)
         self.assertTrue(normalized["shadowEnabled"])
         self.assertEqual(normalized["shadowOffset"], {"x": 3.0, "y": -4.0})
+
+
+class NativeMaintenanceTests(unittest.TestCase):
+    def test_native_project_settings_survive_legacy_cache_removal(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary) / "unity"
+            settings = project / "ProjectSettings/ProjectXUiMaintenance.json"
+            settings.parent.mkdir(parents=True)
+            settings.write_text('{"maintenanceMode":"unity-native-only"}', encoding="utf-8")
+            missing = Path(temporary) / "missing-cocos-sources"
+            self.assertEqual(prepare(project, missing)["statistics"]["documents"], 0)
+            self.assertEqual(convert_animations(missing, Path(temporary) / "output", "all", project)["statistics"]["unityPrepared"], 0)
+            self.assertFalse((project / "Assets").exists())
+
+    def test_native_mode_never_reads_or_recreates_cocos_sources(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary) / "unity"
+            manifest_path = project / "Assets/ProjectX/res/csd/UnityMigration/unity-import-manifest.json"
+            manifest_path.parent.mkdir(parents=True)
+            manifest = {"maintenanceMode": "unity-native-only", "documents": [], "statistics": {"documents": 0}}
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            before = manifest_path.read_bytes()
+            missing_sources = Path(temporary) / "missing-cocos-sources"
+            self.assertEqual(prepare(project, missing_sources), manifest)
+            report = convert_animations(missing_sources, Path(temporary) / "output", "all", project)
+            self.assertEqual(report["statistics"]["unityPrepared"], 0)
+            self.assertEqual(manifest_path.read_bytes(), before)
+            self.assertFalse((project / "Assets/ProjectX/Resources/ProjectXAnimation").exists())
+
+    def test_native_mode_rejects_old_import_rows(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            manifest_path = project / "Assets/ProjectX/res/csd/UnityMigration/unity-import-manifest.json"
+            manifest_path.parent.mkdir(parents=True)
+            manifest_path.write_text(json.dumps({
+                "maintenanceMode": "unity-native-only", "documents": [{"name": "Legacy"}]
+            }), encoding="utf-8")
+            with self.assertRaises(ValueError):
+                prepare(project, project / "missing-cocos-sources")
 
 
 if __name__ == "__main__":

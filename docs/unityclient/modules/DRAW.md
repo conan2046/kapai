@@ -8,6 +8,7 @@
 - 两次真正 `BootstrapSceneBuilder.BuildBatch` 的场景 SHA-256 均为 `CBE2F1020F627C6904F6E754C08CB17D7848CF8FE5F56E70E523FF804C7F700B`。
 - 确定性重复转换目标只能使用高级池首次真实招募：服务端 `CChouKaManager::ChouKa` 在高级池累计次数为零时权威返回神将 `64`；直接碎片道具来自普通奖池随机项，必须先核对 `/224 reward.Type<60000`，不能拿重复转换结果替代它。
 - 概率结果不做跨端逐项相等要求：Cocos 与 Unity 使用同一正式配置和真实账号状态时允许抽到不同奖励；每次验收只要求本次 `/224` 权威回包、业务数据变化与结果 UI 一致。`NewHero`/`DuplicateFragment` 夹具只用于定位分支，不作为正式概率抽取通过条件。
+- W8 当前结果动画源已切换到 Unity：`DrawSingleResult.anim` 与 `DrawTenResult.anim` 由结果 Prefab 的 Animator 播放，Presenter 通过 Animator 处理起播、跳过与单抽完成回调；MCP 逐帧属性对照 9,671 项通过。两份 Unity-owned Prefab 已无 `UiPrefabIdentity`、`CocosTimelinePlayer`、`CocosUiBinding`，UI/Timeline manifest 已移除旧结果 Prefab，Catalog 已切换 Unity 来源。21 份图像/字体复制到 `UnityNativeDraw/Art`，文件字节与导入子资源匹配，Prefab 递归 `res/` 依赖=0。旧资源仍保留在历史源目录；此切片不重跑已验收业务抽取，画面待用户最终验收。
 
 ## 1. 当前范围
 
@@ -136,9 +137,9 @@ G1 原始窗口截图全部为 `1334×750` PrintWindow 捕获；`kapai-current.o
 | 单抽结果 | `csd/chouka/dancichouka.csb` | createNode + createTimeline |
 | 十连结果 | `csd/chouka/shilianchouka.csb` | createNode + createTimeline |
 | 奖励预览 | `csd/chouka/jiangliyulan.csb` | 三类奖励预览共用 |
-| 抽取炉特效 | `res2/fx/choukaluzi` | Imod action 0 |
+| 抽取炉特效 | Unity `UnityNativeDraw/Animations/FurnaceDraw` | Animator state `FurnaceDraw`，15个Unity Sprite帧，30 fps单次播放 |
 
-所有路径来自当前 Lua 非注释调用点，未按 basename 推断。
+其余旧CSB路径来自当前 Lua 非注释调用点，未按 basename 推断。抽取炉特效已转换为 Unity Sprite/AnimationClip/Animator 维护；运行时不再读取 Imod ANI/PNG，旧转换源与全局转换工具仍因其他消费者保留。
 
 ## 6. Unity 实现与偏差
 
@@ -152,6 +153,7 @@ G1 原始窗口截图全部为 `1334×750` PrintWindow 捕获；`kapai-current.o
 - `DrawStore` 保存三类权威状态与最后一次权威结果。
 - `DrawController` 独占 `/224` 解析，并严格检查剩余字节。
 - `DrawPresenter` 运行时绑定真实 Prefab；不修改或重建手工 Prefab。
+- 2026-09-30 抽卡预览公共框已从 Cocos provider 改为 Unity `OneLevelLayer` Catalog 瞬态实例；该共享 Prefab 的 MCP 层级/节点路径与 identity 复核通过。主抽卡页和两个预览内容页仍保留 Cocos source-token 加载，需在 Draw 后续切片继续迁移。
 - 当前主界面入口、三类 Popup、单抽/十连按钮、免费状态、倒计时和红点均按真实节点绑定。
 - 第一阶段动态门禁只消耗隔离角色的一次免费基础单抽；十连按钮与协议字段已接入，但不为验收强造十张券。
 

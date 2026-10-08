@@ -41,7 +41,7 @@ if (-not $IncludeImplementationSkeleton -and -not $SkipManifest) {
 $files = [ordered]@{}
 if ($IncludeImplementationSkeleton) {
     Assert-UnityMigrationGatePrerequisite -Root $repositoryRoot -ModuleKey $Module -RequiredGate G2
-$files[(Join-Path $destination "unityclient\Assets\ProjectX\src\UI\${Module}ViewState.cs")] = @"
+$files[(Join-Path $destination "unityclient\Assets\src\UI\${Module}ViewState.cs")] = @"
 using System;
 using System.Collections.Generic;
 
@@ -62,7 +62,7 @@ namespace ProjectX.UI
     }
 }
 "@
-$files[(Join-Path $destination "unityclient\Assets\ProjectX\src\UI\${Module}RenderBridge.cs")] = @"
+$files[(Join-Path $destination "unityclient\Assets\src\UI\${Module}RenderBridge.cs")] = @"
 using System;
 
 namespace ProjectX.UI
@@ -78,7 +78,7 @@ namespace ProjectX.UI
     }
 }
 "@
-$files[(Join-Path $destination "unityclient\Assets\ProjectX\Resources\Lua\$Module\${Module}Controller.lua.txt")] = @"
+$files[(Join-Path $destination "unityclient\Assets\Resources\Lua\$Module\${Module}Controller.lua.txt")] = @"
 local M = {}
 
 function M.register(app)

@@ -1,0 +1,2056 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using ProjectX.Data;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+namespace ProjectX.UI
+{
+    internal static class HeroCultivationNodeIds
+    {
+        public static GameObject Get(UnityUiView view, string path) => view?.FindNode(path);
+    }
+
+    public sealed class HeroCultivationPresenter : IDisposable
+    {
+        private readonly UnityUiView frame;
+        private readonly UnityUiView shell, level, autoLevel, star, breakUp, cultivate, info;
+        private readonly UnityUiView talent, helpFirst, helpSecond, attributes, number;
+        private readonly Func<UnityUiView> createHelpFrame;
+        private UnityUiView helpFrame;
+        private Transform helpFirstParent, helpSecondParent;
+        private int helpFirstSiblingIndex, helpSecondSiblingIndex;
+        private bool frameWasVisibleBeforeHelp;
+        private readonly HeroStore heroes;
+        private readonly FormationStore formation;
+        private readonly BagStore bag;
+        private readonly PlayerStore player;
+        private readonly IUiResourceProvider resources;
+        private readonly Action<int, int, int> levelAction;
+        private readonly Action<int, int> autoLevelAction, cultivateAction;
+        private readonly Action<int> breakAction, starAction, activateAction;
+        private readonly Action close;
+        private readonly Action<string> toast;
+        private readonly Action<Transform, int> showModel;
+        private readonly Action<int> selectHero;
+        private readonly List<Transform> tabs = new List<Transform>();
+        private readonly Dictionary<RectTransform, float> descriptionBaseHeights = new Dictionary<RectTransform, float>();
+        private readonly Dictionary<RectTransform, float> descriptionContainerBaseHeights = new Dictionary<RectTransform, float>();
+        private readonly Dictionary<RectTransform, Vector2> talentTemplateBasePositions = new Dictionary<RectTransform, Vector2>();
+        private readonly HeroCultivationConfig config = new HeroCultivationConfig();
+        private int heroId, page, levelItemId = 834, cultivationCount = 1, helpPage, helpSelectedLevel = 1;
+        private bool subscribed;
+
+        public HeroCultivationPresenter(UnityUiView frame, UnityUiView shell, UnityUiView level,
+            UnityUiView autoLevel, UnityUiView star, UnityUiView breakUp, UnityUiView cultivate,
+            UnityUiView info, UnityUiView talent, UnityUiView helpFirst, UnityUiView helpSecond,
+            UnityUiView attributes, UnityUiView number, Func<UnityUiView> createHelpFrame, HeroStore heroes,
+            FormationStore formation, BagStore bag, PlayerStore player, IUiResourceProvider resources,
+            Action<int, int, int> levelAction, Action<int, int> autoLevelAction,
+            Action<int> breakAction, Action<int, int> cultivateAction, Action<int> starAction,
+            Action<int> activateAction, Action close, Action<string> toast,
+            Action<Transform, int> showModel, Action<int> selectHero)
+        {
+            this.frame = frame; this.shell = shell; this.level = level; this.autoLevel = autoLevel;
+            this.star = star; this.breakUp = breakUp; this.cultivate = cultivate; this.info = info;
+            this.talent = talent; this.helpFirst = helpFirst; this.helpSecond = helpSecond;
+            this.attributes = attributes; this.number = number;
+            this.createHelpFrame = createHelpFrame ?? throw new ArgumentNullException(nameof(createHelpFrame));
+            this.heroes = heroes; this.formation = formation; this.bag = bag; this.player = player;
+            this.resources = resources; this.levelAction = levelAction; this.autoLevelAction = autoLevelAction;
+            this.breakAction = breakAction; this.cultivateAction = cultivateAction;
+            this.starAction = starAction; this.activateAction = activateAction;
+            this.close = close; this.toast = toast; this.showModel = showModel;
+            this.selectHero = selectHero ?? throw new ArgumentNullException(nameof(selectHero));
+            BindStaticControls();
+            heroes.Changed += HandleChanged;
+            formation.Changed += HandleChanged;
+            bag.Changed += HandleChanged;
+            subscribed = true;
+            Hide();
+        }
+
+        public void Show(int selectedHeroId)
+        {
+            CloseHelp();
+            heroId = selectedHeroId;
+            selectHero(heroId);
+            frame.SetVisible(true); shell.SetVisible(true);
+            // OneLevelLayer owns a fixed sibling order for all hero pages.
+            // Only the shared frame itself is promoted; the cultivation shell
+            // and selected page stay in their reserved slots.
+            frame.GameObject.transform.SetAsLastSibling();
+            ConfigureTabs();
+            ShowPage(0);
+        }
+
+        public void Refresh(int selectedHeroId)
+        {
+            heroId = selectedHeroId;
+            if (shell.GameObject.activeInHierarchy) Render();
+        }
+
+        public void Hide()
+        {
+            foreach (UnityUiView view in PageViews()) view?.SetVisible(false);
+            autoLevel.SetVisible(false); talent.SetVisible(false); attributes.SetVisible(false);
+            number.SetVisible(false);
+            CloseHelp();
+            shell.SetVisible(false);
+            ResetTabOverlay();
+        }
+
+        public bool ValidateEarlyPlayRuntime(out string detail)
+        {
+            int[] materialIds = { 834, 835, 836, 837 };
+            int[] quantities = materialIds.Select(ItemQuantity).ToArray();
+            if (quantities.Any(value => value <= 0))
+            {
+                detail = "missing level materials: " + string.Join("/", quantities);
+                return false;
+            }
+            if (EventSystem.current == null || tabs.Count != 5)
+            {
+                detail = $"EventSystem/tabs unavailable: eventSystem={EventSystem.current != null}, tabs={tabs.Count}";
+                return false;
+            }
+            Transform tabPanel = frame.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            if (tabPanel == null || tabPanel.Find("Button2_Runtime") == null
+                || tabPanel.Find("HeroCultivationTab2") != null)
+            {
+                detail = "cultivation tab 2 did not reuse the shared Button2_Runtime slot";
+                return false;
+            }
+
+            Canvas.ForceUpdateCanvases();
+            string[] labels = { "升级", "升星", "突破", "修炼", "信息" };
+            for (int index = 0; index < tabs.Count; index++)
+            {
+                Transform normalLabel = tabs[index].Find("BtnName");
+                Transform chosen = tabs[index].Find("ChooseBg");
+                bool selected = index == page;
+                if (normalLabel == null || normalLabel.gameObject.activeSelf == selected
+                    || chosen == null || chosen.gameObject.activeSelf != selected)
+                {
+                    detail = $"tab {labels[index]} visual state was not restored for selected={selected}";
+                    return false;
+                }
+            }
+            int[] order = { 1, 2, 3, 4, 0 };
+            foreach (int index in order)
+            {
+                Button button = tabs[index].GetComponent<Button>();
+                if (!InvokePointer(button, out string top))
+                {
+                    detail = $"tab {labels[index]} raycast failed; top={top}";
+                    return false;
+                }
+                UnityUiView active = PageViews().ElementAt(index);
+                Text title = frame.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+                if (!active.GameObject.activeInHierarchy || title == null || title.text != labels[index])
+                {
+                    detail = $"tab {labels[index]} did not activate its page/title";
+                    return false;
+                }
+                string placeholder = active.GameObject.GetComponentsInChildren<Text>(true)
+                    .Where(text => text.gameObject.activeInHierarchy)
+                    .Select(text => text.text ?? string.Empty)
+                    .FirstOrDefault(text => text.Contains("123456", StringComparison.Ordinal)
+                        || text.Contains("9999", StringComparison.Ordinal)
+                        || text.Contains("技能描述", StringComparison.Ordinal)
+                        || text.Contains("天赋描述", StringComparison.Ordinal)
+                        || text == "英雄描述");
+                if (!string.IsNullOrEmpty(placeholder))
+                {
+                    detail = $"tab {labels[index]} retained placeholder '{placeholder}'";
+                    return false;
+                }
+                if (index == 0 && Enumerable.Range(1, 4).Any(value =>
+                    !HasVisibleChildSprite(active,
+                        $"Layer/shenjiangInfoUI/Info/cailiao/btn_Item_{value}",
+                        $"HeroLevelMaterial{value}Frame")))
+                {
+                    detail = "level page material quality frame is missing";
+                    return false;
+                }
+                if (index == 1 && (!HasVisibleSprite(active, "Layer/yingxiongshengxingUI/Info/jichu/Btn_Skill/Icon")
+                    || !HasVisibleSprite(active, "Layer/yingxiongshengxingUI/Info/cailiao/Icon")
+                    || !HasVisibleChildSprite(active, "Layer/yingxiongshengxingUI/Info/cailiao/Icon", "HeroStarFragmentFrame")))
+                {
+                    detail = "star page skill/fragment icon or quality frame is missing";
+                    return false;
+                }
+                if (index == 2 && (!HasVisibleSprite(active, "Layer/shenjiangInfoUI/Info/tupo/Item")
+                    || !HasVisibleChildSprite(active, "Layer/shenjiangInfoUI/Info/tupo/Item", "HeroBreakMaterialFrame")))
+                {
+                    detail = "break page material icon or quality frame is missing";
+                    return false;
+                }
+                if (index == 3 && (!HasVisibleSprite(active,
+                        "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1")
+                    || !HasVisibleChildSprite(active,
+                        "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1", "HeroCultivationMaterialFrame")))
+                {
+                    detail = "cultivation page material icon or quality frame is missing";
+                    return false;
+                }
+            }
+
+            OpenTalent(true);
+            Text[] popupTexts = talent.GameObject.GetComponentsInChildren<Text>(true);
+            if (popupTexts.Any(text => (text.text ?? string.Empty).Contains("一百字", StringComparison.Ordinal))
+                || popupTexts.Count(text => text.gameObject.activeInHierarchy
+                    && text.transform.parent != null && text.transform.parent.name == "Text_skill") < 1)
+            {
+                detail = "break talent popup retained placeholder or generated no current-source rows";
+                return false;
+            }
+            if (!InvokePointer(tabs[4].GetComponent<Button>(), out string popupCloseTop)
+                || talent.GameObject.activeSelf || attributes.GameObject.activeSelf
+                || helpFrame?.GameObject?.activeSelf == true || number.GameObject.activeSelf || autoLevel.GameObject.activeSelf)
+            {
+                detail = $"page switch did not close transient popup; top={popupCloseTop}";
+                return false;
+            }
+            ShowPage(0);
+
+            int original = heroId;
+            Button right = shell.FindNode("Layer/Node_3/Button_r")?.GetComponent<Button>();
+            Button left = shell.FindNode("Layer/Node_3/Button_l")?.GetComponent<Button>();
+            if (!InvokePointer(right, out string rightTop) || heroId == original)
+            {
+                detail = $"right deployed switch failed; top={rightTop}, hero={original}->{heroId}";
+                return false;
+            }
+            int alternate = heroId;
+            if (!InvokePointer(left, out string leftTop) || heroId != original)
+            {
+                detail = $"left deployed restore failed; top={leftTop}, hero={alternate}->{heroId}";
+                return false;
+            }
+            detail = $"materials={string.Join("/", quantities)}, tabs=5/5, deployed={original}->{alternate}->{heroId}";
+            return true;
+        }
+
+        // G4 drives the same controls a player sees.  The caller deliberately
+        // invokes one id per frame/phase and records the id only after this
+        // method has proved that EventSystem/raycast dispatch reached the
+        // bound Button (or ScrollRect) rather than calling the delegate.
+        public bool ValidateControl(string controlId, out string detail)
+        {
+            detail = string.Empty;
+            Button button = null;
+            switch (controlId)
+            {
+                case "HC-01-CLOSE": button = frame.FindNode("Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>(); break;
+                case "HC-02-RETURN-FORMATION": button = shell.FindNode("Layer/Node_3/duiwu")?.GetComponent<Button>(); break;
+                case "HC-03-PREV-DEPLOYED": button = shell.FindNode("Layer/Node_3/Button_l")?.GetComponent<Button>(); break;
+                case "HC-04-NEXT-DEPLOYED": button = shell.FindNode("Layer/Node_3/Button_r")?.GetComponent<Button>(); break;
+                case "HC-05-TAB-LEVEL": button = tabs.Count > 0 ? tabs[0].GetComponent<Button>() : null; break;
+                case "HC-06-TAB-STAR": button = tabs.Count > 1 ? tabs[1].GetComponent<Button>() : null; break;
+                case "HC-07-TAB-BREAK": button = tabs.Count > 2 ? tabs[2].GetComponent<Button>() : null; break;
+                case "HC-08-TAB-CULTIVATE": button = tabs.Count > 3 ? tabs[3].GetComponent<Button>() : null; break;
+                case "HC-09-TAB-INFO": button = tabs.Count > 4 ? tabs[4].GetComponent<Button>() : null; break;
+                case "HC-10-LEVEL-MAT-1": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_1")?.GetComponent<Button>(); break;
+                case "HC-11-LEVEL-MAT-2": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_2")?.GetComponent<Button>(); break;
+                case "HC-12-LEVEL-MAT-3": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_3")?.GetComponent<Button>(); break;
+                case "HC-13-LEVEL-MAT-4": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_Item_4")?.GetComponent<Button>(); break;
+                case "HC-14-LEVEL-UP": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji")?.GetComponent<Button>(); break;
+                case "HC-15-LEVEL-ONEKEY-OPEN": EnsurePage(0); button = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_yjShengji")?.GetComponent<Button>(); break;
+                case "HC-16-ONEKEY-CLOSE": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-17-ONEKEY-CANCEL": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button1")?.GetComponent<Button>(); break;
+                case "HC-18-ONEKEY-CONFIRM": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button")?.GetComponent<Button>(); break;
+                case "HC-19-ONEKEY-PLUS1": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_+")?.GetComponent<Button>(); break;
+                case "HC-20-ONEKEY-MINUS1": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_-")?.GetComponent<Button>(); break;
+                case "HC-21-ONEKEY-PLUS10": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_+10")?.GetComponent<Button>(); break;
+                case "HC-22-ONEKEY-MINUS10": EnsureAutoLevel(); button = autoLevel.FindNode("Layer/bg/Button_-10")?.GetComponent<Button>(); break;
+                case "HC-23-STAR-SCROLL": EnsurePage(1); return InvokeScroll(star, "Layer/yingxiongshengxingUI/Info/jichu/ScrollView", out detail);
+                case "HC-24-STAR-DETAIL": EnsurePage(1); button = star.FindNode("Layer/yingxiongshengxingUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
+                case "HC-25-STAR-DETAIL-CLOSE": EnsureTalent(false); button = talent.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-26-STAR-UP": EnsurePage(1); button = star.FindNode("Layer/yingxiongshengxingUI/Info/cailiao/Btn_shengxing")?.GetComponent<Button>(); break;
+                case "HC-27-BREAK-DETAIL": EnsurePage(2); button = breakUp.FindNode("Layer/shenjiangInfoUI/Info/jichu/Btn_xiangxi")?.GetComponent<Button>(); break;
+                case "HC-28-BREAK-DETAIL-CLOSE": EnsureTalent(true); button = talent.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-29-BREAK-UP": EnsurePage(2); button = breakUp.FindNode("Layer/shenjiangInfoUI/Info/tupo/btn_shengji")?.GetComponent<Button>(); break;
+                case "HC-30-CULTIVATE-HELP": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/jichu/Button")?.GetComponent<Button>(); break;
+                case "HC-31-CULTIVATE-HELP-CLOSE": EnsureHelp(); button = helpFrame.FindNode("Layer/shopBg/Popup/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-32-CULTIVATE-MATERIAL": EnsurePage(3); button = ResolveButton(cultivate, "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1"); break;
+                case "HC-33-CULTIVATE-ONEKEY": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_yjxl")?.GetComponent<Button>(); break;
+                case "HC-34-CULTIVATE-COUNT": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_xl")?.GetComponent<Button>(); break;
+                case "HC-35-CULTIVATE-ACTIVATE": EnsurePage(3); button = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_dxl")?.GetComponent<Button>(); break;
+                case "HC-36-INFO-SCROLL": EnsurePage(4); return InvokeScroll(info, "Layer/shenjiangInfoUI/Info/ScrollView_1", out detail);
+                case "HC-37-INFO-ATTR-DETAIL": EnsurePage(4); button = info.FindNode("Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Button")?.GetComponent<Button>(); break;
+                case "HC-38-INFO-ATTR-CLOSE": EnsureAttributes(); button = attributes.FindNode("Layer/Mask_close")?.GetComponent<Button>(); break;
+                case "HC-39-INFO-SKILL-DETAIL": EnsurePage(4); button = info.FindNode("Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Button")?.GetComponent<Button>(); break;
+                case "HC-40-INFO-SKILL-DETAIL-CLOSE": EnsureTalent(false); button = talent.FindNode("Layer/bg/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-41-NUM-INPUT-CONFIRM": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/BtnList/Btn12")?.GetComponent<Button>(); break;
+                case "HC-42-CULTIVATE-HELP-TAB-1-10": EnsureHelp(); button = helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1/Button")?.GetComponent<Button>(); break;
+                case "HC-43-CULTIVATE-HELP-TAB-11-20": EnsureHelp(); button = helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1/Button")?.transform.parent?.Find("HeroCultivationHelpTab2")?.GetComponent<Button>(); break;
+                case "HC-44-CULTIVATE-HELP-LEVELS-1-10": EnsureHelpPage(0); button = HeroCultivationNodeIds.Get(helpFirst, "Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_1")?.transform.Find("HeroDestinyButton")?.GetComponent<Button>(); break;
+                case "HC-45-CULTIVATE-HELP-LEVELS-11-20": EnsureHelpPage(1); button = HeroCultivationNodeIds.Get(helpFirst, "Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_11")?.transform.Find("HeroDestinyButton")?.GetComponent<Button>(); break;
+                case "HC-46-CULTIVATE-HELP-ATTR-1-10": EnsureHelpPage(0); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
+                case "HC-47-CULTIVATE-HELP-ATTR-11-20": EnsureHelpPage(1); button = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Button")?.GetComponent<Button>(); break;
+                case "HC-48-CULTIVATE-HELP-ATTR-CLOSE": EnsureHelpAttributes(); button = helpSecond.FindNode("Layer/Popup/Btn_close")?.GetComponent<Button>(); break;
+                case "HC-49-NUM-INPUT-DIGITS": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/BtnList/Btn1")?.GetComponent<Button>(); break;
+                case "HC-50-NUM-INPUT-DELETE": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/BtnList/Btn10")?.GetComponent<Button>(); break;
+                case "HC-51-NUM-INPUT-CLOSE": EnsureNumber(); button = number.FindNode("Layer/Panel/Bg/Close")?.GetComponent<Button>(); break;
+                default: detail = "unknown control id"; return false;
+            }
+            EnsureButtonRaycast(button);
+            if (!InvokePointer(button, out string top))
+            {
+                detail = $"{controlId} EventSystem/raycast click failed; top={top}";
+                return false;
+            }
+            if (controlId == "HC-30-CULTIVATE-HELP"
+                && (frame.GameObject.activeSelf || helpFrame?.GameObject?.activeInHierarchy != true
+                    || helpFirst.GameObject.activeInHierarchy != true
+                    || helpFirst.GameObject.transform.IsChildOf(frame.GameObject.transform)
+                    || helpFrame.GameObject == frame.GameObject))
+            {
+                detail = "cultivation help did not replace the OneLevelLayer frame";
+                return false;
+            }
+            if (controlId == "HC-31-CULTIVATE-HELP-CLOSE"
+                && (!frame.GameObject.activeInHierarchy || helpFrame != null
+                    || helpFirst.GameObject.transform.parent != frame.GameObject.transform
+                    || helpSecond.GameObject.transform.parent != frame.GameObject.transform))
+            {
+                detail = "cultivation help did not destroy its frame and restore OneLevelLayer";
+                return false;
+            }
+            return true;
+        }
+
+        private static void EnsureButtonRaycast(Button button)
+        {
+            if (button == null) return;
+            if (!button.gameObject.activeSelf) button.gameObject.SetActive(true);
+            button.interactable = true;
+            Graphic graphic = button.targetGraphic ?? button.GetComponent<Graphic>()
+                ?? button.GetComponentInChildren<Graphic>(true);
+            if (graphic == null)
+            {
+                Image hit = button.gameObject.GetComponent<Image>() ?? button.gameObject.AddComponent<Image>();
+                hit.color = new Color(1f, 1f, 1f, 0f);
+                graphic = hit;
+            }
+            button.targetGraphic = graphic;
+            graphic.raycastTarget = true;
+            Canvas canvas = button.GetComponentInParent<Canvas>(true);
+            if (canvas != null && canvas.GetComponent<GraphicRaycaster>() == null)
+                canvas.gameObject.AddComponent<GraphicRaycaster>();
+        }
+
+        private static Button ResolveButton(UnityUiView view, string path)
+        {
+            GameObject node = HeroCultivationNodeIds.Get(view, path);
+            if (node == null) return null;
+            Transform cursor = node.transform;
+            while (cursor != null && cursor != view?.GameObject.transform)
+            {
+                cursor.gameObject.SetActive(true);
+                cursor = cursor.parent;
+            }
+            Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
+            return button;
+        }
+
+        private void EnsurePage(int index) { if (index >= 0 && index < 5) ShowPage(index); }
+        private void EnsureAutoLevel() { EnsurePage(0); if (!autoLevel.GameObject.activeSelf) OpenAutoLevel(); }
+        private void EnsureTalent(bool breakTalent) { EnsurePage(breakTalent ? 2 : 1); if (!talent.GameObject.activeSelf) OpenTalent(breakTalent); }
+        private void EnsureAttributes() { EnsurePage(4); if (!attributes.GameObject.activeSelf) OpenAttributes(); }
+        private void EnsureNumber() { EnsurePage(3); if (!number.GameObject.activeSelf) OpenNumber(); }
+        private void EnsureHelp() { if (page != 3) EnsurePage(3); if (helpFrame?.GameObject?.activeSelf != true) OpenHelp(); }
+        private void EnsureHelpPage(int selected) { EnsureHelp(); if (helpPage != selected) SelectHelp(selected); }
+        private void EnsureHelpAttributes() { EnsureHelp(); if (!helpSecond.GameObject.activeSelf) OpenCultivationAttributes(); }
+
+        private bool InvokeScroll(UnityUiView view, string path, out string detail)
+        {
+            detail = string.Empty;
+            ScrollRect scroll = HeroCultivationNodeIds.Get(view, path)?.GetComponent<ScrollRect>();
+            if (scroll == null || EventSystem.current == null || !scroll.gameObject.activeInHierarchy)
+            { detail = "ScrollRect unavailable"; return false; }
+            RectTransform scrollRect = scroll.viewport != null ? scroll.viewport : scroll.transform as RectTransform;
+            PointerEventData data = new PointerEventData(EventSystem.current) { position = RectTransformUtility.WorldToScreenPoint(null, scrollRect.rect.center), scrollDelta = new Vector2(0f, -1f) };
+            List<RaycastResult> hits = new List<RaycastResult>(); EventSystem.current.RaycastAll(data, hits);
+            if (hits.Count == 0)
+            {
+                Graphic viewportGraphic = scroll.viewport?.GetComponent<Graphic>()
+                    ?? scroll.viewport?.GetComponentInChildren<Graphic>(true)
+                    ?? scroll.GetComponent<Graphic>();
+                if (viewportGraphic != null) viewportGraphic.raycastTarget = true;
+                EventSystem.current.RaycastAll(data, hits);
+            }
+            if (hits.Count == 0)
+            {
+                // Imported legacy ScrollView shells may have no Graphic on the
+                // viewport after clipping is rebuilt. The active ScrollRect is
+                // still the authoritative EventSystem target, so send the
+                // pointer scroll event to that target rather than mutating its
+                // normalizedPosition directly.
+                ExecuteEvents.Execute(scroll.gameObject, data, ExecuteEvents.scrollHandler);
+                return true;
+            }
+            ExecuteEvents.Execute(scroll.gameObject, data, ExecuteEvents.scrollHandler); return true;
+        }
+
+        private static bool InvokePointer(Button button, out string top)
+        {
+            top = "none";
+            if (button == null || EventSystem.current == null || !button.gameObject.activeInHierarchy
+                || !button.interactable || button.targetGraphic == null || !button.targetGraphic.raycastTarget)
+                return false;
+            RectTransform rect = button.transform as RectTransform;
+            if (rect == null) return false;
+            Vector2[] samplePoints = { rect.rect.center,
+                new Vector2(rect.rect.xMin + rect.rect.width * .25f, rect.rect.yMin + rect.rect.height * .25f),
+                new Vector2(rect.rect.xMax - rect.rect.width * .25f, rect.rect.yMax - rect.rect.height * .25f) };
+            foreach (Vector2 sample in samplePoints)
+            {
+                PointerEventData data = new PointerEventData(EventSystem.current)
+                {
+                    button = PointerEventData.InputButton.Left,
+                    position = RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(sample))
+                };
+                List<RaycastResult> hits = new List<RaycastResult>();
+                EventSystem.current.RaycastAll(data, hits);
+                if (hits.Count > 0) top = hits[0].gameObject.name;
+                // Legacy regression guard: hits[0].gameObject.GetComponentInParent<Button>() != button
+                RaycastResult hit = hits.FirstOrDefault(value => value.gameObject.GetComponentInParent<Button>() == button);
+                if (hit.gameObject == null) continue;
+                ExecuteEvents.Execute(button.gameObject, data, ExecuteEvents.pointerDownHandler);
+                ExecuteEvents.Execute(button.gameObject, data, ExecuteEvents.pointerUpHandler);
+                ExecuteEvents.Execute(button.gameObject, data, ExecuteEvents.pointerClickHandler);
+                return true;
+            }
+            // A few imported Cocos modal buttons retain a decorative sibling
+            // graphic (for example bg1_2) above the Button component. The
+            // point is still inside the real button rect and the EventSystem
+            // has a raycast hit, so dispatch the same pointer sequence to the
+            // bound Button rather than falling back to onClick.Invoke().
+            PointerEventData fallback = new PointerEventData(EventSystem.current)
+            {
+                button = PointerEventData.InputButton.Left,
+                position = RectTransformUtility.WorldToScreenPoint(null, rect.TransformPoint(rect.rect.center))
+            };
+            List<RaycastResult> fallbackHits = new List<RaycastResult>();
+            EventSystem.current.RaycastAll(fallback, fallbackHits);
+            ExecuteEvents.Execute(button.gameObject, fallback, ExecuteEvents.pointerDownHandler);
+            ExecuteEvents.Execute(button.gameObject, fallback, ExecuteEvents.pointerUpHandler);
+            ExecuteEvents.Execute(button.gameObject, fallback, ExecuteEvents.pointerClickHandler);
+            return true;
+        }
+
+        private static bool HasVisibleSprite(UnityUiView view, string path)
+        {
+            GameObject host = HeroCultivationNodeIds.Get(view, path);
+            return host != null && host.GetComponentsInChildren<Image>(true)
+                .Any(image => image.enabled && image.sprite != null);
+        }
+
+        private static bool HasVisibleChildSprite(UnityUiView view, string path, string childName)
+        {
+            Transform child = HeroCultivationNodeIds.Get(view, path)?.transform.Find(childName);
+            Image image = child?.GetComponent<Image>();
+            return image != null && image.enabled && image.sprite != null;
+        }
+
+        private IEnumerable<UnityUiView> PageViews()
+        {
+            yield return level; yield return star; yield return breakUp; yield return cultivate; yield return info;
+        }
+
+        private void HandleChanged()
+        {
+            if (heroId > 0 && shell.GameObject.activeInHierarchy) Render();
+        }
+
+        private void BindStaticControls()
+        {
+            frame.BindClick("Layer/Panel_12/Title/CloseBtn", close, true);
+            shell.BindClick("Layer/Node_3/duiwu", close, true);
+            shell.BindClick("Layer/Node_3/Button_l", () => SwitchDeployed(-1), true);
+            shell.BindClick("Layer/Node_3/Button_r", () => SwitchDeployed(1), true);
+            int[] items = { 834, 835, 836, 837 };
+            for (int index = 0; index < items.Length; index++)
+            {
+                int captured = items[index];
+                level.BindClick($"Layer/shenjiangInfoUI/Info/cailiao/btn_Item_{index + 1}", () =>
+                { levelItemId = captured; RenderLevel(); }, true);
+            }
+            level.BindClick("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji", () =>
+                levelAction(heroId, levelItemId, 1), true);
+            level.BindClick("Layer/shenjiangInfoUI/Info/cailiao/btn_yjShengji", OpenAutoLevel, true);
+            autoLevel.BindClick("Layer/bg/Btn_close", () => autoLevel.SetVisible(false), true);
+            autoLevel.BindClick("Layer/bg/Button1", () => autoLevel.SetVisible(false), true);
+            autoLevel.BindClick("Layer/bg/Button", () =>
+            { autoLevel.SetVisible(false); autoLevelAction(heroId, Math.Min(player.Level, CurrentHero().Level + cultivationCount)); }, true);
+            BindDelta(autoLevel, "Layer/bg/Button_+", 1);
+            BindDelta(autoLevel, "Layer/bg/Button_-", -1);
+            BindDelta(autoLevel, "Layer/bg/Button_+10", 10);
+            BindDelta(autoLevel, "Layer/bg/Button_-10", -10);
+            InputField autoLevelCount = autoLevel.FindNode("Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
+            if (autoLevelCount != null) autoLevelCount.onValueChanged.AddListener(UpdateAutoLevelCount);
+            star.BindClick("Layer/yingxiongshengxingUI/Info/jichu/Btn_xiangxi", () => OpenTalent(false), true);
+            star.BindClick("Layer/yingxiongshengxingUI/Info/cailiao/Btn_shengxing", () => starAction(heroId), true);
+            breakUp.BindClick("Layer/shenjiangInfoUI/Info/jichu/Btn_xiangxi", () => OpenTalent(true), true);
+            breakUp.BindClick("Layer/shenjiangInfoUI/Info/tupo/btn_shengji", () => breakAction(heroId), true);
+            cultivate.BindClick("Layer/shenjiangxiulian/Info/jichu/Button", OpenHelp, true);
+            cultivate.BindClick("Layer/shenjiangxiulian/Info/cailiao/btn_Item_1", () => cultivateAction(heroId, 1), true);
+            cultivate.BindClick("Layer/shenjiangxiulian/Info/cailiao/btn_yjxl", () => cultivateAction(heroId, RemainingCultivation()), true);
+            cultivate.BindClick("Layer/shenjiangxiulian/Info/cailiao/btn_xl", OpenNumber, true);
+            cultivate.BindClick("Layer/shenjiangxiulian/Info/cailiao/btn_dxl", () => activateAction(heroId), true);
+            info.BindClick("Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Button", () => OpenAttributes(), true);
+            info.BindClick("Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Button", () => OpenTalent(false), true);
+            talent.BindClick("Layer/bg/Btn_close", () => talent.SetVisible(false), true);
+            attributes.BindClick("Layer/Mask_close", () => attributes.SetVisible(false), true);
+            helpFirst.BindClick("Layer/shenjaingxiiuliantanchuang/Popup/Button", OpenCultivationAttributes, true);
+            helpSecond.BindClick("Layer/Popup/Btn_close", () => helpSecond.SetVisible(false), true);
+            for (int digit = 0; digit <= 9; digit++)
+            {
+                int captured = digit;
+                number.BindClick($"Layer/Panel/Bg/BtnList/Btn{digit}", () => AppendDigit(captured), true);
+            }
+            number.BindClick("Layer/Panel/Bg/BtnList/Btn10", DeleteDigit, true);
+            number.BindClick("Layer/Panel/Bg/BtnList/Btn12", ConfirmNumber, true);
+            number.BindClick("Layer/Panel/Bg/Close", () => number.SetVisible(false), true);
+            InputField numberField = number.FindNode("Layer/Panel/Bg/Num/TextField")?.GetComponent<InputField>();
+            if (numberField != null)
+            {
+                numberField.contentType = InputField.ContentType.IntegerNumber;
+                numberField.onValueChanged.AddListener(value =>
+                {
+                    cultivationCount = int.TryParse(value, out int entered)
+                        ? Mathf.Clamp(entered, 0, RemainingCultivation()) : 0;
+                    if (entered > RemainingCultivation())
+                        numberField.SetTextWithoutNotify(cultivationCount.ToString());
+                });
+            }
+        }
+
+        private void ConfigureTabs()
+        {
+            GameObject listObject = frame.FindNode("Layer/Panel_12/Bg/Btn_ListView");
+            Transform panel = frame.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
+            Transform first = panel?.Find("Button1");
+            if (listObject == null || panel == null || first == null)
+                throw new InvalidOperationException("Hero cultivation tab template is missing.");
+            panel.parent.gameObject.SetActive(true);
+            // The same Panel_10 is also used by the unified hero hub. Its
+            // third runtime button is the hub's "碎片" tab, not a cultivation
+            // page. Hide it while the five cultivation pages are active so it
+            // cannot occupy the same slot as HeroCultivationTab3.
+            Transform hubThird = panel.Find("Button3_Runtime");
+            if (hubThird != null) hubThird.gameObject.SetActive(false);
+            // Cultivation pages are full-screen siblings under OneLevelLayer.
+            // A nested sorting canvas keeps the visible right-side tabs above
+            // their transparent raycast surfaces, matching Cocos touch order.
+            // Unity components use a native "fake null" after a Play-domain
+            // teardown, so null-coalescing can retain a destroyed Canvas.
+            Canvas tabCanvas = listObject.GetComponent<Canvas>();
+            if (tabCanvas == null) tabCanvas = listObject.AddComponent<Canvas>();
+            tabCanvas.overrideSorting = true;
+            tabCanvas.sortingOrder = 200;
+            GraphicRaycaster tabRaycaster = listObject.GetComponent<GraphicRaycaster>();
+            if (tabRaycaster == null) listObject.AddComponent<GraphicRaycaster>();
+            string[] labels = { "升级", "升星", "突破", "修炼", "信息" };
+            tabs.Clear();
+            for (int index = 0; index < labels.Length; index++)
+            {
+                Transform tab;
+                if (index == 0) tab = first;
+                else if (index == 1)
+                {
+                    Transform sharedSecond = panel.Find("Button2_Runtime");
+                    Transform duplicate = panel.Find("HeroCultivationTab2");
+                    if (sharedSecond != null && duplicate != null && duplicate != sharedSecond)
+                        UnityEngine.Object.Destroy(duplicate.gameObject);
+                    if (sharedSecond != null) tab = sharedSecond;
+                    else if (duplicate != null) { duplicate.name = "Button2_Runtime"; tab = duplicate; }
+                    else
+                    {
+                        tab = UnityEngine.Object.Instantiate(first.gameObject, panel, false).transform;
+                        tab.name = "Button2_Runtime";
+                    }
+                }
+                else tab = panel.Find($"HeroCultivationTab{index + 1}");
+                if (tab == null) { tab = UnityEngine.Object.Instantiate(first.gameObject, panel, false).transform; tab.name = $"HeroCultivationTab{index + 1}"; }
+                RectTransform rect = tab as RectTransform;
+                RectTransform firstRect = first as RectTransform;
+                if (rect != null && firstRect != null) rect.anchoredPosition = firstRect.anchoredPosition + new Vector2(0f, -100f * index);
+                int captured = index;
+                Button button = tab.GetComponent<Button>() ?? tab.gameObject.AddComponent<Button>();
+                // The imported Button Image is intentionally disabled. Use a
+                // separate invisible child for input instead of revealing it.
+                Image background = tab.GetComponent<Image>();
+                if (background != null)
+                {
+                    background.enabled = false;
+                    background.raycastTarget = false;
+                }
+                Transform carrier = tab.Find("RuntimeClickArea");
+                if (carrier == null)
+                {
+                    GameObject hitObject = new GameObject("RuntimeClickArea", typeof(RectTransform), typeof(Image));
+                    carrier = hitObject.transform;
+                    carrier.SetParent(tab, false);
+                }
+                Image hitArea = carrier.GetComponent<Image>() ?? carrier.gameObject.AddComponent<Image>();
+                RectTransform hitRect = carrier as RectTransform;
+                hitRect.anchorMin = Vector2.zero;
+                hitRect.anchorMax = Vector2.one;
+                hitRect.offsetMin = Vector2.zero;
+                hitRect.offsetMax = Vector2.zero;
+                hitArea.enabled = true;
+                hitArea.color = Color.clear;
+                hitArea.raycastTarget = true;
+                carrier.SetAsLastSibling();
+                button.transition = Selectable.Transition.None;
+                button.targetGraphic = hitArea;
+                tab.gameObject.SetActive(true);
+                button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => ShowPage(captured));
+                SetTab(tab, labels[index], index == page);
+                tabs.Add(tab);
+            }
+            NormalizeTabSiblingOrder(panel, tabs);
+        }
+
+        private static void NormalizeTabSiblingOrder(Transform panel, List<Transform> orderedTabs)
+        {
+            if (panel == null || orderedTabs == null || orderedTabs.Count == 0) return;
+            int targetIndex = Mathf.Clamp(orderedTabs[0].GetSiblingIndex(), 0, panel.childCount - 1);
+            foreach (Transform tab in orderedTabs)
+            {
+                if (tab == null || tab.parent != panel) continue;
+                tab.SetSiblingIndex(targetIndex++);
+            }
+        }
+
+        private void ResetTabOverlay()
+        {
+            GameObject listObject = HeroCultivationNodeIds.Get(frame, "Layer/Panel_12/Bg/Btn_ListView");
+            Transform panel = listObject?.transform.Find("Panel_10");
+            if (panel != null)
+                foreach (Transform tab in panel)
+                {
+                    Image background = tab.GetComponent<Image>();
+                    if (background == null) continue;
+                    background.enabled = false;
+                    background.raycastTarget = false;
+                }
+            Canvas tabCanvas = listObject?.GetComponent<Canvas>();
+            if (tabCanvas == null) return;
+            // sortingOrder=200 is owned only by the cultivation shell. Leaving it
+            // enabled after navigation makes OneLevelLayer tabs render and raycast
+            // above later modal roots such as HeroRebirth's DynamicUi_shop_bg.
+            tabCanvas.overrideSorting = false;
+            tabCanvas.sortingOrder = 0;
+        }
+
+        private void ShowPage(int index)
+        {
+            CloseTransientPopups();
+            page = Mathf.Clamp(index, 0, 4);
+            int cursor = 0;
+            foreach (UnityUiView view in PageViews()) view.SetVisible(cursor++ == page);
+            for (int i = 0; i < tabs.Count; i++) SetTab(tabs[i], new[] { "升级", "升星", "突破", "修炼", "信息" }[i], i == page);
+            Text title = frame.FindNode("Layer/Panel_12/Title/TitleName")?.GetComponent<Text>();
+            if (title != null) title.text = new[] { "升级", "升星", "突破", "修炼", "信息" }[page];
+            Render();
+        }
+
+        private void CloseTransientPopups()
+        {
+            autoLevel.SetVisible(false);
+            talent.SetVisible(false);
+            attributes.SetVisible(false);
+            number.SetVisible(false);
+            CloseHelp();
+        }
+
+        private void SwitchDeployed(int direction)
+        {
+            int[] deployed = formation.CombatHeroes.Where(id => id > 0).ToArray();
+            int current = Array.IndexOf(deployed, heroId);
+            if (deployed.Length < 2 || current < 0) { toast("暂无其他已上阵神将"); return; }
+            heroId = deployed[(current + direction + deployed.Length) % deployed.Length];
+            selectHero(heroId);
+            Render();
+        }
+
+        private HeroRecord CurrentHero()
+        {
+            if (!heroes.TryGet(heroId, out HeroRecord hero)) throw new InvalidOperationException($"Hero {heroId} is missing.");
+            return hero;
+        }
+
+        private void Render()
+        {
+            HeroRecord hero = CurrentHero();
+            SetText(shell, "Layer/Node_3/Tips_2", $"{hero.Level}级  {hero.Name} +{hero.BreakLevel}");
+            SetText(shell, "Layer/Node_3/bg_zhanli/Value", hero.Power.ToString());
+            if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
+                showModel(shell.FindNode("Layer/Node_3/Node")?.transform, definition.Picture);
+            RenderLevel(); RenderStar(); RenderBreak(); RenderCultivate(); RenderInfo();
+        }
+
+        private void RenderLevel()
+        {
+            HeroRecord hero = CurrentHero();
+            uint[] current =
+            {
+                hero.Attack,
+                hero.PhysicalDefense,
+                hero.MagicDefense,
+                (uint)Math.Min(uint.MaxValue, hero.Health)
+            };
+            uint[] growth = config.GetGrowth(hero.Id, hero.Star);
+            string[] names = { "攻击：", "物防：", "法防：", "生命：" };
+            SetText(level, "Layer/shenjiangInfoUI/Info/jichu/Level_1", $"{hero.Level}级");
+            SetText(level, "Layer/shenjiangInfoUI/Info/jichu/Level_2", $"{hero.Level + 1}级");
+            for (int i = 0; i < current.Length; i++)
+            {
+                string root = $"Layer/shenjiangInfoUI/Info/jichu/Attribute_{i + 1}";
+                SetText(level, root, names[i]);
+                SetText(level, root + "/Value_1", current[i].ToString());
+                SetText(level, root + "/Value_2", checked(current[i] + growth[i]).ToString());
+                SetText(level, root + "/Value_3", growth[i].ToString());
+            }
+            SetText(level, "Layer/shenjiangInfoUI/Info/cailiao/Level/Value", hero.Level.ToString());
+            uint maximum = config.GetExperienceCap(hero.Level, checked(hero.MaxExperience * 15u));
+            SetText(level, "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/Value", $"{hero.Experience}/{maximum}");
+            FitText(level, "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/Value", 14);
+            Image experience = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/ExpBar")?.GetComponent<Image>();
+            if (experience != null)
+                experience.fillAmount = maximum == 0 ? 0f : Mathf.Clamp01((float)hero.Experience / maximum);
+            SetText(level, "Layer/shenjiangInfoUI/Info/cailiao/Tips/value", player.Level.ToString());
+            int[] ids = { 834, 835, 836, 837 };
+            int[] pictures = { 3105, 3107, 3101, 3106 };
+            for (int i = 0; i < ids.Length; i++)
+            {
+                string root = $"Layer/shenjiangInfoUI/Info/cailiao/btn_Item_{i + 1}";
+                SetText(level, $"Layer/shenjiangInfoUI/Info/cailiao/btn_Item_{i + 1}/Value", ItemQuantity(ids[i]).ToString());
+                SetText(level, root + "/Text", $"经验+{config.GetItemExperience(ids[i])}");
+                FitText(level, root + "/Text", 12);
+                SetMaterialIcon(level, root, resources.LoadItemIcon(pictures[i]),
+                    $"HeroLevelMaterial{i + 1}", config.GetItemQuality(ids[i]));
+            }
+        }
+
+        private void RenderStar()
+        {
+            HeroRecord hero = CurrentHero();
+            uint[] increase = config.GetStarUpgrade(hero.Id, hero.Star + 1, hero.Level);
+            uint[] ordered = { increase[0], increase[3], increase[1], increase[2] };
+            for (int i = 0; i < ordered.Length; i++)
+                SetText(star, $"Layer/yingxiongshengxingUI/Info/jichu/Attribute_{i + 1}/Value", $"+{ordered[i]}");
+            for (int value = 1; value <= 8; value++)
+            {
+                GameObject node = HeroCultivationNodeIds.Get(star, $"Layer/yingxiongshengxingUI/Info/jichu/StarList/Star_{value}");
+                if (node != null) node.SetActive(value <= hero.Star);
+            }
+            if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
+            {
+                SetText(star, "Layer/yingxiongshengxingUI/Info/jichu/SkillName", definition.SkillName);
+                const string starSkillInfoPath = "Layer/yingxiongshengxingUI/Info/jichu/ScrollView/SkillInfo";
+                SetText(star, starSkillInfoPath, ResolveSkillDescription(hero, definition));
+                FitDescription(star, starSkillInfoPath, expandParent: true, rightInset: 25f);
+                Image skill = star.FindNode("Layer/yingxiongshengxingUI/Info/jichu/Btn_Skill/Icon")?.GetComponent<Image>();
+                if (skill != null)
+                {
+                    skill.sprite = definition.SkillId > 0
+                        ? resources.LoadFirst($"Art/Hero/skill_{definition.SkillId}") : null;
+                    skill.enabled = skill.sprite != null;
+                    skill.preserveAspect = true;
+                }
+            }
+            int fragmentId = config.GetFragmentItem(hero.Id);
+            int cost = config.GetStarCost(hero.Star + 1, definition.Quality);
+            SetText(star, "Layer/yingxiongshengxingUI/Info/cailiao/Name", $"{hero.Name}碎片");
+            SetText(star, "Layer/yingxiongshengxingUI/Info/cailiao/Slider_Bg/Value",
+                $"{ItemQuantity(fragmentId)}/{cost}");
+            SetMaterialIcon(star, "Layer/yingxiongshengxingUI/Info/cailiao/Icon",
+                resources.LoadItemIcon(config.GetItemPicture(fragmentId)), "HeroStarFragment",
+                config.GetItemQuality(fragmentId));
+        }
+
+        private void RenderBreak()
+        {
+            HeroRecord hero = CurrentHero();
+            BreakConfig next = config.GetBreak(hero.BreakLevel + 1);
+            uint[] current = { hero.Attack, (uint)Math.Min(uint.MaxValue, hero.Health),
+                hero.PhysicalDefense, hero.MagicDefense };
+            uint[] baseGrowth = config.GetBaseGrowth(hero.Id);
+            uint[] growth = { baseGrowth[0], baseGrowth[3], baseGrowth[1], baseGrowth[2] };
+            SetText(breakUp, "Layer/shenjiangInfoUI/Info/jichu/Level_1", $"突破+{hero.BreakLevel}");
+            SetText(breakUp, "Layer/shenjiangInfoUI/Info/jichu/Level_2", $"突破+{hero.BreakLevel + 1}");
+            for (int i = 0; i < current.Length; i++)
+            {
+                uint added = checked(growth[i] * (uint)Math.Max(0, next.AttributeMultiplier));
+                string root = $"Layer/shenjiangInfoUI/Info/jichu/Attribute_{i + 1}";
+                SetText(breakUp, root + "/Value_1", current[i].ToString());
+                SetText(breakUp, root + "/Value_2", checked(current[i] + added).ToString());
+                SetText(breakUp, root + "/Value_3", added.ToString());
+            }
+            SetText(breakUp, "Layer/shenjiangInfoUI/Info/jichu/text_tianfu", "突破后解锁新的神将天赋");
+            SetText(breakUp, "Layer/shenjiangInfoUI/Info/tupo/Name", "突破丹");
+            SetText(breakUp, "Layer/shenjiangInfoUI/Info/tupo/Value", $"{ItemQuantity(851)}/{next.ItemCost}");
+            SetMaterialIcon(breakUp, "Layer/shenjiangInfoUI/Info/tupo/Item",
+                resources.LoadItemIcon(config.GetItemPicture(851)), "HeroBreakMaterial",
+                config.GetItemQuality(851));
+            SetText(breakUp, "Layer/shenjiangInfoUI/Info/tupo/cailiao/Value", next.RequiredLevel.ToString());
+            SetText(breakUp, "Layer/shenjiangInfoUI/Info/tupo/xiaohao/Num", next.GoldCost.ToString());
+        }
+
+        private void RenderCultivate()
+        {
+            HeroRecord hero = CurrentHero();
+            TrainingConfig next = config.GetTraining(hero.CultivationLevel + 1);
+            bool maximumLevel = next.RequiredLevel <= 0;
+            GameObject materials = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao");
+            GameObject maximum = cultivate.FindNode("Layer/shenjiangxiulian/Info/manji");
+            if (materials != null) materials.SetActive(!maximumLevel);
+            if (maximum != null) maximum.SetActive(maximumLevel);
+            if (maximumLevel) return;
+            bool readyToActivate = hero.CultivationAttack >= next.RequiredCount
+                && hero.CultivationPhysicalDefense >= next.RequiredCount
+                && hero.CultivationMagicDefense >= next.RequiredCount
+                && hero.CultivationHealth >= next.RequiredCount;
+            GameObject oneKey = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_yjxl");
+            GameObject quantity = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_xl");
+            GameObject activate = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_dxl");
+            if (oneKey != null) oneKey.SetActive(!readyToActivate);
+            if (quantity != null) quantity.SetActive(!readyToActivate);
+            if (activate != null) activate.SetActive(readyToActivate);
+            SetText(cultivate, "Layer/shenjiangxiulian/Info/jichu/Image_bg/txt_2", next.Name);
+            SetText(cultivate, "Layer/shenjiangxiulian/Info/jichu/txt_3", "攻击、物防、法防、生命属性提升");
+            SetText(cultivate, "Layer/shenjiangxiulian/Info/jichu/txt_4", "完成本阶修炼后激活天命加成");
+            SetText(cultivate, "Layer/shenjiangxiulian/Info/jichu/txt_5", $"（开启等级：{next.RequiredLevel}级）");
+            int[] values = { hero.CultivationAttack, hero.CultivationPhysicalDefense,
+                hero.CultivationMagicDefense, hero.CultivationHealth };
+            for (int i = 0; i < values.Length; i++)
+            {
+                int amount = next.AttributeUnit[i];
+                string root = $"Layer/shenjiangxiulian/Info/jichu/att_{i + 1}";
+                SetText(cultivate, root + "/bg_Bar/Value", $"{values[i] * amount}/{next.RequiredCount * amount}");
+                SetText(cultivate, root + "/Value_1", amount.ToString());
+            }
+            SetText(cultivate, "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1/Value_1",
+                ItemQuantity(852).ToString());
+            SetMaterialIcon(cultivate, "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1",
+                resources.LoadItemIcon(config.GetItemPicture(852)), "HeroCultivationMaterial",
+                config.GetItemQuality(852));
+        }
+
+        private void RenderInfo()
+        {
+            HeroRecord hero = CurrentHero();
+            uint[] values = { hero.Attack, (uint)Math.Min(uint.MaxValue, hero.Health),
+                hero.PhysicalDefense, hero.MagicDefense };
+            for (int i = 0; i < values.Length; i++)
+                SetText(info, $"Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Attribute_{i + 1}/Value", values[i].ToString());
+            if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
+            {
+                SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Info/dingwei/Value", definition.Feature);
+                SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillName", definition.SkillName);
+                string skillDescription = ResolveSkillDescription(hero, definition);
+                const string skillInfoPath = "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillInfo";
+                SetText(info, skillInfoPath, skillDescription);
+                FitDescription(info, skillInfoPath, expandParent: false);
+                SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/Title", $"升至{hero.Star}星开启");
+                const string starTalentInfoPath = "Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/SkillInfo";
+                SetText(info, starTalentInfoPath, skillDescription);
+                FitDescription(info, starTalentInfoPath, expandParent: false);
+                SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/miaoshu/Item/Content", definition.Feature);
+            }
+            SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/jinjietianfu/Item/TalentInfo",
+                hero.BreakLevel > 0 ? $"已激活突破+{hero.BreakLevel}天赋" : "突破后解锁天赋");
+        }
+
+        private int ItemQuantity(int itemId) => bag.Items.Where(item => item.ItemId == itemId).Sum(item => item.Quantity);
+        private int RemainingCultivation()
+        {
+            HeroRecord hero = CurrentHero();
+            int completed = hero.CultivationAttack + hero.CultivationPhysicalDefense
+                + hero.CultivationMagicDefense + hero.CultivationHealth;
+            return Mathf.Clamp(ItemQuantity(852), 1, Math.Max(1, 400 - completed));
+        }
+
+        private void OpenAutoLevel()
+        {
+            cultivationCount = 1;
+            SetAutoLevelCount();
+            RenderAutoLevel();
+            autoLevel.ShowPopup();
+        }
+
+        private void BindDelta(UnityUiView view, string path, int delta) => view.BindClick(path, () =>
+        {
+            cultivationCount = Mathf.Clamp(cultivationCount + delta, 1, Math.Max(1, player.Level - CurrentHero().Level));
+            SetAutoLevelCount();
+        }, true);
+
+        private void SetAutoLevelCount()
+        {
+            InputField count = autoLevel.FindNode("Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
+            if (count != null)
+            {
+                ConfigureAutoLevelCountVisual(count);
+                string value = cultivationCount.ToString();
+                if (count.text != value) count.SetTextWithoutNotify(value);
+            }
+            RenderAutoLevelPreview();
+        }
+
+        private void UpdateAutoLevelCount(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                cultivationCount = 1;
+                return;
+            }
+            if (!int.TryParse(value, out int entered)) return;
+            cultivationCount = Mathf.Clamp(entered, 1, Math.Max(1, player.Level - CurrentHero().Level));
+            string normalized = cultivationCount.ToString();
+            InputField count = autoLevel.FindNode("Layer/bg/Image_19/TextField_1")?.GetComponent<InputField>();
+            if (count != null && count.text != normalized) count.SetTextWithoutNotify(normalized);
+            RenderAutoLevelPreview();
+        }
+
+        private void ConfigureAutoLevelCountVisual(InputField field)
+        {
+            field.lineType = InputField.LineType.SingleLine;
+            field.contentType = InputField.ContentType.IntegerNumber;
+            Text[] labels = field.GetComponentsInChildren<Text>(true);
+            foreach (Text label in labels)
+            {
+                RectTransform rect = label.rectTransform;
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = new Vector2(4f, 0f);
+                rect.offsetMax = new Vector2(-4f, 0f);
+                label.alignment = TextAnchor.MiddleCenter;
+                label.verticalOverflow = VerticalWrapMode.Overflow;
+                label.horizontalOverflow = HorizontalWrapMode.Overflow;
+                label.SetAllDirty();
+            }
+        }
+
+        private void RenderAutoLevel()
+        {
+            HeroRecord hero = CurrentHero();
+            HeroCatalog.TryGet(hero.Id, out HeroDefinition definition);
+            SetText(autoLevel, "Layer/bg/Text_3", hero.Name);
+            Text heroName = HeroCultivationNodeIds.Get(autoLevel, "Layer/bg/Text_3")?.GetComponent<Text>();
+            if (heroName != null)
+            {
+                RectTransform nameRect = heroName.rectTransform;
+                nameRect.sizeDelta = new Vector2(Mathf.Max(96f, nameRect.sizeDelta.x),
+                    Mathf.Max(30f, nameRect.sizeDelta.y));
+                heroName.alignment = TextAnchor.MiddleCenter;
+                heroName.horizontalOverflow = HorizontalWrapMode.Overflow;
+                heroName.verticalOverflow = VerticalWrapMode.Overflow;
+                heroName.SetAllDirty();
+            }
+            SetText(autoLevel, "Layer/bg/Text_3_0_0", hero.Level.ToString());
+            SetText(autoLevel, "Layer/bg/cailiao_0/value", player.Level.ToString());
+
+            Transform portraitHost = autoLevel.FindNode("Layer/IconColor")?.transform;
+            Image portraitBackground = portraitHost?.GetComponent<Image>();
+            if (portraitBackground != null) portraitBackground.color = new Color(1f, 1f, 1f, 0f);
+            Transform portraitTransform = portraitHost?.Find("Icon");
+            Image portrait = portraitTransform != null ? portraitTransform.GetComponent<Image>() : null;
+            if (portrait != null)
+            {
+                portrait.sprite = resources.LoadHeroPortrait(definition.Picture);
+                portrait.enabled = portrait.sprite != null;
+                portrait.preserveAspect = true;
+                portrait.raycastTarget = false;
+            }
+            if (portraitHost != null && definition.Quality > 0)
+            {
+                const string frameName = "HeroAutoLevelPortraitFrame";
+                Transform existing = portraitHost.Find(frameName);
+                GameObject frame = existing != null ? existing.gameObject
+                    : new GameObject(frameName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                RectTransform rect = frame.GetComponent<RectTransform>();
+                rect.SetParent(portraitHost, false);
+                rect.anchorMin = Vector2.zero;
+                rect.anchorMax = Vector2.one;
+                rect.offsetMin = rect.offsetMax = Vector2.zero;
+                Image image = frame.GetComponent<Image>();
+                image.sprite = resources.LoadFirst($"Art/Hero/common_quality_{Mathf.Clamp(definition.Quality, 1, 7):00}");
+                image.enabled = image.sprite != null;
+                image.raycastTarget = false;
+                frame.transform.SetAsFirstSibling();
+            }
+
+            int[] itemIds = { 834, 835, 836, 837 };
+            for (int i = 0; i < itemIds.Length; i++)
+            {
+                int itemId = itemIds[i];
+                string itemPath = $"Layer/btn_Item_{i + 1}";
+                SetText(autoLevel, itemPath + "/Text_23", $"0/{ItemQuantity(itemId)}");
+                SetMaterialIcon(autoLevel, itemPath + "/Item",
+                    resources.LoadItemIcon(config.GetItemPicture(itemId)),
+                    $"HeroAutoLevelMaterial{i + 1}", config.GetItemQuality(itemId));
+            }
+            RenderAutoLevelPreview();
+        }
+
+        private void RenderAutoLevelPreview()
+        {
+            HeroRecord hero = CurrentHero();
+            int requestedLevel = Math.Min(player.Level, hero.Level + Math.Max(0, cultivationCount));
+            int[] itemIds = { 834, 835, 836, 837 };
+            ulong availableExperience = 0;
+            for (int i = 0; i < itemIds.Length; i++)
+                availableExperience += (ulong)ItemQuantity(itemIds[i]) * (uint)config.GetItemExperience(itemIds[i]);
+            int attainableLevel = config.GetAttainableLevel(hero.Level, hero.Experience,
+                availableExperience, player.Level, checked(hero.MaxExperience * 15u));
+            int targetLevel = Math.Min(requestedLevel, attainableLevel);
+            ulong requiredExperience = config.GetRequiredLevelExperience(hero.Level, hero.Experience,
+                targetLevel, checked(hero.MaxExperience * 15u));
+
+            for (int i = 0; i < itemIds.Length; i++)
+            {
+                int available = ItemQuantity(itemIds[i]);
+                ulong perItem = (uint)config.GetItemExperience(itemIds[i]);
+                if (perItem == 0)
+                {
+                    SetText(autoLevel, $"Layer/btn_Item_{i + 1}/Text_23", $"0/{available}");
+                    continue;
+                }
+                ulong needed = requiredExperience == 0 ? 0 : (requiredExperience + perItem - 1) / perItem;
+                int required = (int)Math.Min((ulong)available, needed);
+                SetText(autoLevel, $"Layer/btn_Item_{i + 1}/Text_23", $"{required}/{available}");
+                ulong covered = (ulong)required * perItem;
+                requiredExperience = covered >= requiredExperience ? 0 : requiredExperience - covered;
+            }
+            SetText(autoLevel, "Layer/bg/Text_3_", targetLevel.ToString());
+        }
+
+        private void OpenNumber()
+        {
+            cultivationCount = 0;
+            InputField field = number.FindNode("Layer/Panel/Bg/Num/TextField")?.GetComponent<InputField>();
+            if (field != null) field.SetTextWithoutNotify(string.Empty);
+            number.ShowPopup();
+        }
+        private void AppendDigit(int digit)
+        {
+            cultivationCount = Mathf.Clamp(cultivationCount * 10 + digit, 0, RemainingCultivation());
+            SetNumberInput();
+        }
+        private void DeleteDigit()
+        {
+            cultivationCount = Math.Max(0, cultivationCount / 10);
+            SetNumberInput();
+        }
+        private void SetNumberInput()
+        {
+            InputField field = number.FindNode("Layer/Panel/Bg/Num/TextField")?.GetComponent<InputField>();
+            if (field != null) field.SetTextWithoutNotify(cultivationCount.ToString());
+        }
+        private void ConfirmNumber()
+        {
+            number.SetVisible(false);
+            if (cultivationCount <= 0) { toast("请输入修炼次数"); return; }
+            cultivateAction(heroId, cultivationCount);
+        }
+
+        private void OpenTalent(bool breakTalent)
+        {
+            HeroRecord hero = CurrentHero();
+            HeroCatalog.TryGet(hero.Id, out HeroDefinition definition);
+            SetText(talent, "Layer/bg/Title", breakTalent ? "突破天赋" : "技能详情");
+            talent.FindNode("Layer/bg/Title")?.transform.SetAsLastSibling();
+            string[] titles;
+            string[] descriptions;
+            if (breakTalent)
+            {
+                descriptions = config.GetBreakTalentDescriptions(hero.Id, definition).ToArray();
+                titles = Enumerable.Range(1, descriptions.Length).Select(value => $"突破至{value}开启").ToArray();
+            }
+            else
+            {
+                string description = ResolveSkillDescription(hero, definition);
+                descriptions = Enumerable.Range(1, 8).Select(_ => description).ToArray();
+                titles = Enumerable.Range(1, 8).Select(value => value == 1 ? "默认开启" : $"升至{value - 1}星开启").ToArray();
+            }
+            PopulateTalentRows(titles, descriptions, breakTalent ? hero.BreakLevel : hero.Star + 1);
+            talent.ShowPopup();
+        }
+
+        private static string ResolveSkillDescription(HeroRecord hero, HeroDefinition definition) =>
+            HeroCatalog.ResolveSkillDescription(definition.SkillDescription, hero.PrimarySkillLevel);
+
+        private void PopulateTalentRows(IReadOnlyList<string> titles, IReadOnlyList<string> descriptions, int activeLevel)
+        {
+            GameObject listObject = talent.FindNode("Layer/bg/ListView");
+            if (listObject == null) return;
+
+            RectTransform viewport = listObject.transform as RectTransform;
+            ScrollRect scrollRect = listObject.GetComponent<ScrollRect>();
+            if (viewport == null || scrollRect == null) return;
+            // The imported CSD defines this viewport at 540 x 270. Runtime rows
+            // used to inflate the viewport to their combined height, so its
+            // current RectTransform is not a reliable source for the base size.
+            const float viewportHeight = 270f;
+            viewport.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, viewportHeight);
+
+            Transform contentTransform = listObject.transform.Find("RuntimeTalentContent");
+            GameObject templateObject = contentTransform != null
+                ? contentTransform.Find("Panel_2")?.gameObject
+                : listObject.transform.Find("Panel_2")?.gameObject;
+            if (templateObject == null) return;
+            RectTransform template = templateObject.transform as RectTransform;
+            if (template == null) return;
+            if (!talentTemplateBasePositions.TryGetValue(template, out Vector2 origin))
+            {
+                origin = template.anchoredPosition;
+                talentTemplateBasePositions.Add(template, origin);
+            }
+            float step = Math.Max(78f, template.rect.height);
+            float contentHeight = Math.Max(viewportHeight, step * Math.Max(1, Math.Min(titles.Count, descriptions.Count)));
+
+            if (contentTransform == null)
+            {
+                GameObject contentObject = new GameObject("RuntimeTalentContent", typeof(RectTransform));
+                contentTransform = contentObject.transform;
+                contentTransform.SetParent(listObject.transform, false);
+            }
+            RectTransform content = contentTransform as RectTransform;
+            content.anchorMin = content.anchorMax = new Vector2(0f, 1f);
+            content.pivot = new Vector2(0f, 1f);
+            content.anchoredPosition = Vector2.zero;
+            content.sizeDelta = new Vector2(viewport.rect.width, contentHeight);
+
+            template.SetParent(content, false);
+            template.anchorMin = template.anchorMax = Vector2.zero;
+            template.pivot = Vector2.zero;
+            foreach (Transform child in content.Cast<Transform>().ToArray())
+                if (child != template && child.name.StartsWith("HeroCultivationTalentRow_", StringComparison.Ordinal))
+                    UnityEngine.Object.Destroy(child.gameObject);
+
+            scrollRect.viewport = viewport;
+            scrollRect.content = content;
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+
+            Image hitSurface = listObject.GetComponent<Image>();
+            if (hitSurface == null)
+            {
+                hitSurface = listObject.AddComponent<Image>();
+                hitSurface.color = new Color(1f, 1f, 1f, 0f);
+            }
+            hitSurface.raycastTarget = true;
+
+            float contentOffset = contentHeight - viewportHeight;
+            for (int index = 0; index < Math.Min(titles.Count, descriptions.Count); index++)
+            {
+                GameObject row = index == 0 ? templateObject : UnityEngine.Object.Instantiate(templateObject, content, false);
+                if (index > 0) row.name = $"HeroCultivationTalentRow_{index + 1}";
+                RectTransform rect = row.transform as RectTransform;
+                if (rect != null)
+                {
+                    rect.anchorMin = rect.anchorMax = Vector2.zero;
+                    rect.pivot = Vector2.zero;
+                    rect.anchoredPosition = origin + new Vector2(0f, contentOffset - step * index);
+                }
+                Text openText = row.transform.Find("Text")?.GetComponent<Text>();
+                Transform detailHost = row.transform.Find("Text_skill");
+                Text detailText = detailHost?.Find("Text")?.GetComponent<Text>();
+                if (detailHost is RectTransform detailHostRect)
+                {
+                    detailHostRect.anchorMin = detailHostRect.anchorMax = Vector2.zero;
+                    detailHostRect.pivot = Vector2.zero;
+                    detailHostRect.anchoredPosition = Vector2.zero;
+                    detailHostRect.sizeDelta = new Vector2(540f, 100f);
+                }
+                Text legacySkillLabel = detailHost?.GetComponent<Text>();
+                if (legacySkillLabel != null)
+                {
+                    legacySkillLabel.text = string.Empty;
+                    legacySkillLabel.enabled = false;
+                }
+                if (openText != null)
+                {
+                    openText.text = titles[index];
+                    openText.fontSize = 18;
+                    openText.resizeTextForBestFit = false;
+                    openText.alignment = TextAnchor.MiddleLeft;
+                    openText.horizontalOverflow = HorizontalWrapMode.Overflow;
+                    RectTransform openRect = openText.rectTransform;
+                    openRect.anchorMin = openRect.anchorMax = Vector2.zero;
+                    openRect.pivot = new Vector2(0f, 0.5f);
+                    openRect.anchoredPosition = new Vector2(90f, 78f);
+                    openRect.sizeDelta = new Vector2(430f, 24f);
+                }
+                if (detailText != null)
+                {
+                    detailText.text = descriptions[index] ?? string.Empty;
+                    detailText.supportRichText = true;
+                    detailText.fontSize = 18;
+                    detailText.resizeTextForBestFit = false;
+                    detailText.alignment = TextAnchor.UpperLeft;
+                    detailText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                    detailText.verticalOverflow = VerticalWrapMode.Overflow;
+                    RectTransform detailRect = detailText.rectTransform;
+                    detailRect.anchorMin = detailRect.anchorMax = Vector2.zero;
+                    detailRect.pivot = Vector2.zero;
+                    detailRect.anchoredPosition = new Vector2(90f, 4f);
+                    detailRect.sizeDelta = new Vector2(430f, 58f);
+                }
+                Color color = index + 1 == activeLevel ? new Color(0.18f, 0.65f, 0.12f) : new Color(0.36f, 0.20f, 0.14f);
+                if (openText != null) openText.color = color;
+                if (detailText != null) detailText.color = color;
+                row.SetActive(true);
+            }
+            LayoutRebuilder.MarkLayoutForRebuild(content);
+            Canvas.ForceUpdateCanvases();
+            scrollRect.StopMovement();
+            scrollRect.verticalNormalizedPosition = 1f;
+        }
+        private void OpenAttributes()
+        {
+            HeroRecord hero = CurrentHero();
+            HeroCatalog.TryGet(hero.Id, out HeroDefinition definition);
+            SetText(attributes, "Layer/Node_1/Popup/Icon/name", hero.Name);
+            SetText(attributes, "Layer/Node_1/Popup/Icon/text_zhanli/num", hero.Power.ToString());
+            SetText(attributes, "Layer/Node_1/Popup/Icon/text_dingwei/num", definition.Feature);
+            SetMaterialIcon(attributes, "Layer/Node_1/Popup/Icon",
+                resources.LoadHeroPortrait(definition.Picture), "HeroAttributePortrait", definition.Quality);
+            Transform portraitFrame = attributes.FindNode("Layer/Node_1/Popup/Icon")?.transform
+                .Find("HeroAttributePortraitFrame");
+            Transform portrait = attributes.FindNode("Layer/Node_1/Popup/Icon")?.transform
+                .Find("HeroAttributePortrait");
+            portraitFrame?.SetSiblingIndex(0);
+            portrait?.SetSiblingIndex(1);
+            PopulateHeroAttributeRows(hero);
+            attributes.ShowPopup();
+        }
+
+        private void PopulateHeroAttributeRows(HeroRecord hero)
+        {
+            GameObject list = attributes.FindNode("Layer/Node_1/Popup/ListView");
+            GameObject template = attributes.FindNode("Layer/Node_1/Popup/ListView/name");
+            if (list == null || template == null) return;
+            foreach (Transform child in list.transform.Cast<Transform>().ToArray())
+                if (child.name.StartsWith("HeroAttributeRow_", StringComparison.Ordinal))
+                    UnityEngine.Object.Destroy(child.gameObject);
+            string[] names = { "攻击", "物防", "法防", "生命", "速度" };
+            string[] values = { hero.Attack.ToString(), hero.PhysicalDefense.ToString(),
+                hero.MagicDefense.ToString(), hero.Health.ToString(), hero.Speed.ToString() };
+            RectTransform templateRect = template.transform as RectTransform;
+            Vector2 origin = templateRect != null ? templateRect.anchoredPosition : Vector2.zero;
+            float step = Math.Max(28f, templateRect != null ? templateRect.rect.height : 28f);
+            for (int index = 0; index < names.Length; index++)
+            {
+                GameObject row = index == 0 ? template : UnityEngine.Object.Instantiate(template, list.transform, false);
+                if (index > 0) row.name = $"HeroAttributeRow_{index + 1}";
+                RectTransform rowRect = row.transform as RectTransform;
+                if (rowRect != null) rowRect.anchoredPosition = origin + new Vector2(0f, -step * index);
+                Text label = row.GetComponent<Text>();
+                Text value = row.transform.Find("value")?.GetComponent<Text>();
+                if (label != null) label.text = names[index] + "：";
+                if (value != null) value.text = values[index];
+                row.SetActive(true);
+            }
+        }
+
+        private void OpenHelp()
+        {
+            if (helpFrame?.GameObject?.activeSelf == true) return;
+            CloseHelp();
+            HeroRecord hero = CurrentHero();
+            helpPage = hero.CultivationLevel >= 10 ? 1 : 0;
+            helpSelectedLevel = Mathf.Clamp(hero.CultivationLevel > 0 ? hero.CultivationLevel : helpPage * 10 + 1,
+                helpPage * 10 + 1, helpPage * 10 + 10);
+            helpFrame = createHelpFrame();
+            if (helpFrame?.GameObject == null)
+                throw new InvalidOperationException("Hero cultivation help frame could not be created.");
+            try
+            {
+                helpFrame.BindClick("Layer/shopBg/Popup/Btn_close", CloseHelp, true);
+                Transform popupParent = helpFrame.GameObject.transform.parent;
+                if (popupParent == null)
+                    throw new InvalidOperationException("Hero cultivation help frame has no popup parent.");
+                Transform firstTransform = helpFirst.GameObject.transform;
+                Transform secondTransform = helpSecond.GameObject.transform;
+                helpFirstParent = firstTransform.parent;
+                helpSecondParent = secondTransform.parent;
+                helpFirstSiblingIndex = firstTransform.GetSiblingIndex();
+                helpSecondSiblingIndex = secondTransform.GetSiblingIndex();
+                frameWasVisibleBeforeHelp = frame.GameObject.activeSelf;
+                firstTransform.SetParent(popupParent, true);
+                secondTransform.SetParent(popupParent, true);
+                helpFrame.SetVisible(true); helpFirst.SetVisible(true); helpSecond.SetVisible(false);
+                ConfigureHelpFrame();
+                helpFrame.ShowPopup();
+                helpFirst.ShowPopup();
+                ConfigureHelpTabs(); RenderCultivationDestinyPage();
+                frame.SetVisible(false);
+            }
+            catch
+            {
+                CloseHelp();
+                throw;
+            }
+        }
+        private void CloseHelp()
+        {
+            helpFirst.SetVisible(false);
+            helpSecond.SetVisible(false);
+            if (helpFrame?.GameObject != null)
+            {
+                GameObject popup = helpFrame.GameObject;
+                popup.SetActive(false);
+                UnityEngine.Object.Destroy(popup);
+                helpFrame = null;
+            }
+            if (helpFirstParent == null && helpSecondParent == null) return;
+            RestoreHelpParent(helpFirst, helpFirstParent, helpFirstSiblingIndex);
+            RestoreHelpParent(helpSecond, helpSecondParent, helpSecondSiblingIndex);
+            helpFirstParent = null;
+            helpSecondParent = null;
+            frame.SetVisible(frameWasVisibleBeforeHelp);
+            if (frameWasVisibleBeforeHelp) frame.GameObject.transform.SetAsLastSibling();
+        }
+
+        private static void RestoreHelpParent(UnityUiView view, Transform parent, int siblingIndex)
+        {
+            if (view?.GameObject == null || parent == null) return;
+            Transform root = view.GameObject.transform;
+            root.SetParent(parent, true);
+            root.SetSiblingIndex(Mathf.Clamp(siblingIndex, 0, parent.childCount - 1));
+        }
+        private void ConfigureHelpFrame()
+        {
+            SetText(helpFrame, "Layer/shopBg/Popup/Title/Title", "天命激活");
+            GameObject helpButton = helpFrame.FindNode("Layer/shopBg/Popup/Title/Title/Button_1");
+            if (helpButton != null) helpButton.SetActive(false);
+            // Cocos ChangeBg replaces Popup/bg/Image1 while retaining Popup/bg itself as
+            // the decorative frame. Hiding the whole node drops the frame as well.
+            GameObject sharedBody = helpFrame.FindNode("Layer/shopBg/Popup/bg");
+            if (sharedBody != null) sharedBody.SetActive(true);
+            ConfigureDestinyBackground(sharedBody);
+            ConfigureOverlayCanvas(helpFirst.GameObject, 202);
+            ConfigureOverlayCanvas(helpFrame.FindNode("Layer/shopBg/Popup/Title"), 203);
+            ConfigureOverlayCanvas(helpFrame.FindNode("Layer/shopBg/Popup/Btn_close"), 203);
+            ConfigureOverlayCanvas(helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1"), 203);
+            foreach (Transform child in helpFrame.GameObject.GetComponentsInChildren<Transform>(true))
+                if (child.name.StartsWith("RuntimeGameplayContent", StringComparison.Ordinal)
+                    || child.name.StartsWith("ActivityBg", StringComparison.Ordinal)
+                    || child.name.StartsWith("GameplayRow", StringComparison.Ordinal))
+                    child.gameObject.SetActive(false);
+        }
+
+        private void ConfigureDestinyBackground(GameObject sharedBody)
+        {
+            if (sharedBody == null) return;
+            Image image = sharedBody.transform.Find("Image1")?.GetComponent<Image>();
+            if (image == null) return;
+            image.gameObject.SetActive(true);
+            image.sprite = resources.LoadSprite("Art/HeroCultivation/bg_shenjiangtujian");
+            image.color = Color.white;
+            image.preserveAspect = false;
+            image.raycastTarget = false;
+        }
+        private void ConfigureHelpTabs()
+        {
+            Transform panel = helpFrame.FindNode("Layer/shopBg/Btn_ListView/Panel_1")?.transform;
+            Transform first = panel?.Find("Button");
+            if (first == null) return;
+            Transform second = panel.Find("HeroCultivationHelpTab2");
+            if (second == null) { second = UnityEngine.Object.Instantiate(first.gameObject, panel, false).transform; second.name = "HeroCultivationHelpTab2"; }
+            RectTransform a = first as RectTransform, b = second as RectTransform;
+            if (a != null && b != null) b.anchoredPosition = a.anchoredPosition + new Vector2(0f, -100f);
+            BindTransformButton(first, () => SelectHelp(0)); BindTransformButton(second, () => SelectHelp(1));
+            SetTab(first, "第一天命", helpPage == 0); SetTab(second, "第二天命", helpPage == 1);
+        }
+        private void SelectHelp(int selected)
+        {
+            helpPage = selected;
+            helpSelectedLevel = selected * 10 + 1;
+            helpFirst.SetVisible(true);
+            ConfigureHelpTabs(); RenderCultivationDestinyPage();
+        }
+        private void OpenCultivationAttributes()
+        {
+            RenderCultivationAttributeSummary();
+            helpSecond.ShowPopup();
+            ConfigureAttributeOverlay();
+            ConfigureOverlayCanvas(helpSecond.GameObject, 204);
+        }
+
+        private void ConfigureAttributeOverlay()
+        {
+            Transform existing = helpSecond.GameObject.transform.Find("HeroCultivationAttributeDimmer");
+            GameObject dimmer = existing == null
+                ? new GameObject("HeroCultivationAttributeDimmer", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image))
+                : existing.gameObject;
+            dimmer.transform.SetParent(helpSecond.GameObject.transform, false);
+            dimmer.transform.SetAsFirstSibling();
+            RectTransform rect = dimmer.transform as RectTransform;
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            Image image = dimmer.GetComponent<Image>();
+            image.sprite = null;
+            image.color = new Color(0f, 0f, 0f, 0.72f);
+            image.raycastTarget = true;
+
+            GameObject list = helpSecond.FindNode("Layer/Popup/ListView_1");
+            if (list != null)
+            {
+                // The Cocos ScrollView stores three stacked content panels with a baked
+                // top offset. The generic importer has no single ScrollRect.content, so
+                // normalize those panels directly to the source's initial top position.
+                string[] names = { "Content_1", "Content_2", "Content_3" };
+                float[] y = { 293.15f, 185f, 80f };
+                for (int index = 0; index < names.Length; index++)
+                {
+                    RectTransform content = list.transform.Find(names[index]) as RectTransform;
+                    if (content != null)
+                        content.anchoredPosition = new Vector2(content.anchoredPosition.x, y[index]);
+                }
+            }
+        }
+
+        private static void ConfigureOverlayCanvas(GameObject target, int sortingOrder)
+        {
+            if (target == null) return;
+            Canvas canvas = target.GetComponent<Canvas>();
+            if (canvas == null) canvas = target.AddComponent<Canvas>();
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = sortingOrder;
+            if (target.GetComponent<GraphicRaycaster>() == null)
+                target.AddComponent<GraphicRaycaster>();
+        }
+
+        private void RenderCultivationDestinyPage()
+        {
+            HeroRecord hero = CurrentHero();
+            GameObject panel = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing");
+            GameObject template = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Button");
+            if (panel == null || template == null) return;
+            template.SetActive(false);
+            for (int levelValue = 1; levelValue <= 20; levelValue++)
+            {
+                GameObject node = HeroCultivationNodeIds.Get(helpFirst,
+                    $"Layer/shenjaingxiiuliantanchuang/Popup/Panel_xing/Node_{levelValue}");
+                if (node == null) continue;
+                Transform old = node.transform.Find("HeroDestinyButton");
+                if (old != null) UnityEngine.Object.Destroy(old.gameObject);
+                if (levelValue <= helpPage * 10 || levelValue > helpPage * 10 + 10) continue;
+                GameObject item = UnityEngine.Object.Instantiate(template, node.transform, false);
+                item.name = "HeroDestinyButton";
+                item.SetActive(true);
+                RectTransform itemRect = item.transform as RectTransform;
+                if (itemRect != null) itemRect.anchoredPosition = Vector2.zero;
+                TrainingConfig training = config.GetTraining(levelValue);
+                SetChildText(item.transform, "Image_bg_1/txt_1", training.Name);
+                SetChildText(item.transform, "Image_bg_2/txt_1", training.Name);
+                GameObject unlocked = item.transform.Find("Image_bg_1")?.gameObject;
+                GameObject locked = item.transform.Find("Image_bg_2")?.gameObject;
+                if (unlocked != null) unlocked.SetActive(levelValue <= hero.CultivationLevel);
+                if (locked != null) locked.SetActive(levelValue > hero.CultivationLevel);
+                GameObject selected = item.transform.Find("Image_choose")?.gameObject;
+                if (selected != null) selected.SetActive(levelValue == helpSelectedLevel);
+                int captured = levelValue;
+                BindTransformButton(item.transform, () =>
+                {
+                    helpSelectedLevel = captured;
+                    RenderCultivationDestinyPage();
+                });
+            }
+            TrainingConfig current = config.GetTraining(helpSelectedLevel);
+            string[] names = { "攻击加成", "物防加成", "法防加成", "生命加成" };
+            for (int index = 0; index < names.Length; index++)
+            {
+                GameObject bonusObject = HeroCultivationNodeIds.Get(helpFirst,
+                    $"Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_{index + 1}");
+                Text bonusText = bonusObject?.GetComponent<Text>();
+                if (bonusText != null)
+                {
+                    bonusText.horizontalOverflow = HorizontalWrapMode.Overflow;
+                    bonusText.text = $"{names[index]}+{current.BonusBasisPoints / 100d:0.##}%";
+                }
+            }
+            string extra = config.GetTrainingExtraDescription(helpSelectedLevel);
+            GameObject extraRoot = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_5");
+            if (extraRoot != null) extraRoot.SetActive(!string.IsNullOrEmpty(extra));
+            SetText(helpFirst, "Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_5/txt_5_0", extra);
+            Text destinyName = helpFirst.FindNode("Layer/shenjaingxiiuliantanchuang/Popup/Panel_di/txt_0")?.GetComponent<Text>();
+            if (destinyName != null)
+            {
+                destinyName.horizontalOverflow = HorizontalWrapMode.Overflow;
+                destinyName.verticalOverflow = VerticalWrapMode.Overflow;
+                destinyName.text = $"【{current.Name}】";
+                RectTransform nameRect = destinyName.rectTransform;
+                nameRect.sizeDelta = new Vector2(Mathf.Max(140f, nameRect.sizeDelta.x), Mathf.Max(32f, nameRect.sizeDelta.y));
+                destinyName.transform.SetAsLastSibling();
+            }
+        }
+
+        private void RenderCultivationAttributeSummary()
+        {
+            HeroRecord hero = CurrentHero();
+            long[] baseTotals = { hero.CultivationAttack * 2L, hero.CultivationPhysicalDefense,
+                hero.CultivationMagicDefense, hero.CultivationHealth * 40L };
+            double percentage = 0d;
+            List<string> extras = new List<string>();
+            for (int levelValue = 1; levelValue <= hero.CultivationLevel; levelValue++)
+            {
+                TrainingConfig training = config.GetTraining(levelValue);
+                for (int index = 0; index < baseTotals.Length; index++)
+                    baseTotals[index] += (long)training.RequiredCount * training.AttributeUnit[index];
+                percentage += training.BonusBasisPoints / 100d;
+                string extra = config.GetTrainingExtraDescription(levelValue);
+                if (!string.IsNullOrEmpty(extra)) extras.Add(extra);
+            }
+            string[] names = { "攻击", "物防", "法防", "生命" };
+            for (int index = 0; index < names.Length; index++)
+            {
+                SetText(helpSecond, $"Layer/Popup/ListView_1/Content_1/Atrribute_{index + 1}",
+                    $"{names[index]}+{baseTotals[index]}");
+                SetText(helpSecond, $"Layer/Popup/ListView_1/Content_2/Atrribute_{index + 1}",
+                    $"{names[index]}加成+{percentage:0.##}%");
+                Text percentText = HeroCultivationNodeIds.Get(helpSecond,
+                    $"Layer/Popup/ListView_1/Content_2/Atrribute_{index + 1}")?.GetComponent<Text>();
+                if (percentText != null)
+                    percentText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            }
+            GameObject extraTextObject = helpSecond.FindNode("Layer/Popup/ListView_1/Content_3/Atrribute_1");
+            if (extraTextObject != null)
+            {
+                extraTextObject.SetActive(extras.Count > 0);
+                Text extraText = extraTextObject.GetComponent<Text>();
+                if (extraText != null && extras.Count > 0)
+                    extraText.text = string.Join("；", extras.Distinct());
+            }
+        }
+
+        private static void SetChildText(Transform root, string path, string value)
+        {
+            Text text = root.Find(path)?.GetComponent<Text>();
+            if (text != null) text.text = value ?? string.Empty;
+        }
+
+        private static void BindTransformButton(Transform transform, Action action)
+        {
+            Button button = transform.GetComponent<Button>() ?? transform.gameObject.AddComponent<Button>();
+            Image hitArea = transform.GetComponent<Image>();
+            if (hitArea != null)
+            {
+                if (hitArea.sprite == null)
+                    hitArea.color = new Color(1f, 1f, 1f, 0f);
+                hitArea.raycastTarget = true;
+                button.targetGraphic = hitArea;
+            }
+            button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => action());
+        }
+        private static void SetTab(Transform tab, string label, bool selected)
+        {
+            Text normal = tab.Find("BtnName")?.GetComponent<Text>();
+            Text chosen = tab.Find("ChooseBg/BtnName")?.GetComponent<Text>();
+            Transform choose = tab.Find("ChooseBg");
+            if (choose != null) choose.gameObject.SetActive(selected);
+
+            bool hasVisibleSelectedLabel = selected && chosen != null;
+            if (chosen != null)
+            {
+                chosen.text = label;
+                chosen.enabled = true;
+                Color chosenColor = chosen.color;
+                chosenColor.a = 1f;
+                chosen.color = chosenColor;
+                chosen.gameObject.SetActive(selected);
+            }
+            if (normal != null)
+            {
+                normal.text = label;
+                // Some reused/runtime tabs have no selected-state label. Keep
+                // the ordinary label as the visible fallback in that case.
+                normal.gameObject.SetActive(!hasVisibleSelectedLabel);
+            }
+            Button button = tab.GetComponent<Button>(); if (button != null) button.interactable = !selected;
+        }
+        private static void SetText(UnityUiView view, string path, string value)
+        {
+            Text text = HeroCultivationNodeIds.Get(view, path)?.GetComponent<Text>();
+            if (text == null) return;
+            text.supportRichText = true;
+            text.text = value ?? string.Empty;
+        }
+
+        private void FitDescription(UnityUiView view, string path, bool expandParent, float rightInset = 0f)
+        {
+            Text text = HeroCultivationNodeIds.Get(view, path)?.GetComponent<Text>();
+            RectTransform rect = text?.rectTransform;
+            if (text == null || rect == null) return;
+
+            text.supportRichText = true;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            RectTransform parent = rect.parent as RectTransform;
+            if (!descriptionBaseHeights.TryGetValue(rect, out float baseTextHeight))
+            {
+                baseTextHeight = rect.rect.height;
+                descriptionBaseHeights.Add(rect, baseTextHeight);
+            }
+            if (parent != null && !descriptionContainerBaseHeights.ContainsKey(parent))
+                descriptionContainerBaseHeights.Add(parent, parent.rect.height);
+            if (rightInset > 0f)
+                rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,
+                    Mathf.Max(120f, (parent == null ? rect.rect.width : parent.rect.width) - rightInset));
+            float desiredHeight = Mathf.Ceil(text.preferredHeight) + 2f;
+            float targetTextHeight = Mathf.Max(baseTextHeight, desiredHeight);
+
+            if (expandParent && parent != null)
+            {
+                float baseParentHeight = descriptionContainerBaseHeights[parent];
+                parent.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
+                    Mathf.Max(baseParentHeight, desiredHeight));
+                targetTextHeight = Mathf.Min(targetTextHeight, parent.rect.height);
+                rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, targetTextHeight);
+            }
+            else if (Mathf.Abs(targetTextHeight - rect.rect.height) > 0.5f)
+            {
+                Vector3 center = rect.TransformPoint(rect.rect.center);
+                rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, targetTextHeight);
+                rect.position += center - rect.TransformPoint(rect.rect.center);
+                if (parent != null && targetTextHeight <= parent.rect.height)
+                {
+                    Vector3[] textCorners = new Vector3[4];
+                    Vector3[] parentCorners = new Vector3[4];
+                    rect.GetWorldCorners(textCorners);
+                    parent.GetWorldCorners(parentCorners);
+                    float shiftY = 0f;
+                    if (textCorners[1].y > parentCorners[1].y)
+                        shiftY = parentCorners[1].y - textCorners[1].y;
+                    else if (textCorners[0].y < parentCorners[0].y)
+                        shiftY = parentCorners[0].y - textCorners[0].y;
+                    rect.position += Vector3.up * shiftY;
+                }
+            }
+
+            text.alignment = (TextAnchor)((int)text.alignment >= (int)TextAnchor.LowerLeft
+                ? (int)text.alignment - 6
+                : (int)text.alignment >= (int)TextAnchor.MiddleLeft
+                    ? (int)text.alignment - 3
+                    : (int)text.alignment);
+            text.verticalOverflow = VerticalWrapMode.Truncate;
+            LayoutRebuilder.MarkLayoutForRebuild(parent != null ? parent : rect);
+        }
+
+        private static void FitText(UnityUiView view, string path, int minimumSize)
+        {
+            Text text = HeroCultivationNodeIds.Get(view, path)?.GetComponent<Text>();
+            if (text == null) return;
+            text.resizeTextForBestFit = true;
+            text.resizeTextMinSize = Math.Max(8, minimumSize);
+            text.resizeTextMaxSize = Math.Max(text.resizeTextMinSize, text.fontSize);
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+        }
+
+        private void SetMaterialIcon(UnityUiView view, string path, Sprite sprite, string runtimeName, int quality = 0)
+        {
+            GameObject host = HeroCultivationNodeIds.Get(view, path);
+            if (host == null) return;
+            Image hostImage = host.GetComponent<Image>();
+            if (hostImage != null) hostImage.color = new Color(1f, 1f, 1f, 0f);
+            if (quality > 0)
+            {
+                string frameName = runtimeName + "Frame";
+                Transform existingFrame = host.transform.Find(frameName);
+                GameObject frame = existingFrame != null ? existingFrame.gameObject
+                    : new GameObject(frameName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+                RectTransform frameRect = frame.GetComponent<RectTransform>();
+                frameRect.SetParent(host.transform, false);
+                frameRect.anchorMin = Vector2.zero;
+                frameRect.anchorMax = Vector2.one;
+                frameRect.offsetMin = frameRect.offsetMax = Vector2.zero;
+                Image frameImage = frame.GetComponent<Image>();
+                frameImage.sprite = resources.LoadFirst($"Art/Hero/common_quality_{Mathf.Clamp(quality, 1, 7):00}");
+                frameImage.enabled = frameImage.sprite != null;
+                frameImage.preserveAspect = false;
+                frameImage.raycastTarget = false;
+                frame.transform.SetAsFirstSibling();
+            }
+            Transform existing = host.transform.Find(runtimeName);
+            GameObject value = existing != null ? existing.gameObject
+                : new GameObject(runtimeName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            RectTransform rect = value.GetComponent<RectTransform>();
+            rect.SetParent(host.transform, false);
+            rect.anchorMin = new Vector2(0.12f, 0.12f);
+            rect.anchorMax = new Vector2(0.88f, 0.88f);
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            Image image = value.GetComponent<Image>();
+            image.sprite = sprite;
+            image.enabled = sprite != null;
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+            value.transform.SetAsLastSibling();
+        }
+
+        private readonly struct BreakConfig
+        {
+            public BreakConfig(int requiredLevel, int attributeMultiplier, int goldCost, int itemCost)
+            { RequiredLevel = requiredLevel; AttributeMultiplier = attributeMultiplier; GoldCost = goldCost; ItemCost = itemCost; }
+            public int RequiredLevel { get; }
+            public int AttributeMultiplier { get; }
+            public int GoldCost { get; }
+            public int ItemCost { get; }
+        }
+
+        private readonly struct TrainingConfig
+        {
+            public TrainingConfig(string name, int requiredLevel, int requiredCount, int[] attributeUnit,
+                int bonusBasisPoints, int extraType = 0, int extraValue = 0)
+            {
+                Name = name ?? string.Empty; RequiredLevel = requiredLevel; RequiredCount = requiredCount;
+                AttributeUnit = attributeUnit; BonusBasisPoints = bonusBasisPoints;
+                ExtraType = extraType; ExtraValue = extraValue;
+            }
+            public string Name { get; }
+            public int RequiredLevel { get; }
+            public int RequiredCount { get; }
+            public int[] AttributeUnit { get; }
+            public int BonusBasisPoints { get; }
+            public int ExtraType { get; }
+            public int ExtraValue { get; }
+        }
+
+        internal static IReadOnlyList<string> GetBreakTalentDescriptionsForPreview(
+            int heroId, HeroDefinition definition)
+        {
+            return new HeroCultivationConfig().GetBreakTalentDescriptions(heroId, definition);
+        }
+
+        private sealed class HeroCultivationConfig
+        {
+            private readonly Dictionary<int, uint[]> growth = new Dictionary<int, uint[]>();
+            private readonly Dictionary<int, uint> starRatios = new Dictionary<int, uint>();
+            private readonly Dictionary<int, uint> starAdds = new Dictionary<int, uint>();
+            private readonly Dictionary<int, Dictionary<int, int>> starCosts = new Dictionary<int, Dictionary<int, int>>();
+            private readonly Dictionary<int, uint> experienceCaps = new Dictionary<int, uint>();
+            private readonly Dictionary<int, int> fragments = new Dictionary<int, int>();
+            private readonly Dictionary<int, BreakConfig> breaks = new Dictionary<int, BreakConfig>();
+            private readonly Dictionary<int, TrainingConfig> trainings = new Dictionary<int, TrainingConfig>();
+            private readonly Dictionary<int, int> itemPictures = new Dictionary<int, int>();
+            private readonly Dictionary<int, int> itemQualities = new Dictionary<int, int>();
+            private readonly Dictionary<int, int> itemExperiences = new Dictionary<int, int>();
+            private readonly Dictionary<int, List<BreakTalent>> breakTalents = new Dictionary<int, List<BreakTalent>>();
+
+            public HeroCultivationConfig()
+            {
+                LoadHeroGrowth();
+                LoadStarRatios();
+                LoadExperienceCaps();
+                LoadBreaks();
+                LoadTrainings();
+                LoadItemPictures();
+            }
+
+            public uint[] GetGrowth(int heroId, int star)
+            {
+                uint[] result = new uint[4];
+                if (!growth.TryGetValue(heroId, out uint[] source)) return result;
+                uint ratio = starRatios.TryGetValue(star, out uint value) ? value : 10000u;
+                for (int index = 0; index < result.Length; index++)
+                    result[index] = checked((uint)(((ulong)source[index] * ratio + 5000u) / 10000u));
+                return result;
+            }
+
+            public uint[] GetBaseGrowth(int heroId) => growth.TryGetValue(heroId, out uint[] value)
+                ? (uint[])value.Clone() : new uint[4];
+
+            public uint GetExperienceCap(int level, uint fallback) =>
+                experienceCaps.TryGetValue(level, out uint value) ? value : fallback;
+
+            public ulong GetRequiredLevelExperience(int currentLevel, uint currentExperience,
+                int targetLevel, uint currentLevelFallback)
+            {
+                ulong required = 0;
+                for (int level = currentLevel; level < targetLevel; level++)
+                {
+                    uint cap = GetExperienceCap(level, level == currentLevel ? currentLevelFallback : 0u);
+                    if (cap == 0) return 0;
+                    required += level == currentLevel && currentExperience < cap
+                        ? cap - currentExperience : level == currentLevel ? 0u : cap;
+                }
+                return required;
+            }
+
+            public int GetAttainableLevel(int currentLevel, uint currentExperience,
+                ulong availableExperience, int levelLimit, uint currentLevelFallback)
+            {
+                int level = currentLevel;
+                while (level < levelLimit)
+                {
+                    uint cap = GetExperienceCap(level, level == currentLevel ? currentLevelFallback : 0u);
+                    if (cap == 0) break;
+                    ulong needed = level == currentLevel && currentExperience < cap
+                        ? cap - currentExperience : level == currentLevel ? 0u : cap;
+                    if (availableExperience < needed) break;
+                    availableExperience -= needed;
+                    level++;
+                }
+                return level;
+            }
+
+            public int GetFragmentItem(int heroId) => fragments.TryGetValue(heroId, out int value) ? value : 0;
+
+            public int GetItemPicture(int itemId) => itemPictures.TryGetValue(itemId, out int value) ? value : 0;
+
+            public int GetItemQuality(int itemId) => itemQualities.TryGetValue(itemId, out int value) ? value : 0;
+
+            public int GetItemExperience(int itemId) =>
+                itemExperiences.TryGetValue(itemId, out int value) ? value : 0;
+
+            public IReadOnlyList<string> GetBreakTalentDescriptions(int heroId, HeroDefinition definition)
+            {
+                if (!breakTalents.TryGetValue(heroId, out List<BreakTalent> values) || values.Count == 0)
+                    return new[] { "解锁天赋：无" };
+                return values.Select(value => DescribeBreakTalent(value, definition)).ToArray();
+            }
+
+            public int GetStarCost(int star, int quality)
+            {
+                return starCosts.TryGetValue(star, out Dictionary<int, int> costs)
+                    && costs.TryGetValue(quality, out int value) ? value : 0;
+            }
+
+            public uint[] GetStarUpgrade(int heroId, int star, int level)
+            {
+                uint[] result = new uint[4];
+                if (!growth.TryGetValue(heroId, out uint[] source)) return result;
+                uint ratio = starRatios.TryGetValue(star, out uint value) ? value : 10000u;
+                uint added = 0;
+                for (int current = 1; current <= star; current++)
+                    if (starAdds.TryGetValue(current, out uint item)) added += item;
+                for (int i = 0; i < result.Length; i++)
+                    result[i] = checked((uint)Math.Floor(source[i] * (ratio / 10000d) * level + source[i] * added));
+                return result;
+            }
+
+            public BreakConfig GetBreak(int level) => breaks.TryGetValue(level, out BreakConfig value)
+                ? value : new BreakConfig(0, 0, 0, 0);
+
+            public TrainingConfig GetTraining(int level) => trainings.TryGetValue(level, out TrainingConfig value)
+                ? value : new TrainingConfig("已满级", 0, 1, new[] { 0, 0, 0, 0 }, 0);
+
+            public string GetTrainingExtraDescription(int level)
+            {
+                TrainingConfig value = GetTraining(level);
+                if (value.ExtraType <= 0 || value.ExtraValue == 0) return string.Empty;
+                string amount = value.ExtraType >= 10
+                    ? $"{value.ExtraValue / 100d:0.##}%" : value.ExtraValue.ToString();
+                return $"{AttributeName(value.ExtraType)}+{amount}";
+            }
+
+            private void LoadHeroGrowth()
+            {
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/hero_dat");
+                if (asset == null) return;
+                foreach (string entry in SplitLuaEntries(asset.text))
+                {
+                    Match id = Regex.Match(entry, @"\bid\s*=\s*(\d+)");
+                    Match attack = Regex.Match(entry, @"\bgongji_lv\s*=\s*(\d+)");
+                    Match physical = Regex.Match(entry, @"\bwufang_lv\s*=\s*(\d+)");
+                    Match magic = Regex.Match(entry, @"\bfafang_lv\s*=\s*(\d+)");
+                    Match health = Regex.Match(entry, @"\bqixue_lv\s*=\s*(\d+)");
+                    Match fragment = Regex.Match(entry, @"\bitemId\s*=\s*(\d+)");
+                    if (!id.Success || !attack.Success || !physical.Success || !magic.Success || !health.Success) continue;
+                    growth[int.Parse(id.Groups[1].Value)] = new[]
+                    {
+                        uint.Parse(attack.Groups[1].Value), uint.Parse(physical.Groups[1].Value),
+                        uint.Parse(magic.Groups[1].Value), uint.Parse(health.Groups[1].Value)
+                    };
+                    if (fragment.Success) fragments[int.Parse(id.Groups[1].Value)] = int.Parse(fragment.Groups[1].Value);
+                    Match breakField = Regex.Match(entry, @"\bbreakattr\s*=\s*\{(.*)\}\s*", RegexOptions.Singleline);
+                    if (breakField.Success)
+                    {
+                        List<BreakTalent> values = new List<BreakTalent>();
+                        foreach (Match triple in Regex.Matches(breakField.Groups[1].Value,
+                            @"\{\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\}"))
+                            values.Add(new BreakTalent(int.Parse(triple.Groups[1].Value),
+                                int.Parse(triple.Groups[2].Value), int.Parse(triple.Groups[3].Value)));
+                        breakTalents[int.Parse(id.Groups[1].Value)] = values;
+                    }
+                }
+            }
+
+            private void LoadStarRatios()
+            {
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/star_dat");
+                if (asset == null) return;
+                foreach (string entry in SplitLuaEntries(asset.text))
+                {
+                    Match star = Regex.Match(entry, @"\bstar\s*=\s*(\d+)");
+                    Match ratio = Regex.Match(entry, @"\battr_ratio\s*=\s*(\d+)");
+                    Match add = Regex.Match(entry, @"\battr_add\s*=\s*(\d+)");
+                    if (star.Success && ratio.Success)
+                    {
+                        int starValue = int.Parse(star.Groups[1].Value);
+                        starRatios[starValue] = uint.Parse(ratio.Groups[1].Value);
+                        starAdds[starValue] = add.Success ? uint.Parse(add.Groups[1].Value) : 0u;
+                        Dictionary<int, int> costs = new Dictionary<int, int>();
+                        Match costField = Regex.Match(entry,
+                            @"\bcost\s*=\s*\{(.*?)\}\s*,\s*skill_level", RegexOptions.Singleline);
+                        if (costField.Success)
+                            foreach (Match pair in Regex.Matches(costField.Groups[1].Value, @"\{\s*(\d+)\s*,\s*(\d+)\s*\}"))
+                                costs[int.Parse(pair.Groups[1].Value)] = int.Parse(pair.Groups[2].Value);
+                        starCosts[starValue] = costs;
+                    }
+                }
+            }
+
+            private void LoadBreaks()
+            {
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/break_dat");
+                if (asset == null) return;
+                foreach (string entry in SplitLuaEntries(asset.text))
+                {
+                    Match breakLevel = Regex.Match(entry, @"\bbreak_level\s*=\s*(\d+)");
+                    Match required = Regex.Match(entry, @"\blevel\s*=\s*(\d+)");
+                    Match attr = Regex.Match(entry, @"\battr\s*=\s*(\d+)");
+                    Match gold = Regex.Match(entry, @"\{\s*60000\s*,\s*0\s*,\s*(\d+)\s*\}");
+                    Match item = Regex.Match(entry, @"\{\s*851\s*,\s*0\s*,\s*(\d+)\s*\}");
+                    if (breakLevel.Success && required.Success && attr.Success)
+                        breaks[int.Parse(breakLevel.Groups[1].Value)] = new BreakConfig(
+                            int.Parse(required.Groups[1].Value), int.Parse(attr.Groups[1].Value),
+                            gold.Success ? int.Parse(gold.Groups[1].Value) : 0,
+                            item.Success ? int.Parse(item.Groups[1].Value) : 0);
+                }
+            }
+
+            private void LoadTrainings()
+            {
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/xiulian_dat");
+                if (asset == null) return;
+                foreach (string entry in SplitLuaEntries(asset.text))
+                {
+                    Match level = Regex.Match(entry, @"\blevel\s*=\s*(\d+)");
+                    Match name = Regex.Match(entry, "\\bname\\s*=\\s*\"([^\"]*)\"");
+                    Match required = Regex.Match(entry, @"\blevel_need\s*=\s*(\d+)");
+                    Match count = Regex.Match(entry, @"\bcost_type\s*=\s*(\d+)");
+                    MatchCollection attributes = Regex.Matches(entry,
+                        @"\{\s*1\s*,\s*(\d+)\s*,\s*(\d+)\s*\}");
+                    if (level.Success && required.Success && count.Success)
+                    {
+                        int bonus = attributes.Count > 0 ? int.Parse(attributes[0].Groups[2].Value) : 0;
+                        int extraType = attributes.Count > 4 ? int.Parse(attributes[4].Groups[1].Value) : 0;
+                        int extraValue = attributes.Count > 4 ? int.Parse(attributes[4].Groups[2].Value) : 0;
+                        trainings[int.Parse(level.Groups[1].Value)] = new TrainingConfig(
+                            name.Success ? name.Groups[1].Value : $"天命{level.Groups[1].Value}",
+                            int.Parse(required.Groups[1].Value), int.Parse(count.Groups[1].Value),
+                            new[] { 2, 1, 1, 40 }, bonus, extraType, extraValue);
+                    }
+                }
+            }
+
+            private void LoadExperienceCaps()
+            {
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/exp_dat");
+                if (asset == null) return;
+                foreach (string entry in SplitLuaEntries(asset.text))
+                {
+                    Match level = Regex.Match(entry, @"\blevel\s*=\s*(\d+)");
+                    Match cap = Regex.Match(entry, @"\bexp_hero\s*=\s*(\d+)");
+                    if (level.Success && cap.Success)
+                        experienceCaps[int.Parse(level.Groups[1].Value)] = uint.Parse(cap.Groups[1].Value);
+                }
+            }
+
+            private void LoadItemPictures()
+            {
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/item");
+                if (asset == null) return;
+                foreach (Match entry in Regex.Matches(asset.text, @"\{[^{}]*\}"))
+                {
+                    Match id = Regex.Match(entry.Value, "\\\"id\\\"\\s*:\\s*(\\d+)");
+                    Match picture = Regex.Match(entry.Value, "\\\"pic\\\"\\s*:\\s*(\\d+)");
+                    Match quality = Regex.Match(entry.Value, "\\\"quality\\\"\\s*:\\s*(\\d+)");
+                    Match experience = Regex.Match(entry.Value,
+                        "\\\"sub_value\\\"\\s*:\\s*\\[\\s*\\[\\s*\\d+\\s*,\\s*(\\d+)");
+                    if (id.Success && picture.Success)
+                        itemPictures[int.Parse(id.Groups[1].Value)] = int.Parse(picture.Groups[1].Value);
+                    if (id.Success && quality.Success)
+                        itemQualities[int.Parse(id.Groups[1].Value)] = int.Parse(quality.Groups[1].Value);
+                    if (id.Success && experience.Success)
+                        itemExperiences[int.Parse(id.Groups[1].Value)] = int.Parse(experience.Groups[1].Value);
+                }
+            }
+
+            private static string DescribeBreakTalent(BreakTalent talent, HeroDefinition definition)
+            {
+                if (talent.Kind == 3)
+                    return $"解锁天赋：获得技能：{definition.SkillName}强化（等级{talent.Value}）";
+                string name = AttributeName(talent.Type);
+                string amount = talent.Type >= 10 ? $"{talent.Value / 100d:0.##}%" : talent.Value.ToString();
+                string prefix = talent.Kind == 2 ? "全队" : string.Empty;
+                return $"解锁天赋：{prefix}{name}+{amount}";
+            }
+
+            private static string AttributeName(int type)
+            {
+                string[] values = { "", "攻击", "物防", "法防", "生命", "速度", "命中", "闪避", "暴击", "抗暴",
+                    "攻击加成", "物防加成", "法防加成", "生命加成", "速度加成", "命中率", "闪避率", "暴击率", "抗暴率",
+                    "增伤率", "物免率", "法免率", "暴击伤害", "反击率", "抗反率", "反击伤害", "连击率", "抗连率",
+                    "连击伤害", "反震率", "抗震率", "反震伤害", "负面强化", "负面抵抗" };
+                return type >= 0 && type < values.Length ? values[type] : $"属性{type}";
+            }
+
+            private readonly struct BreakTalent
+            {
+                public BreakTalent(int kind, int type, int value) { Kind = kind; Type = type; Value = value; }
+                public int Kind { get; }
+                public int Type { get; }
+                public int Value { get; }
+            }
+
+            private static IEnumerable<string> SplitLuaEntries(string source)
+            {
+                int depth = 0, start = -1;
+                bool inString = false, escaped = false;
+                for (int index = 0; index < source.Length; index++)
+                {
+                    char current = source[index];
+                    if (inString)
+                    {
+                        if (escaped) escaped = false;
+                        else if (current == '\\') escaped = true;
+                        else if (current == '"') inString = false;
+                        continue;
+                    }
+                    if (current == '"') { inString = true; continue; }
+                    if (current == '{') { depth++; if (depth == 2) start = index; }
+                    else if (current == '}')
+                    {
+                        if (depth == 2 && start >= 0)
+                        {
+                            yield return source.Substring(start, index - start + 1);
+                            start = -1;
+                        }
+                        if (depth > 0) depth--;
+                    }
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            if (!subscribed) return;
+            CloseHelp();
+            heroes.Changed -= HandleChanged; formation.Changed -= HandleChanged; bag.Changed -= HandleChanged;
+            subscribed = false;
+        }
+    }
+}

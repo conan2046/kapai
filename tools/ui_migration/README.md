@@ -76,8 +76,9 @@ Unity 工程保持旧客户端逻辑目录：
 python tools/ui_migration/prepare_unity_project.py
 python tools/ui_migration/prepare_unity_project.py --scope referenced
 python tools/ui_migration/prepare_unity_project.py --scope welfare
-python tools/ui_migration/prepare_unity_project.py --scope timeline
 ```
+
+2026-09-30 起，Cocos Timeline Prefab 生成 scope 已退役；`--scope timeline` 会报错，Unity Timeline manifest 保持空。现行 UI 源 JSON 若重新包含 Cocos 动画轨道，Unity importer 会拒绝重建；动画维护应使用 Unity `.anim`/Animator Controller。旧 Prefab 中已有的 `CocosTimelinePlayer` 组件暂留作未迁入口运行时，不再由维护链生成。
 
 九宫格资源按原图聚合：只有一个 Border 时保持 Sprite Single；同一原图存在多个
 Border 时改为 Sprite Multiple，每个 Border 对应一个同纹理 Sprite 子资源，不再复制
@@ -101,7 +102,7 @@ python tools/ui_migration/consolidate_sliced_sprites.py `
 
 迁移器只替换 Sprite 引用并配置 TextureImporter，不重建 Prefab；用户在 Prefab 中的
 布局和业务组件保持不变。Unity 校验通过后才删除旧 `UnityMigration/Sliced` PNG 与
-`.meta`。`timeline/referenced/welfare` 增量准备会复用完整 Manifest 的主 Border 和
+`.meta`。`referenced/welfare` 增量准备会复用完整 Manifest 的主 Border 和
 Multiple Sprite 状态，避免不同 scope 反复改写同一原图。
 
 仅需调试 10 个代表界面时可加 `--scope baseline`。
@@ -120,6 +121,10 @@ python tools/ui_migration/convert_animations.py --scope all --prepare-unity
 
 Unity 运行时使用 `ImodAnimationData/ImodAnimationPlayer`；CSD/CSB Timeline 使用独立的 `CocosTimelinePlayer`。后者支持 Position、Scale、RotationSkew、Alpha、VisibleForFrame、AnchorPoint、FrameEvent、命名片段、循环、暂停和时间倍率，并按 Cocos `FrameEaseType` 执行缓动。
 
+`convert_animations.py --prepare-unity` 不会把只由 Cocos `LBattleLogic.lua` 使用的 `res2/fx/loading.ani` 打入 Unity `Resources/ProjectXAnimation`；Unity 使用 `WorldBattlePlaybackPresenter` 驱动战斗单位，未打包该 Lua 逻辑。该动画仍保留在引擎无关 IR 和 Cocos 源目录中；若 Unity 资源目录中有旧生成副本，准备器会连同 `.meta` 精确移除，并从 Unity Imod Catalog 排除。
+
+Login 的 `res2/animation/effect_chuangjue_1.ani` 与角色创建 `res2/create/Create_4.ani`、`Create_5.ani` 同样不再生成到 Unity Imod 包：LoginPresenter 使用 `UnityNativeLogin/Animations` 下的 Unity Animator Controller、AnimationClip 和 Sprite 帧，Unity runtime 没有这些旧 Imod 路径的调用。三份 Cocos 源资源和引擎无关 IR 保留；准备器精确移除旧 Unity JSON/PNG 及 `.meta` 并从 Catalog 排除。
+
 Imod 全量门禁为 `ProjectX.Editor.ImodAnimationValidation.ValidateAllImodAnimationsBatch`。它逐项验证资源、全部动作、单次/循环、动态别名、PNG/ANI 分离参数、附加层和旧速度倍率，并生成固定 UI 联系表。当前源包存在 6 个固定调用缺整组 ANI/PNG、1 个 ANI 缺贴图，详见 `docs/unityclient/modules/IMOD_ANIMATION.md`。
 
 然后在 Unity 执行 `Tools > ProjectX UI > Import All Prefabs`，或用批处理：
@@ -128,13 +133,9 @@ Imod 全量门禁为 `ProjectX.Editor.ImodAnimationValidation.ValidateAllImodAni
 & '<Unity.exe>' -batchmode -quit -projectPath unityclient `
   -executeMethod ProjectX.Editor.CocosUiImporter.ImportAllPrefabsBatch
 
-# 只向旧 Lua Timeline 实际引用的 27 个 Prefab 增量补写组件
-& '<Unity.exe>' -batchmode -quit -projectPath unityclient `
-  -executeMethod ProjectX.Editor.CocosUiImporter.ImportTimelinePrefabsBatch
-
-& '<Unity.exe>' -batchmode -quit -projectPath unityclient `
-  -executeMethod ProjectX.Editor.CocosUiImporter.ValidateTimelinePlaybackBatch
 ```
+
+Timeline 生成/回写命令已于 2026-09-30 退役。旧的 27 Prefab/34 Clip 验证结果只作历史迁移证据；当前维护不再运行 Cocos Timeline importer。
 
 输出：
 

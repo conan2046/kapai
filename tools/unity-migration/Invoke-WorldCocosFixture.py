@@ -192,6 +192,47 @@ def patch_world(value):
     return value
 
 
+def patch_chapter_unlock_world(value):
+    primary, secondary, tail = decode_world(patch_world(value))
+    chapter = next(item for item in primary["maps"] if item["mapId"] == TARGET_MAP_ID)
+    for stage_id in range(10021, 10030):
+        chapter["nodeStars"][stage_id] = 3
+    chapter["nodeStars"][10030] = 0
+    chapter["sumStar"] = sum(int(stars) for stars in chapter["nodeStars"].values())
+    primary["curMapId"] = TARGET_MAP_ID
+    primary["curNodeId"] = 10030
+    patched = zlib.compress(bytes(write_section(primary) + write_section(secondary) + tail), 9).hex()
+    assert_chapter_unlock_world(patched)
+    return patched
+
+
+def patch_achievement_unlock_world(value):
+    primary, secondary, tail = decode_world(value)
+    source_map_id = 1002
+    target_map_id = 1003
+    target_stage_id = 10020
+    primary["maps"] = [item for item in primary["maps"] if item["mapId"] < target_map_id]
+    chapter_matches = [item for item in primary["maps"] if item["mapId"] == source_map_id]
+    if len(chapter_matches) > 1:
+        raise RuntimeError("World achievement-unlock source chapter is duplicated")
+    if chapter_matches:
+        chapter = chapter_matches[0]
+    else:
+        chapter = {"mapId": source_map_id, "sumStar": 0, "nodeStars": {}, "fixIds": [], "fixStates": {}}
+        primary["maps"].append(chapter)
+    if not any(item["mapId"] == 1001 for item in primary["maps"]):
+        primary["maps"].append({"mapId": 1001, "sumStar": 0, "nodeStars": {}, "fixIds": [], "fixStates": {}})
+    for stage_id in range(10011, 10020):
+        chapter["nodeStars"][stage_id] = 3
+    chapter["nodeStars"][target_stage_id] = 0
+    chapter["sumStar"] = sum(int(stars) for stars in chapter["nodeStars"].values())
+    primary["curMapId"] = source_map_id
+    primary["curNodeId"] = target_stage_id
+    patched = zlib.compress(bytes(write_section(primary) + write_section(secondary) + tail), 9).hex()
+    assert_achievement_unlock_world(patched)
+    return patched
+
+
 def world_state(value):
     primary, _, raw_tail = decode_world(value)
     chapter = next((item for item in primary["maps"] if item["mapId"] == TARGET_MAP_ID), None)
@@ -228,6 +269,61 @@ def assert_world(value, allow_claimed=True):
             or any(value not in expected_states for value in state["boxStates"].values())):
         raise RuntimeError(f"World injected state mismatch: {state}")
     return state
+
+
+def assert_chapter_unlock_world(value, completed=False):
+    primary, _, _ = decode_world(value)
+    chapters = {item["mapId"]: item for item in primary["maps"]}
+    chapter = chapters.get(TARGET_MAP_ID)
+    if chapter is None:
+        raise RuntimeError("World chapter-unlock fixture chapter 1003 is missing")
+    previous_stars = {stage_id: chapter["nodeStars"].get(stage_id, 0) for stage_id in range(10021, 10030)}
+    target_stars = chapter["nodeStars"].get(10030, 0)
+    if (any(stars <= 0 for stars in previous_stars.values())
+            or chapter["sumStar"] != sum(int(stars) for stars in chapter["nodeStars"].values())):
+        raise RuntimeError(f"World chapter-unlock prerequisite progress mismatch: {previous_stars}")
+    if completed:
+        if target_stars <= 0 or 1004 not in chapters:
+            raise RuntimeError(f"World final-stage victory did not unlock chapter 1004: targetStars={target_stars}, chapters={sorted(chapters)}")
+    elif primary["curMapId"] != TARGET_MAP_ID or primary["curNodeId"] != 10030 or target_stars != 0:
+        raise RuntimeError(f"World chapter-unlock target stage is not ready: map={primary['curMapId']}, node={primary['curNodeId']}, stars={target_stars}")
+    return {
+        "chapterId": TARGET_MAP_ID,
+        "targetStageId": 10030,
+        "targetStageStars": target_stars,
+        "previousStagesPassed": len(previous_stars),
+        "chapterUnlocked": 1004 in chapters,
+        "currentMapId": primary["curMapId"],
+        "currentNodeId": primary["curNodeId"],
+    }
+
+
+def assert_achievement_unlock_world(value, completed=False):
+    primary, _, _ = decode_world(value)
+    chapters = {item["mapId"]: item for item in primary["maps"]}
+    chapter = chapters.get(1002)
+    if chapter is None:
+        raise RuntimeError("World achievement-unlock fixture chapter 1002 is missing")
+    previous_stars = {stage_id: chapter["nodeStars"].get(stage_id, 0) for stage_id in range(10011, 10020)}
+    target_stars = chapter["nodeStars"].get(10020, 0)
+    if (any(stars <= 0 for stars in previous_stars.values())
+            or chapter["sumStar"] != sum(int(stars) for stars in chapter["nodeStars"].values())):
+        raise RuntimeError(f"World achievement-unlock prerequisite progress mismatch: {previous_stars}")
+    if completed:
+        if target_stars <= 0 or 1003 not in chapters:
+            raise RuntimeError(f"World final-stage victory did not unlock chapter 1003: targetStars={target_stars}, chapters={sorted(chapters)}")
+    elif primary["curMapId"] != 1002 or primary["curNodeId"] != 10020 or target_stars != 0 or 1003 in chapters:
+        raise RuntimeError(f"World achievement-unlock target stage is not ready: map={primary['curMapId']}, node={primary['curNodeId']}, stars={target_stars}, chapters={sorted(chapters)}")
+    return {
+        "chapterId": 1002,
+        "targetStageId": 10020,
+        "targetStageStars": target_stars,
+        "previousStagesPassed": len(previous_stars),
+        "achievementChapterId": 1003,
+        "achievementChapterUnlocked": 1003 in chapters,
+        "currentMapId": primary["curMapId"],
+        "currentNodeId": primary["curNodeId"],
+    }
 
 
 def decode_pet_ids(value):
@@ -419,7 +515,9 @@ def read_stamina(value):
     return struct.unpack_from("<H", data, 0)[0]
 
 
-def setup(args, visual=False):
+def setup(args, visual=False, chapter_unlock=False, achievement_unlock=False):
+    if chapter_unlock and achievement_unlock:
+        raise RuntimeError("World fixture cannot set up two chapter-unlock scenarios at once")
     if os.path.exists(args.backup):
         raise RuntimeError("World SQLite backup already exists; restore and clean it before rerun")
     checkpoint(args.database)
@@ -443,7 +541,12 @@ def setup(args, visual=False):
         ).fetchone()
         if original is None or not original[0] or not original[1]:
             raise RuntimeError("World primary guan_qia is missing")
-        injected = patch_world(original[0])
+        if chapter_unlock:
+            injected = patch_chapter_unlock_world(original[0])
+        elif achievement_unlock:
+            injected = patch_achievement_unlock_world(original[0])
+        else:
+            injected = patch_world(original[0])
         connection.execute(
             "UPDATE role_info SET guan_qia=?,level=?,exp=?,pet=?,zhenfa=?,pet_equip=?,zhanDouLi=? WHERE id=?",
             (injected, COCOS_ROLE_LEVEL, COCOS_EXP, COCOS_PET, COCOS_ZHENFA, COCOS_PET_EQUIP,
@@ -461,8 +564,14 @@ def setup(args, visual=False):
         clone_row(connection, "user_info1", args.user_id, ISOLATION_USER_ID,
                   {"role0": str(ISOLATION_ROLE_ID), "name": "local-isolation"})
         connection.commit()
-        injected_state = assert_world(connection.execute(
-            "SELECT guan_qia FROM role_info WHERE id=?", (args.role_id,)).fetchone()[0], allow_claimed=False)
+        injected_value = connection.execute(
+            "SELECT guan_qia FROM role_info WHERE id=?", (args.role_id,)).fetchone()[0]
+        if chapter_unlock:
+            injected_state = assert_chapter_unlock_world(injected_value)
+        elif achievement_unlock:
+            injected_state = assert_achievement_unlock_world(injected_value)
+        else:
+            injected_state = assert_world(injected_value, allow_claimed=False)
         injected_battle_input = assert_battle_input(connection, args.role_id)
     except Exception:
         connection.rollback()
@@ -479,6 +588,8 @@ def setup(args, visual=False):
         "isolationUserId": ISOLATION_USER_ID, "isolationRoleId": ISOLATION_ROLE_ID,
         "snapshotHash": snapshot_hash, "stableHash": stable, "stableState": stable_snapshot,
         "visualMode": visual,
+        "scenario": ("achievement-unlock-1003" if achievement_unlock
+                     else "chapter-unlock" if chapter_unlock else "standard"),
         "visualStamina": COCOS_VISUAL_STAMINA if visual else None,
         "injected": injected_state, "battleInput": injected_battle_input, "createdUtc": utc_now(),
     })
@@ -488,13 +599,27 @@ def setup_visual(args):
     setup(args, visual=True)
 
 
+def setup_chapter_unlock(args):
+    setup(args, chapter_unlock=True)
+
+
+def setup_achievement_unlock(args):
+    setup(args, achievement_unlock=True)
+
+
 def assert_setup(args, runtime_normalized=False):
+    snapshot = read_json(args.evidence)
     connection = sqlite3.connect(args.database)
     try:
         row = connection.execute("SELECT guan_qia FROM role_info WHERE id=?", (args.role_id,)).fetchone()
         if row is None:
             raise RuntimeError("World primary role disappeared")
-        assert_world(row[0], allow_claimed=True)
+        if snapshot.get("scenario") == "chapter-unlock":
+            assert_chapter_unlock_world(row[0])
+        elif snapshot.get("scenario") == "achievement-unlock-1003":
+            assert_achievement_unlock_world(row[0])
+        else:
+            assert_world(row[0], allow_claimed=True)
         battle_input = assert_battle_input(connection, args.role_id, runtime_normalized=runtime_normalized)
         isolation = connection.execute(
             "SELECT u.role0,r.id FROM user_info1 u JOIN role_info r ON r.id=CAST(u.role0 AS INTEGER) WHERE u.id=?",
@@ -522,8 +647,14 @@ def assert_post_validation(args):
         row = connection.execute("SELECT guan_qia FROM role_info WHERE id=?", (args.role_id,)).fetchone()
         if row is None:
             raise RuntimeError("World primary role disappeared after validation")
-        assert_world(row[0], allow_claimed=True)
-        state = assert_battle_input(connection, args.role_id, runtime_normalized=True, allow_progress=True)
+        if snapshot.get("scenario") == "chapter-unlock":
+            state = assert_chapter_unlock_world(row[0], completed=True)
+        elif snapshot.get("scenario") == "achievement-unlock-1003":
+            state = assert_achievement_unlock_world(row[0], completed=True)
+        else:
+            assert_world(row[0], allow_claimed=True)
+            state = None
+        battle_input = assert_battle_input(connection, args.role_id, runtime_normalized=True, allow_progress=True)
         if snapshot.get("visualMode"):
             spirit = connection.execute(
                 "SELECT user_spirit FROM role_info WHERE id=?", (args.role_id,)
@@ -538,7 +669,9 @@ def assert_post_validation(args):
             raise RuntimeError("World isolation identity mismatch after validation")
     finally:
         connection.close()
-    snapshot.update({"postValidationBattleInput": state, "postValidationAssertedUtc": utc_now()})
+    snapshot.update({"postValidationBattleInput": battle_input, "postValidationAssertedUtc": utc_now()})
+    if state is not None:
+        snapshot["chapterUnlockResult"] = state
     write_json(args.evidence, snapshot)
 
 
@@ -611,9 +744,38 @@ def cleanup(args):
 def assert_cleanup(args):
     if os.path.exists(args.backup) or os.path.exists(args.backup + "-wal") or os.path.exists(args.backup + "-shm"):
         raise RuntimeError("World SQLite backup residue remains")
-    assert_restored(args)
+    snapshot = read_json(args.evidence)
+    if not snapshot.get("restored") or not snapshot.get("postLoginHashVerified"):
+        raise RuntimeError("World cleanup requires successful restore and post-login hash assertions")
+    connection = sqlite3.connect(args.database)
+    try:
+        actual_state = stable_state(connection, args.user_id, args.role_id)
+        if actual_state["hash"] != snapshot["stableHash"]:
+            raise RuntimeError(f"World stable relogin hash mismatch during cleanup: {actual_state['hash']}")
+        isolation_user = connection.execute(
+            "SELECT role0 FROM user_info1 WHERE id=?", (ISOLATION_USER_ID,)
+        ).fetchone()
+        isolation_role = connection.execute(
+            "SELECT 1 FROM role_info WHERE id=?", (ISOLATION_ROLE_ID,)
+        ).fetchone()
+        if (isolation_user is not None and int(isolation_user[0]) == ISOLATION_ROLE_ID) \
+                or isolation_role is not None:
+            raise RuntimeError("World fixture isolation identity remains after restore")
+        checkpoint_result = connection.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+        if checkpoint_result is not None and int(checkpoint_result[0]) != 0:
+            raise RuntimeError(f"World SQLite checkpoint is busy: {checkpoint_result}")
+    finally:
+        connection.close()
+    remove_sidecars(args.database)
     if os.path.exists(args.database + "-wal") or os.path.exists(args.database + "-shm"):
         raise RuntimeError("World SQLite database WAL/SHM residue remains")
+    snapshot.update({
+        "cleanupAsserted": True,
+        "cleanupStableHash": actual_state["hash"],
+        "cleanupIsolationIdentityAbsent": True,
+        "cleanupAssertedUtc": utc_now(),
+    })
+    write_json(args.evidence, snapshot)
 
 
 def main():
@@ -627,6 +789,8 @@ def main():
     args = parser.parse_args()
     actions = {
         "Setup": setup, "SetupVisual": setup_visual,
+        "SetupChapterUnlock": setup_chapter_unlock,
+        "SetupAchievementUnlock": setup_achievement_unlock,
         "AssertSetup": assert_setup, "AssertRuntimeSetup": assert_runtime_setup,
         "AssertPostValidation": assert_post_validation,
         "Restore": restore,

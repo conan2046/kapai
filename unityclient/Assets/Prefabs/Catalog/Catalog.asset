@@ -1,0 +1,563 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d47f248375bbcc742944ff975bfff28b, type: 3}
+  m_Name: Catalog
+  m_EditorClassIdentifier: 
+  entries:
+  - key: ActivityLayer
+    source: Unity/ActivityLayer
+    parentKey: 
+    defaultActive: 1
+  - key: ActivityLevelLayer
+    source: Unity/ActivityLevelLayer
+    parentKey: ActivityRankingLayer
+    defaultActive: 1
+  - key: ActivityRankingLayer
+    source: Unity/ActivityRankingLayer
+    parentKey: 
+    defaultActive: 0
+  - key: AnswerLayer
+    source: Unity/AnswerLayer
+    parentKey: 
+    defaultActive: 0
+  - key: BagEnterNumLayer
+    source: Unity/Bag/BagEnterNumLayer
+    parentKey: 
+    defaultActive: 0
+  - key: BagItemSource
+    source: Unity/Bag/BagItemSource
+    parentKey: 
+    defaultActive: 0
+  - key: BagOpenBox
+    source: Unity/Bag/BagOpenBox
+    parentKey: 
+    defaultActive: 0
+  - key: BagPopupFrame
+    source: Unity/Bag/BagPopupFrame
+    parentKey: 
+    defaultActive: 0
+  - key: BattleFightLayer
+    source: Unity/BattleFightLayer
+    parentKey: 
+    defaultActive: 0
+  - key: BattleHpNode
+    source: Unity/BattleHpNode
+    parentKey: 
+    defaultActive: 0
+  - key: FishLayer
+    source: Unity/Fish/FishLayer
+    parentKey: 
+    defaultActive: 0
+  - key: beibao
+    source: Unity/Bag
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: caiquanLayer
+    source: Unity/Gameplay/Monopoly/caiquanLayer
+    parentKey: 
+    defaultActive: 0
+  - key: ChatLayer
+    source: Unity/ChatLayer
+    parentKey: 
+    defaultActive: 0
+  - key: ChengZhangLayer
+    source: Unity/ChengZhangLayer
+    parentKey: huodong_bg
+    defaultActive: 0
+  - key: DadituuiLayer
+    source: Unity/DadituuiLayer
+    parentKey: 
+    defaultActive: 0
+  - key: DailyChargeLayer
+    source: Unity/DailyChargeLayer
+    parentKey: ActivityRankingLayer
+    defaultActive: 1
+  - key: dancichouka
+    source: Unity/dancichouka
+    parentKey: shenjiangzhaomu
+    defaultActive: 1
+  - key: daojuduihuan
+    source: Unity/daojuduihuan
+    parentKey: 
+    defaultActive: 0
+  - key: EnterNumLayer
+    source: Unity/EnterNumLayer
+    parentKey: 
+    defaultActive: 0
+  - key: FaBaoMaterialChooser
+    source: Unity/FaBaoMaterialChooser
+    parentKey: 
+    defaultActive: 0
+  - key: FaBaoRefine
+    source: Unity/FaBaoRefine
+    parentKey: 
+    defaultActive: 0
+  - key: FaBaoStrength
+    source: Unity/FaBaoStrength
+    parentKey: 
+    defaultActive: 0
+  - key: fengshenliezhuanlevel
+    source: Unity/Animations/Common/FengShenStory/Level
+    parentKey: 
+    defaultActive: 0
+  - key: fengshenliezhuanlLayer
+    source: Unity/Animations/Common/FengShenStory/Main
+    parentKey: 
+    defaultActive: 0
+  - key: FriendLayer
+    source: Unity/FriendLayer
+    parentKey: 
+    defaultActive: 0
+  - key: GameLayer
+    source: Unity/Gameplay/Monopoly/GameLayer
+    parentKey: 
+    defaultActive: 0
+  - key: GameSceneLayer
+    source: Unity/Gameplay/Monopoly/GameSceneLayer
+    parentKey: 
+    defaultActive: 0
+  - key: GangsApplyLayer
+    source: Unity/GangsApplyLayer
+    parentKey: 
+    defaultActive: 0
+  - key: GangsfoundLayer
+    source: Unity/GangsfoundLayer
+    parentKey: 
+    defaultActive: 0
+  - key: GangsLayer
+    source: Unity/GangsLayer
+    parentKey: 
+    defaultActive: 0
+  - key: GangsMemberLayer
+    source: Unity/GangsMemberLayer
+    parentKey: 
+    defaultActive: 0
+  - key: GoldTreeLayer
+    source: Unity/GoldTreeLayer
+    parentKey: 
+    defaultActive: 0
+  - key: guaiwubaoxiangLayer
+    source: Unity/guaiwubaoxiangLayer
+    parentKey: 
+    defaultActive: 0
+  - key: guanqiaxiangxiLayer
+    source: Unity/guanqiaxiangxiLayer
+    parentKey: 
+    defaultActive: 0
+  - key: HeroBook
+    source: Unity/HeroBook
+    parentKey: 
+    defaultActive: 0
+  - key: HeroBookAchievements
+    source: Unity/HeroBookAchievements
+    parentKey: 
+    defaultActive: 0
+  - key: HeroBookActivateResult
+    source: Unity/HeroBookActivateResult
+    parentKey: 
+    defaultActive: 0
+  - key: HeroBookAttributes
+    source: Unity/HeroBookAttributes
+    parentKey: 
+    defaultActive: 0
+  - key: HeroBookLevelResult
+    source: Unity/HeroBookLevelResult
+    parentKey: 
+    defaultActive: 0
+  - key: HeroBookUpgrade
+    source: Unity/HeroBookUpgrade
+    parentKey: 
+    defaultActive: 0
+  - key: HeroBookUpgradeResult
+    source: Unity/HeroBookUpgradeResult
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEnhanceMaster
+    source: Unity/HeroEnhanceMaster
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentAutoDivine
+    source: Unity/HeroEquipmentAutoDivine
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentAutoRefine
+    source: Unity/HeroEquipmentAutoRefine
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentAutoStar
+    source: Unity/HeroEquipmentAutoStar
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentAwaken
+    source: Unity/HeroEquipmentAwaken
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentChange
+    source: Unity/HeroEquipmentChange
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentCultivate
+    source: Unity/HeroEquipmentCultivate
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentDetail
+    source: Unity/HeroEquipmentDetail
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentDivine
+    source: Unity/HeroEquipmentDivine
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentDivineEffect
+    source: Unity/HeroEquipmentDivineEffect
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentExchange
+    source: Unity/HeroEquipmentExchange
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentFragment
+    source: Unity/HeroEquipmentFragment
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentList
+    source: Unity/HeroEquipmentList
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentRefine
+    source: Unity/HeroEquipmentRefine
+    parentKey: 
+    defaultActive: 0
+  - key: HeroEquipmentStrength
+    source: Unity/HeroEquipmentStrength
+    parentKey: 
+    defaultActive: 0
+  - key: HeroRebirthChoose
+    source: Unity/HeroRebirthChoose
+    parentKey: 
+    defaultActive: 0
+  - key: HeroRebirthConfirm
+    source: Unity/HeroRebirthConfirm
+    parentKey: 
+    defaultActive: 0
+  - key: HeroRecycle
+    source: Unity/HeroRecycle
+    parentKey: 
+    defaultActive: 0
+  - key: huodong_bg
+    source: Unity/huodong_bg
+    parentKey: 
+    defaultActive: 0
+  - key: HuoyueLayer
+    source: Unity/HuoyueLayer
+    parentKey: huodong_bg
+    defaultActive: 0
+  - key: jianghunshop
+    source: Unity/jianghunshop
+    parentKey: shop_bg
+    defaultActive: 0
+  - key: jiangliyulan
+    source: Unity/jiangliyulan
+    parentKey: shenjiangzhaomu
+    defaultActive: 0
+  - key: JingjieLayer
+    source: Unity/OneLevel/JingjieLayer
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: Jingjieyulan
+    source: Unity/OneLevel/Jingjieyulan
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: JingjiLayer
+    source: Unity/JingjiLayer
+    parentKey: 
+    defaultActive: 0
+  - key: juezhankunlun
+    source: Unity/juezhankunlun
+    parentKey: 
+    defaultActive: 0
+  - key: kapaiguaiwuLayer
+    source: Unity/kapaiguaiwuLayer
+    parentKey: 
+    defaultActive: 0
+  - key: LoadingLayer
+    source: Unity/LoadingLayer
+    parentKey: 
+    defaultActive: 0
+  - key: LoginBgLayer
+    source: Unity/LoginBgLayer
+    parentKey: 
+    defaultActive: 1
+  - key: LoginGiftLayer
+    source: Unity/LoginGiftLayer
+    parentKey: 
+    defaultActive: 0
+  - key: loginLayer
+    source: Unity/loginLayer
+    parentKey: 
+    defaultActive: 1
+  - key: MailLayer
+    source: Unity/MailLayer
+    parentKey: 
+    defaultActive: 0
+  - key: MainChatLayer
+    source: Unity/MainChatLayer
+    parentKey: 
+    defaultActive: 0
+  - key: MessageBoxLayer
+    source: Unity/MessageBoxLayer
+    parentKey: 
+    defaultActive: 0
+  - key: NoticeLayer
+    source: Unity/NoticeLayer
+    parentKey: 
+    defaultActive: 0
+  - key: OldMemoryLayer
+    source: Unity/OldMemoryLayer
+    parentKey: 
+    defaultActive: 0
+  - key: OneLevelLayer
+    source: Unity/Shared/OneLevelLayer
+    parentKey: 
+    defaultActive: 0
+  - key: QiriLayer
+    source: Unity/QiriLayer
+    parentKey: 
+    defaultActive: 0
+  - key: RenwuLayer
+    source: Unity/RenwuLayer
+    parentKey: huodong_bg
+    defaultActive: 1
+  - key: RoleCreateLayer
+    source: Unity/RoleCreateLayer
+    parentKey: 
+    defaultActive: 0
+  - key: saodang
+    source: Unity/saodang
+    parentKey: 
+    defaultActive: 0
+  - key: saodangLayer
+    source: Unity/saodangLayer
+    parentKey: 
+    defaultActive: 0
+  - key: SeverListLayer
+    source: Unity/SeverListLayer
+    parentKey: 
+    defaultActive: 0
+  - key: shangcheng
+    source: Unity/shangcheng
+    parentKey: shop_bg
+    defaultActive: 0
+  - key: shenjiangxiangxishuxing
+    source: Unity/shenjiangxiangxishuxing
+    parentKey: 
+    defaultActive: 0
+  - key: shenjiangyulan
+    source: Unity/shenjiangyulan
+    parentKey: shenjiangzhaomu
+    defaultActive: 0
+  - key: shenjiangzhaomu
+    source: Unity/shenjiangzhaomu
+    parentKey: 
+    defaultActive: 0
+  - key: shenjiangzhenxingLayer
+    source: Unity/Hero/shenjiangzhenxingLayer
+    parentKey: 
+    defaultActive: 0
+  - key: shilianchouka
+    source: Unity/shilianchouka
+    parentKey: shenjiangzhaomu
+    defaultActive: 1
+  - key: shop_bg
+    source: Unity/shop_bg
+    parentKey: 
+    defaultActive: 0
+  - key: SignLayer
+    source: Unity/SignLayer
+    parentKey: 
+    defaultActive: 0
+  - key: SourceLayer
+    source: Unity/SourceLayer
+    parentKey: 
+    defaultActive: 0
+  - key: StartupLayer
+    source: Unity/StartupLayer
+    parentKey: 
+    defaultActive: 0
+  - key: SystemLayer
+    source: Unity/SystemLayer
+    parentKey: 
+    defaultActive: 0
+  - key: tanchuangjiangli
+    source: Unity/Common/tanchuangjiangli
+    parentKey: 
+    defaultActive: 0
+  - key: TeamInviteListLayer
+    source: Unity/TeamInviteListLayer
+    parentKey: 
+    defaultActive: 0
+  - key: TeamMembersLayer
+    source: Unity/TeamMembersLayer
+    parentKey: 
+    defaultActive: 0
+  - key: tililingquLayer
+    source: Unity/tililingquLayer
+    parentKey: huodong_bg
+    defaultActive: 0
+  - key: UImainLayer_new
+    source: Unity/UImainLayer_new
+    parentKey: 
+    defaultActive: 0
+  - key: UImain_cloudLayer
+    source: Unity/UImain_cloudLayer
+    parentKey: 
+    defaultActive: 0
+  - key: wanfashop
+    source: Unity/wanfashop
+    parentKey: 
+    defaultActive: 0
+  - key: WelfareLayer
+    source: Unity/WelfareLayer
+    parentKey: 
+    defaultActive: 0
+  - key: WorldBattleStatisticsFrame
+    source: Unity/WorldBattleStatisticsFrame
+    parentKey: 
+    defaultActive: 0
+  - key: WorldMapNewLayer
+    source: Unity/WorldMapNewLayer
+    parentKey: 
+    defaultActive: 0
+  - key: XuezhanMain
+    source: Unity/XuezhanMain
+    parentKey: 
+    defaultActive: 0
+  - key: XunbaoLayer
+    source: Unity/XunBao/XunbaoLayer
+    parentKey: 
+    defaultActive: 0
+  - key: Xunbao_popupLayer
+    source: Unity/XunBao/Xunbao_popupLayer
+    parentKey: 
+    defaultActive: 0
+  - key: Xunbao_souxunLayer
+    source: Unity/Xunbao_souxunLayer
+    parentKey: 
+    defaultActive: 0
+  - key: yijianyouli
+    source: Unity/yijianyouli
+    parentKey: 
+    defaultActive: 0
+  - key: yingxiongbeibao
+    source: Unity/Hero/yingxiongbeibao
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxionghuanjiang
+    source: Unity/yingxionghuanjiang
+    parentKey: 
+    defaultActive: 0
+  - key: yingxiongInfoLayer
+    source: Unity/Hero/yingxiongInfoLayer
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongjueseLayer
+    source: Unity/yingxiongjueseLayer
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongListLayer
+    source: Unity/Hero/yingxiongListLayer
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongshengjiScene1
+    source: Unity/yingxiongshengjiScene1
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongshengxingLayer
+    source: Unity/yingxiongshengxingLayer
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongshuxingLayer
+    source: Unity/yingxiongshuxingLayer
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongtianfuLayer
+    source: Unity/yingxiongtianfuLayer
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongtupoLayer
+    source: Unity/yingxiongtupoLayer
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongxinxiLayer
+    source: Unity/yingxiongxinxiLayer
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongxiulian
+    source: Unity/yingxiongxiulian
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongxiulian2
+    source: Unity/yingxiongxiulian2
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: yingxiongxiulian3
+    source: Unity/yingxiongxiulian3
+    parentKey: OneLevelLayer
+    defaultActive: 0
+  - key: youli
+    source: Unity/youli
+    parentKey: 
+    defaultActive: 0
+  - key: youlifangshi
+    source: Unity/youlifangshi
+    parentKey: 
+    defaultActive: 0
+  - key: youlisanjie
+    source: Unity/youlisanjie
+    parentKey: 
+    defaultActive: 0
+  - key: youlishichang
+    source: Unity/youlishichang
+    parentKey: 
+    defaultActive: 0
+  - key: zhandoujiesuanLayer
+    source: Unity/zhandoujiesuanLayer
+    parentKey: 
+    defaultActive: 0
+  - key: zhandoutongji
+    source: Unity/zhandoutongji
+    parentKey: 
+    defaultActive: 0
+  - key: ZhuanpanLayer
+    source: Unity/ZhuanpanLayer
+    parentKey: 
+    defaultActive: 0
+  - key: zhuxianchengjiu
+    source: Unity/zhuxianchengjiu
+    parentKey: 
+    defaultActive: 0
+  - key: ziyuanzhaohui
+    source: Unity/ziyuanzhaohui
+    parentKey: huodong_bg
+    defaultActive: 0
+  - key: WorldChapterUnlockNotice
+    source: Unity/WorldChapterUnlockNotice
+    parentKey: 
+    defaultActive: 0
+  - key: EnhanceMasterSuccessPopup
+    source: Unity/EnhanceMasterSuccessPopup
+    parentKey: 
+    defaultActive: 0
+  - key: PlayerLevelUpPopup
+    source: Unity/PlayerLevelUp
+    parentKey: 
+    defaultActive: 0

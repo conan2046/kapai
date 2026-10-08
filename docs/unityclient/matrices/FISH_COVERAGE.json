@@ -65,7 +65,7 @@
     },
     {
       "id": "fish-item-catalog",
-      "sourceFiles": ["../concept/data/excel/xml配置表/新表/item.xlsx", "../concept/data/excel/xml配置表/新表/fish_reward.xlsx", "server/sql/item_template.sql", "server/src/user.cpp", "server/config/json/item.json", "server/config/json/fish_reward.json", "unityclient/Assets/ProjectX/Resources/Configs/item.json", "unityclient/Assets/ProjectX/Resources/Configs/fish_reward.json", "server/sql/sqlite/001_initial_schema.sql"],
+      "sourceFiles": ["../concept/data/excel/xml配置表/新表/item.xlsx", "../concept/data/excel/xml配置表/新表/fish_reward.xlsx", "server/sql/item_template.sql", "server/src/user.cpp", "server/config/json/item.json", "server/config/json/fish_reward.json", "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/item.json", "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/fish_reward.json", "server/sql/sqlite/001_initial_schema.sql"],
       "recordTotal": 10,
       "businessIds": ["item:580", "item:581", "item:582", "item:10580", "item:10581", "item:10582", "item:10583", "item:10584", "item:10585", "item:10586"],
       "branchType": "首版10种配置化鱼道具；旧3种保留50/35/15，新7种使用未占用ID；正式Excel、服务端JSON、Unity JSON与SQLite镜像已落地",
@@ -89,7 +89,7 @@
     },
     {
       "id": "fish-retained-mechanics",
-      "sourceFiles": ["server/src/huo_dong.h", "server/src/huo_dong.cpp", "server/src/user.cpp", "../concept/data/excel/xml配置表/新表/fish_settings.xlsx", "server/config/json/fish_settings.json", "unityclient/Assets/ProjectX/Resources/Configs/fish_settings.json", "tools/unity-migration/Invoke-FishSqliteFixture.ps1"],
+      "sourceFiles": ["server/src/huo_dong.h", "server/src/huo_dong.cpp", "server/src/user.cpp", "../concept/data/excel/xml配置表/新表/fish_settings.xlsx", "server/config/json/fish_settings.json", "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/fish_settings.json", "tools/unity-migration/Invoke-FishSqliteFixture.ps1"],
       "recordTotal": 10,
       "businessIds": ["gold-cost:100", "cycle-min:10", "cycle-max:20", "cycle-rng:uniform-integer", "basket-capacity-slots:9999", "fish-stack-limit:999", "auto-continue:1", "legacy-exp-activity:11", "legacy-exp-ratio:0.05", "legacy-exchange-event:Fish"],
       "branchType": "成功放竿金币消耗、每轮独立等概率整数周期、鱼篓格数容量、同种鱼先补栈后开格、单格堆叠上限与自动续钓",

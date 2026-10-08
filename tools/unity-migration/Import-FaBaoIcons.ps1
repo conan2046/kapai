@@ -6,9 +6,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
-$configPath = Join-Path $root "unityclient\Assets\ProjectX\Resources\Configs\fabao.json"
+$configPath = Join-Path $root "unityclient\Assets\Resources\ProjectXData\Configs\fabao.json"
 $sourceRoot = Join-Path $root "client\ProjectX\res\item"
-$targetRoot = Join-Path $root "unityclient\Assets\ProjectX\Resources\FaBaoIcons"
+$targetRoot = Join-Path $root "unityclient\Assets\Resources\FaBaoIcons"
 [System.IO.Directory]::CreateDirectory($targetRoot) | Out-Null
 
 $pictures = @(Get-Content -Raw -Encoding UTF8 -LiteralPath $configPath | ConvertFrom-Json |

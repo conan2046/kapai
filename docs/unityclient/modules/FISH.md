@@ -1,6 +1,6 @@
 # 钓鱼模块（Steam 单机化）
 
-> 当前状态：2026-09-15 单机钓鱼 G3 逻辑与正式 UI 定向检查已通过；固定账号 `7200057/1000003` 的两轮 `/217` 计时产出、扣费/续钓/领取/停止/退出，以及复用背包鱼篓的纵向真实拖动均已验证。用户已在最后一次 `FishLayer.prefab/FishScene/pos` 挂点与统一顶部层级调整后完成实际测试并确认无误，`manualPassed=true`；G4-G6 尚未执行。
+> 当前状态：2026-09-15 Fish G3 逻辑与正式 UI 定向检查曾由用户实际确认通过。2026-09-30 W8 已将 Fish 入口改为 Unity-owned Prefab/`UnityUiView`/Catalog，Fish `ShapeId=2000` 的 Action 2 也已改为 Unity Sprite/AnimationClip/Animator（P-0172）；旧 UI importer 行退役，历史源 Prefab Identity 已清除且节点保留。Unity MCP 验证层级、原生动画和资源依赖；变更后的 Function_32/EnterBtn 路线与最终画面待用户复验。Fish 无旧 Timeline 轨道，OneLevel 共享帧复用 P-0107。G4-G6 尚未执行。
 > 2026-09-15 根据首次体验反馈完成正式 UI 收敛：钓场操作区复用 `FishLayer.prefab`，鱼篓直接复用 `zhujue/beibao.prefab` 的五列格子、品质框、详情区与 `OneLevelLayer` 外框；鱼篓为纵向 `ScrollRect`，数量显示在格子右下角，不再使用运行时代码绘制的纯色面板与按钮。
 
 ## 1. 范围决策（用户授权）
@@ -80,10 +80,9 @@
 
 ## 5. Unity 现状与缺口
 
-- 资源：`unityclient/Assets/ProjectX/res/csd/Prefabs/FishLayer.prefab` + `res/csd/UnityMigration/documents/FishLayer.json`，来源 `cocosstudio/csd/FishLayer.csd`；在 `unity-import-manifest.json` 中为 `documents[78]`，`preview:false`。
-  `preview:false` 与已完成的 `AnswerLayer`（documents[62]）、`GoldTreeLayer`（documents[129]）一致，**只表示预览场景开关，不构成迁移缺口**。
+- 资源：运行时使用 `Assets/ProjectX/Prefabs/Fish/FishLayer.prefab`，由 Unity `FishLayer.asset` Reference 与 Catalog key `FishLayer` 加载。历史源 `Assets/ProjectX/res/csd/Prefabs/FishLayer.prefab` / `documents/FishLayer.json`（`cocosstudio/csd/FishLayer.csd`）保留；Fish UI 行已从活动 `unity-import-manifest.json` 移除。源 Prefab 原含 1 个 `UiPrefabIdentity`、0 个 `CocosTimelinePlayer`、0 条 Timeline 轨道；Unity-owned 副本递归旧 `res/` 依赖、Identity、Timeline、Binding 均为 0。
 - 协议层：`unityclient/Assets/ProjectX/Resources/Lua/` 下无 Fish 控制器。
-- 路由：`unityclient/Assets/ProjectX/Resources/Configs/function-routes.json` 无 `Fish` 行（现有行仅覆盖 1/2/3/4/6/7/8/9/10/11/12/13/15/16/17/18/19/21/23/25/26/27/29/1010/1011/1120/1130/1182/1222/2120/2128）。
+- 路由：`Resources/ProjectXData/Configs/function-routes.json` 已注册 functionId `32`、target `Fish`、key `FishLayer`、presentation `standalone`；`ProjectXApp.Fish` 通过 `services.UiAssets.InstantiateUnity` 创建 Unity view。
 - 入口配置：正式 `function.xlsx`、服务端/Unity JSON 已增加 `function_id=32`；`function-routes.json` 已注册 `FishLayer` standalone 路由，玩法大厅可真实点击进入。
 - 实现范式（可直接复用）：`Resources/Lua/Gameplay/MoneyTreeController.lua.txt` + `src/Data/MoneyTreeStore.cs` + `src/UI/MoneyTreePresenter.cs` + `src/Core/ProjectXApp.MoneyTree.cs`（同族的 HappyWheel、Monopoly 亦为 `*Store.cs` + `*Presenter.cs` + `ProjectXApp.*.cs` 三件套）；Lua 控制器独占该顶级协议号的读写与字节游标，并对 `message.Remaining` 做严格校验，C# 只做展示与 Prefab 绑定。
 

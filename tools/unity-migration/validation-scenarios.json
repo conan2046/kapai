@@ -240,17 +240,29 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Login/LoginController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Login/LoginController.lua.txt",
           "contains": [
             "Protocol.USER_LOGIN",
             "Protocol.ROLE_NAME_CHECK",
             "Protocol.CREATE_ROLE",
-            "Protocol.SELECT_ROLE",
-            "Protocol.GAME_NOTICE"
+            "Protocol.SELECT_ROLE"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/LoginPresenter.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.MainUi.cs",
+          "contains": [
+            "RequestGameNotice()"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/src/Core/ProjectXApp.Notice.cs",
+          "contains": [
+            "message.WriteUShort(88)",
+            "HandleGameNoticeResponse"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/src/UI/LoginPresenter.cs",
           "contains": [
             "LoginPresenter",
             "ShowHandover",
@@ -261,19 +273,28 @@
           ]
         },
         {
-          "path": "tools/unity-migration/Invoke-LoginCocosFixture.ps1",
+          "path": "tools/unity-migration/Invoke-LoginSqliteFixture.ps1",
           "contains": [
-            "fixedDisposableUserId",
-            "Assert-FixedRestored",
-            "Remove-FixedDisposableIdentity"
+            "LocalServer\\projectx.db",
+            "Unity SQLite identity must remain 7200057/1000003",
+            "Invoke-LoginSqliteFixture.py"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.Login.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.Login.cs",
+          "contains": [
+            "PrepareSinglePlayerSlotThenLogin",
+            "LocalServerSupervisor.CreateForDatabase",
+            "singlePlayerSaves.ResolveLocalUserId"
+          ]
+        },
+        {
+          "path": "unityclient/Assets/src/Core/ProjectXApp.LoginValidation.cs",
           "contains": [
             "MarkValidationControl",
             "RecordValidationSemantic",
-            "BeginLoginClosureValidation"
+            "BeginLoginClosureValidation",
+            "projectXRequireNoticeResponse"
           ]
         }
       ],
@@ -449,7 +470,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/BagPresenter.cs",
+          "path": "unityclient/Assets/src/UI/BagPresenter.cs",
           "contains": [
             "class BagPresenter",
             "InvokeControl",
@@ -457,7 +478,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Data/BagStore.cs",
+          "path": "unityclient/Assets/src/Data/BagStore.cs",
           "contains": [
             "class BagStore",
             "Items",
@@ -589,13 +610,13 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Settings/SettingsController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Settings/SettingsController.lua.txt",
           "contains": [
             "Bridge:ShowSettings"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/SettingsPresenter.cs",
+          "path": "unityclient/Assets/src/UI/SettingsPresenter.cs",
           "contains": [
             "MusicClosedKey",
             "EffectsClosedKey",
@@ -604,7 +625,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "RunSettingsValidation",
             "RunSettingsAccountValidation",
@@ -711,13 +732,13 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Foundation/AppLaunchOptions.cs",
+          "path": "unityclient/Assets/src/Foundation/AppLaunchOptions.cs",
           "contains": [
             "-projectXTaskG4Validation"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/TaskPresenter.cs",
+          "path": "unityclient/Assets/src/UI/TaskPresenter.cs",
           "contains": [
             "class TaskPresenter",
             "InvokeActivityBox",
@@ -726,7 +747,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "MarkValidationControl",
             "RecordValidationSemantic"
@@ -860,7 +881,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Player/PlayerController.lua.txt",
           "contains": [
             "Bridge:BeginPlayerHudValidation()",
             "Protocol.VIP",
@@ -871,7 +892,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs",
+          "path": "unityclient/Assets/src/UI/MainHudPresenter.cs",
           "contains": [
             "SetChatExpanded",
             "SetOnlineReward",
@@ -882,7 +903,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "RunPlayerHudValidation",
             "HUD-56-EMPTY-FAILURE",
@@ -890,7 +911,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.Login.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.Login.cs",
           "contains": [
             "services.Options.PlayerHudValidation",
             "services.Options.ScenarioManagedReconnect",
@@ -898,7 +919,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Foundation/AppLaunchOptions.cs",
+          "path": "unityclient/Assets/src/Foundation/AppLaunchOptions.cs",
           "contains": [
             "PlayerHudValidation",
             "-projectXPlayerHudValidation",
@@ -906,7 +927,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs",
+          "path": "unityclient/Assets/src/Editor/BootstrapSceneBuilder.cs",
           "contains": [
             "MainCloudPrefab",
             "new PrefabSpec(MainCloudPrefab, false)"
@@ -947,9 +968,9 @@
             ],
             "reason": "Steam excludes Chat ownership, so chat-empty, chat-message and reconnect checkpoints intentionally retain the same authoritative collapsed HUD as first-entry/reentry/restart; the looping cloud Timeline may make only a subset pixel-identical at a given stable frame.",
             "sourceEvidence": [
-              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-first-entry.png)",
-              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-return-reenter.png)",
-              "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-client-restart.png)"
+              "unityclient/Assets/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-first-entry.png)",
+              "unityclient/Assets/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-return-reenter.png)",
+              "unityclient/Assets/src/Core/ProjectXApp.cs::CapturePlayerHudFrame(bootstrap-playerhud-client-restart.png)"
             ]
           }
         ]
@@ -1145,7 +1166,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Hero/HeroController.lua.txt",
           "contains": [
             "local function requestFormation()",
             "function M.onClick()",
@@ -1154,7 +1175,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/HeroPresenter.cs",
+          "path": "unityclient/Assets/src/UI/HeroPresenter.cs",
           "contains": [
             "class HeroPresenter",
             "SelectedPosition",
@@ -1167,21 +1188,21 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/UiRouter.cs",
+          "path": "unityclient/Assets/src/UI/UiRouter.cs",
           "contains": [
             "SetExclusiveVisibleBySource",
             "selected?.GameObject == root"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/CocosUiView.cs",
+          "path": "unityclient/Assets/src/UI/CocosUiView.cs",
           "contains": [
             "button.interactable = true",
             "button.targetGraphic.raycastTarget = true"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/FormationPopupPresenter.cs",
+          "path": "unityclient/Assets/src/UI/FormationPopupPresenter.cs",
           "contains": [
             "button.interactable = true",
             "hitArea.raycastTarget = true",
@@ -1189,7 +1210,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/FormationPopupPresenter.cs",
+          "path": "unityclient/Assets/src/UI/FormationPopupPresenter.cs",
           "contains": [
             "class FormationPopupPresenter",
             "Render()"
@@ -1297,7 +1318,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Hero/HeroController.lua.txt",
           "contains": [
             "readPetUpdate",
             "Protocol.UPDATE_PET_INFO"
@@ -1464,19 +1485,19 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs",
+          "path": "unityclient/Assets/src/Editor/BootstrapAppRunner.cs",
           "contains": [
             "-projectXMailValidation"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/MailPresenter.cs",
+          "path": "unityclient/Assets/src/UI/MailPresenter.cs",
           "contains": [
             "class MailPresenter"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "MarkValidationControl",
             "RecordValidationSemantic"
@@ -1573,7 +1594,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Shop/ShopController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Shop/ShopController.lua.txt",
           "contains": [
             "validationRefresh",
             "validationCount",
@@ -1582,7 +1603,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs",
+          "path": "unityclient/Assets/src/UI/ShopPresenter.cs",
           "contains": [
             "InvokeQuantityInput",
             "InvokeBuy",
@@ -1590,7 +1611,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.ShopValidation.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.ShopValidation.cs",
           "contains": [
             "BeginShopG4Validation",
             "MarkValidationControl",
@@ -1646,45 +1667,45 @@
       ],
       "sourceContracts": [
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "CaptureGameplayShopsValidation"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.ShopValidation.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.ShopValidation.cs",
           "contains": [
             "BeginGameplayShopsG4Validation"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/GameplayShopsPresenter.cs",
+          "path": "unityclient/Assets/src/UI/GameplayShopsPresenter.cs",
           "contains": [
             "public sealed class GameplayShopsPresenter"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/GameplayShopItemInfoPresenter.cs",
+          "path": "unityclient/Assets/src/UI/GameplayShopItemInfoPresenter.cs",
           "contains": [
             "public sealed class GameplayShopItemInfoPresenter",
             "public void ShowSoul()"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/BagFlowPresenter.cs",
+          "path": "unityclient/Assets/src/UI/BagFlowPresenter.cs",
           "contains": [
             "public void ShowGameplayShopSource(ShopRecord item)"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Shop/GameplayShopController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Shop/GameplayShopController.lua.txt",
           "contains": [
             "-projectXGameplayShopsValidation",
             "CompleteGameplayShopsValidation"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs",
+          "path": "unityclient/Assets/src/Editor/BootstrapAppRunner.cs",
           "contains": [
             "-projectXGameplayShopsValidation"
           ]
@@ -1846,14 +1867,14 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/World/WorldController.lua.txt",
           "contains": [
             "Protocol.WORLD_STAGE",
             "BeginWorldSweepRewards"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.World.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.World.cs",
           "contains": [
             "BeginWorldChapterList",
             "world-account-isolation"
@@ -1997,21 +2018,21 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Draw/DrawController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Draw/DrawController.lua.txt",
           "contains": [
             "Protocol.PET_RANDOM_DRAW",
             "readResult"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Hero/HeroController.lua.txt",
           "contains": [
             "function M.levelUp",
             "message:WriteByte(3)"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.Draw.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.Draw.cs",
           "contains": [
             "BeginDrawResult",
             "EndDrawResult"
@@ -2141,7 +2162,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/GameplayController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Gameplay/GameplayController.lua.txt",
           "contains": [
             "Bridge:ShowGameplay()",
             "Bridge:EnterGameplay(functionId)",
@@ -2149,7 +2170,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/GameplayPresenter.cs",
+          "path": "unityclient/Assets/src/UI/GameplayPresenter.cs",
           "contains": [
             "RuntimeGameplayContent",
             "Function_",
@@ -2157,14 +2178,14 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.GameplayValidation.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.GameplayValidation.cs",
           "contains": [
             "ShowGameplay",
             "UpdateGameplayHotPoint"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.GameplayRoutes.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.GameplayRoutes.cs",
           "contains": [
             "EnterGameplay"
           ]
@@ -2227,7 +2248,7 @@
       ],
       "sourceContracts": [
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/YouLiController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Gameplay/YouLiController.lua.txt",
           "contains": [
             "function M.start",
             "function M.startBatch",
@@ -2236,7 +2257,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "onYouLiStartBatch",
             "StartAllYouLi",
@@ -2244,7 +2265,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/YouLiPresenter.cs",
+          "path": "unityclient/Assets/src/UI/YouLiPresenter.cs",
           "contains": [
             "Action startAll",
             "oneKeyStart = Bind(Find(root, \"Btn_youli\"), startAll)",
@@ -2389,7 +2410,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Gameplay/FengShenStoryController.lua.txt",
           "contains": [
             "Protocol.WORLD_STAGE",
             "Bridge:BeginFengShenStoryValidation()",
@@ -2398,14 +2419,14 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Data/WorldVisualCatalog.cs",
+          "path": "unityclient/Assets/src/Data/WorldVisualCatalog.cs",
           "contains": [
             "FirstRewards",
             "ParseTriples(GetBraceField(entry, \"first_reward\"))"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
+          "path": "unityclient/Assets/src/UI/FengShenStoryPresenter.cs",
           "contains": [
             "PageChapterCount",
             "SelectChapter",
@@ -2415,13 +2436,13 @@
             "RenderLevelRewards(definition?.FirstRewards)",
             "RewardPicture(reward.Type)",
             "RuntimeFengShenItemCell",
-            "HeroUI/common_quality_",
+            "Art/Hero/common_quality_",
             "RuntimeFengShenStoryGoldCheck",
             "RenderCurrencyHeader"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "BeginFengShenStoryValidation",
             "RunFengShenStoryValidation",
@@ -2569,7 +2590,7 @@
       ],
       "sourceContracts": [
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Gameplay/XunBaoController.lua.txt",
           "contains": [
             "function M.search",
             "function M.searchAll",
@@ -2584,7 +2605,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/XunBaoPresenter.cs",
+          "path": "unityclient/Assets/src/UI/XunBaoPresenter.cs",
           "contains": [
             "BindAction",
             "ActionBindingCount",
@@ -2596,7 +2617,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/XunBaoOverlayPresenter.cs",
+          "path": "unityclient/Assets/src/UI/XunBaoOverlayPresenter.cs",
           "contains": [
             "WaitForSecondsRealtime(0.3f)",
             "ShowSearchConfirm",
@@ -2613,13 +2634,13 @@
             "legacyBottomButton.SetActive(false)",
             "RuntimeXunBaoResultClose",
             "new GameObject(\"Icon\"",
-            "HeroUI/common_quality_",
+            "Art/Hero/common_quality_",
             "EnsureHorizontalLayout(rewardList.gameObject)",
             "LayoutRebuilder.ForceRebuildLayoutImmediate(rewardRect)"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Task/TaskController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Task/TaskController.lua.txt",
           "contains": [
             "function M.requestXunBao",
             "Protocol.TASK_LIST",
@@ -2628,7 +2649,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Data/TaskStore.cs",
+          "path": "unityclient/Assets/src/Data/TaskStore.cs",
           "contains": [
             "LoadFormalXunBaoDefinitions",
             "Resources/ProjectXData/Configs/daily.json",
@@ -2673,7 +2694,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/daily.json",
+          "path": "unityclient/Assets/Resources/ProjectXData/Configs/daily.json",
           "contains": [
             "\"id\":25",
             "\"type\":3",
@@ -2681,7 +2702,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/item.json",
+          "path": "unityclient/Assets/Resources/ProjectXData/Configs/item.json",
           "contains": [
             "\"id\":402",
             "\"name\":\"寻宝令\"",
@@ -2893,7 +2914,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/StaminaClaim/StaminaClaimController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/StaminaClaim/StaminaClaimController.lua.txt",
           "contains": [
             "message:WriteByte(3)",
             "Bridge:BeginStaminaClaimRequest",
@@ -2902,7 +2923,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/StaminaClaimPresenter.cs",
+          "path": "unityclient/Assets/src/UI/StaminaClaimPresenter.cs",
           "contains": [
             "requestPaidConfirmation",
             "AuthoritativeStamina",
@@ -2911,7 +2932,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "RunStaminaClaimValidation",
             "stamina-three-slot-single-use",
@@ -3105,7 +3126,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Hero/EquipmentController.lua.txt",
           "contains": [
             "requestMasterPositions",
             "readEquipmentMasterResponse",
@@ -3113,7 +3134,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/LegacyEquipmentModel.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Hero/LegacyEquipmentModel.lua.txt",
           "contains": [
             "masterLevels",
             "ReplaceMasterLevels",
@@ -3121,14 +3142,14 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt",
+          "path": "unityclient/Assets/Resources/Lua/Bootstrap.txt",
           "contains": [
             "OnEnhanceMasterOpened",
             "EquipmentController.requestMaster"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "SetEnhanceMasterLevels",
             "NotifyEnhanceMasterLevel",
@@ -3136,7 +3157,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Data/HeroEquipmentStore.cs",
+          "path": "unityclient/Assets/src/Data/HeroEquipmentStore.cs",
           "contains": [
             "class EnhanceMasterStore",
             "TryGetLevel",
@@ -3144,14 +3165,14 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/GameServices.cs",
+          "path": "unityclient/Assets/src/Core/GameServices.cs",
           "contains": [
             "EnhanceMasters = new EnhanceMasterStore()",
             "public EnhanceMasterStore EnhanceMasters"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs",
+          "path": "unityclient/Assets/src/UI/HeroEquipmentPresenter.cs",
           "contains": [
             "ShowFaBaoStrength",
             "ShowFaBaoRefine",
@@ -3159,15 +3180,15 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/UiPrefabLoader.cs",
+          "path": "unityclient/Assets/src/UI/UiPrefabLoader.cs",
           "contains": [
-            "IUiAssetProvider",
-            "provider.Release",
-            "Release"
+            "ICocosUiAssetProvider",
+            "Provider.Release(view)",
+            "public static bool Release(CocosUiView view)"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/ResourcesUiAssetProvider.cs",
+          "path": "unityclient/Assets/src/UI/ResourcesUiAssetProvider.cs",
           "contains": [
             "ResourceLoader.Load<UiPrefabReference>",
             "ReleaseSingletonTree",
@@ -3323,7 +3344,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Gameplay/FengShenStoryController.lua.txt",
           "contains": [
             "BeginBattleFengShenStoryValidation",
             "ShowFengShenStoryBattleResult",
@@ -3331,34 +3352,34 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Login/LoginView.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Login/LoginView.lua.txt",
           "contains": [
             "-projectXBattleFengShenStoryValidation"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/GameplayController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Gameplay/GameplayController.lua.txt",
           "contains": [
             "-projectXBattleFengShenStoryValidation",
             "Bridge:EnterGameplay(3)"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Data/WorldBattleReplayStore.cs",
+          "path": "unityclient/Assets/src/Data/WorldBattleReplayStore.cs",
           "contains": [
             "expectedOperation",
             "HasAuthoritativeReplay"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Data/FengShenStoryStore.cs",
+          "path": "unityclient/Assets/src/Data/FengShenStoryStore.cs",
           "contains": [
             "public int Picture",
             "public int Quality"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs",
+          "path": "unityclient/Assets/src/UI/FengShenStoryPresenter.cs",
           "contains": [
             "ValidateRewardPushPresentation",
             "RenderedCurrentStageMarkerCount",
@@ -3369,7 +3390,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs",
+          "path": "unityclient/Assets/src/UI/WorldBattlePlaybackPresenter.cs",
           "contains": [
             "BattleStartShade",
             "GammaToLinearSpace",
@@ -3380,7 +3401,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "RunBattleFengShenStoryValidation",
             "battle-fengshen-controls",
@@ -3542,7 +3563,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Hero/HeroController.lua.txt",
           "contains": [
             "function M.requestRebirthPreview",
             "function M.confirmRebirth",
@@ -3552,7 +3573,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/HeroRebirthPresenter.cs",
+          "path": "unityclient/Assets/src/UI/HeroRebirthPresenter.cs",
           "contains": [
             "class HeroRebirthPresenter",
             "Monster/btm",
@@ -3564,7 +3585,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.cs",
           "contains": [
             "RunHeroRebirthG3Validation",
             "RunHeroRebirthG4Validation",
@@ -3643,7 +3664,7 @@
       ],
       "sourceContracts": [
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.JingJie.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.JingJie.cs",
           "contains": [
             "InvokeEventSystemRaycastClick(entry)",
             "JINGJIE-07-HEAD-ENTRY",
@@ -3654,11 +3675,13 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/JingJieRenderBridge.cs",
+          "path": "unityclient/Assets/src/UI/JingJieRenderBridge.cs",
           "contains": [
             "PreviewRowCount",
             "IsUpgradeEffectVisible",
-            "LoadLegacy(\"res2/animation/effect_jingjietupo_1\")"
+            "Resources.Load<RuntimeAnimatorController>(\"Animations/JingJie/JingJieBreakthrough\")",
+            "Resources.LoadAll<Sprite>(\"Animations/JingJie/JingJieBreakthroughAtlas\")",
+            "effectPlayer.Play(\"JingJieBreakthrough\", 0, 0f)"
           ]
         },
         {
@@ -3713,7 +3736,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/AnswerController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Gameplay/AnswerController.lua.txt",
           "contains": [
             "Protocol.ANSWER",
             "Bridge:ShowAnswerQuestion",
@@ -3807,7 +3830,7 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FishController.lua.txt",
+          "path": "unityclient/Assets/Resources/Lua/Gameplay/FishController.lua.txt",
           "contains": [
             "Protocol.FISH",
             "function M.start()",
@@ -3816,16 +3839,16 @@
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/Core/ProjectXApp.Fish.cs",
+          "path": "unityclient/Assets/src/Core/ProjectXApp.Fish.cs",
           "contains": [
-            "RuntimeInputDispatcher.Dispatch",
+            "RuntimeValidationInput.Dispatch",
             "FISH-05-ROD-TOGGLE",
             "fish-ready-config-and-pose",
             "COMPLETE: Fish 10/10 controls"
           ]
         },
         {
-          "path": "unityclient/Assets/ProjectX/src/UI/FishPresenter.cs",
+          "path": "unityclient/Assets/src/UI/FishPresenter.cs",
           "contains": [
             "fishRoot.Find(\"FishScene\")",
             "fishScene.Find(\"pos\")",

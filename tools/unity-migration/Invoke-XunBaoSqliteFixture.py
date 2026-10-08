@@ -356,11 +356,17 @@ def main():
         finally:
             connection.close()
     elif args.action == "Cleanup":
+        for suffix in ("-wal", "-shm"):
+            sidecar = database + suffix
+            if os.path.exists(sidecar):
+                os.remove(sidecar)
         if os.path.exists(backup):
             os.remove(backup)
     elif args.action == "AssertCleanup":
         if os.path.exists(backup):
             raise RuntimeError("XunBao SQLite fixture backup remains after cleanup")
+        if any(os.path.exists(database + suffix) for suffix in ("-wal", "-shm")):
+            raise RuntimeError("XunBao SQLite sidecars remain after cleanup")
     else:
         raise RuntimeError(f"Unsupported XunBao SQLite action: {args.action}")
 

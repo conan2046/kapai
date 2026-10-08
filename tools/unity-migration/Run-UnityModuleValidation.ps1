@@ -64,11 +64,23 @@ if ([bool]$fixture.mutatesServer -ne [bool]$moduleConfig.mutatesServer) {
 }
 $validationDataProperty = $moduleConfig.PSObject.Properties["validationData"]
 $moduleValidationData = if ($null -ne $validationDataProperty) { $validationDataProperty.Value } else { $null }
+$unityValidationBackend = [string](Get-UnityMigrationPropertyValue `
+    -Object $moduleConfig -Name "unityValidationBackend" -Default "")
+if ($unityValidationBackend -and $unityValidationBackend -ne "sqlite") {
+    throw "Module '$($moduleConfig.key)' declares an unsupported Unity validation backend: $unityValidationBackend"
+}
+if ($unityValidationBackend -eq "sqlite" -and -not $SqlitePath) {
+    throw "Module '$($moduleConfig.key)' Unity validation requires -SqlitePath/-SqliteSchemaPath; MySQL is not a Unity data backend."
+}
+if ($null -ne $moduleValidationData) {
+    throw "Module '$($moduleConfig.key)' Unity validation cannot use external SQL validationData; use an isolated SQLite fixture adapter."
+}
 if ([bool]$SqlitePath -ne [bool]$SqliteSchemaPath) {
     throw "SQLite validation requires both -SqlitePath and -SqliteSchemaPath."
 }
-if ($SqlitePath -and $null -ne $moduleValidationData) {
-    throw "Module '$($moduleConfig.key)' uses MySQL validationData and cannot run with the SQLite validation backend."
+if ($SqlitePath) {
+    $SqlitePath = [IO.Path]::GetFullPath($SqlitePath)
+    $SqliteSchemaPath = Resolve-UnityMigrationPath -Root $root -Path $SqliteSchemaPath
 }
 if (@($scenario.flags).Count -eq 0 -and $moduleConfig.key -ne "Bag") {
     throw "Module '$($moduleConfig.key)' has no runnable validation flag yet."
@@ -97,8 +109,6 @@ $friendPeerRoleIds = @()
 $teamPeerUserId = 0
 $teamTargetRoleId = 0
 $teamPeerRoleId = 0
-$validationDataApplied = $false
-$validationDataVariables = $null
 if ($effectiveUserId -eq 0) {
     if ([bool]$moduleConfig.mutatesServer) {
         if (-not $DryRun -and $ValidationMode -eq "Full") {
@@ -131,6 +141,7 @@ $unityArguments = @(
     $userArgument
 )
 $unityArguments += $(if (@($ValidationFlagsOverride).Count -gt 0) { @($ValidationFlagsOverride) } else { @($scenarioRuntimeFlags) })
+$unityArguments += @((Get-UnityMigrationPropertyValue -Object $moduleConfig -Name "unityRequiredFlags" -Default @()))
 $unityArguments += "-projectXValidationScenario=$($scenario.key)"
 $unityArguments += "-projectXRunnerTimeoutSeconds=$RunnerTimeoutSeconds"
 $unityArguments += @($ExtraFlags)
@@ -177,6 +188,9 @@ if ($ValidationMode -eq "VisualReplay") {
     Write-UnityMigrationUtf8 -Path $visualReplayPath -Content (($visualReplay | ConvertTo-Json -Depth 8) + "`n")
     Write-Host "Visual replay passed: $visualReplayPath"
     exit 0
+}
+if (-not $SqlitePath -or -not $SqliteSchemaPath) {
+    throw "Unity runtime module validation requires an explicit SQLite database and schema; MySQL is not a Unity data backend."
 }
 Assert-UnityMigrationNoBlindRetry -Root $root -Module $moduleKey `
     -Tool "tools/unity-migration/Run-UnityModuleValidation.ps1" -Operation "batch-validation" `
@@ -229,9 +243,7 @@ function Assert-WorkspaceListener {
     $rootPattern = [Regex]::Escape([System.IO.Path]::GetFullPath($root))
     $processName = if ($process) { "$($process.ProcessName).exe" } else { "unknown" }
     $pathMatchesWorkspace = $process -and $process.Path -match $rootPattern
-    $workspaceMySql = $ExpectedName -eq "mysqld.exe" -and
-        (Test-UnityMigrationWorkspaceMySqlOwnership -Root $root -ProcessId $listenerPid)
-    if (-not $process -or $processName -ne $ExpectedName -or (-not $pathMatchesWorkspace -and -not $workspaceMySql)) {
+    if (-not $process -or $processName -ne $ExpectedName -or -not $pathMatchesWorkspace) {
         throw "Port $Port is occupied by a non-workspace process (pid=$listenerPid, name=$processName)."
     }
     return $true
@@ -264,60 +276,30 @@ try {
     $activeTimingName = "servicesAndFixtureSetup"
     $activeTiming = Start-UnityMigrationTiming
     Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "services"
-    if (-not $SqlitePath) {
-        $mysqlReady = Assert-WorkspaceListener -Port 3306 -ExpectedName "mysqld.exe"
-        if (-not $mysqlReady) {
-            if ($NoStartServices) { throw "MySQL is not listening on 3306 and -NoStartServices was specified." }
-            & $pwshExecutable -ExecutionPolicy Bypass -File (Join-Path $root "tools/local/Start-LocalMySql.ps1")
-            if ($LASTEXITCODE -ne 0) { throw "Start-LocalMySql.ps1 failed with exit code $LASTEXITCODE" }
-            Record-NewWorkspaceProcesses
-            if (-not (Assert-WorkspaceListener -Port 3306 -ExpectedName "mysqld.exe")) { throw "Workspace MySQL did not listen on 3306." }
-        }
-    }
-
     $serverReady = Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe"
-    if ($null -ne $moduleValidationData) {
-        $now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-        $validationDataVariables = @{
-            UserId = $effectiveUserId
-            Now = $now
-            NowMinus60 = $now - 60
-            NowPlus3600 = $now + 3600
-            Module = $moduleKey
-        }
-        if ([bool]$moduleValidationData.setupBeforeServer) {
-            if ($serverReady) { throw "$moduleKey validation data requires setupBeforeServer, but kapai.exe is already listening on 8711." }
-            $validationDataApplied = $true
-            Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
-                -Phase setupSql -Variables $validationDataVariables
-            Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
-                -Phase setupAssertSql -Variables $validationDataVariables
-            Write-Host "$moduleKey setup: manifest validation data applied before kapai startup."
+    if ($serverReady) {
+        $listenerPid = Get-UnityMigrationTcpListenerPid -Port 8711
+        $serverProcess = @(Get-CimInstance Win32_Process -Filter "ProcessId = $listenerPid" -ErrorAction Stop | Select-Object -First 1)
+        $serverCommandLine = if ($serverProcess.Count -eq 1) { [string]$serverProcess[0].CommandLine } else { "" }
+        $sqlitePathPresent = $serverCommandLine -match '(?i)(?:^|\s)--sqlite(?:\s|=)'
+        $sqliteSchemaPresent = $serverCommandLine -match '(?i)(?:^|\s)--sqlite-schema(?:\s|=)'
+        $databaseMatches = $serverCommandLine.IndexOf($SqlitePath, [StringComparison]::OrdinalIgnoreCase) -ge 0
+        $schemaMatches = $serverCommandLine.IndexOf($SqliteSchemaPath, [StringComparison]::OrdinalIgnoreCase) -ge 0
+        if (-not $sqlitePathPresent -or -not $sqliteSchemaPresent -or -not $databaseMatches -or -not $schemaMatches) {
+            throw "Existing kapai.exe on port 8711 is not using the required SQLite database/schema for Unity validation."
         }
     }
-
     if (-not $serverReady) {
         if ($NoStartServices) { throw "kapai.exe is not listening on 8711 and -NoStartServices was specified." }
         $serverArguments = @(
             "-ExecutionPolicy", "Bypass", "-File", (Join-Path $root "tools/local/Start-Server.ps1"),
             "-WaitSeconds", "60"
         )
-        if ($SqlitePath) {
-            $serverArguments += @("-SqlitePath", $SqlitePath, "-SqliteSchemaPath", $SqliteSchemaPath)
-        }
+        $serverArguments += @("-SqlitePath", $SqlitePath, "-SqliteSchemaPath", $SqliteSchemaPath)
         & $pwshExecutable @serverArguments
         if ($LASTEXITCODE -ne 0) { throw "Start-Server.ps1 failed with exit code $LASTEXITCODE" }
         Record-NewWorkspaceProcesses
         if (-not (Assert-WorkspaceListener -Port 8711 -ExpectedName "kapai.exe")) { throw "Workspace kapai.exe did not listen on 8711." }
-    }
-
-    if ($null -ne $moduleValidationData -and -not [bool]$moduleValidationData.setupBeforeServer) {
-        $validationDataApplied = $true
-        Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
-            -Phase setupSql -Variables $validationDataVariables
-        Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
-            -Phase setupAssertSql -Variables $validationDataVariables
-        Write-Host "$moduleKey setup: manifest validation data applied."
     }
 
     if ($moduleConfig.key -ieq "Friend") {
@@ -598,38 +580,6 @@ finally {
     if ($teamPeerProcess -and -not $teamPeerProcess.HasExited) {
         Write-Host "Stopping Team peer process pid=$($teamPeerProcess.Id)"
         Stop-ValidationProcessTree -ProcessId $teamPeerProcess.Id
-    }
-    if ($validationDataApplied) {
-        try {
-            Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
-                -Phase cleanupSql -Variables $validationDataVariables
-            Invoke-UnityMigrationValidationData -Root $root -Manifest $manifest -ModuleConfig $moduleConfig `
-                -Phase cleanupAssertSql -Variables $validationDataVariables
-            Write-Host "$moduleKey cleanup: manifest validation data removed."
-        }
-        catch {
-            Write-Warning $_.Exception.Message
-            Add-UnityMigrationOperationRecord -Root $root -Module $moduleKey -Gate G4 -Category UnityBatch `
-                -Tool "tools/unity-migration/Run-UnityModuleValidation.ps1" -Operation "fixture-cleanup" `
-                -Outcome Failed -ErrorMessage $_.Exception.Message -RootCause "pending-diagnosis" `
-                -Evidence @($setupLogPath, $summaryPath) | Out-Null
-            if (-not $failure) {
-                $failure = $_
-                $cleanupSummary = [ordered]@{
-                    success = $false
-                    module = $moduleKey
-                    scenario = [string]$scenario.key
-                    fixture = [string]$fixture.key
-                    userId = $effectiveUserId
-                    error = "Fixture cleanup assertion failed: $($_.Exception.Message)"
-                    startedProcessIds = @($startedIds)
-                    checkedUtc = [DateTime]::UtcNow.ToString("O")
-                }
-                Write-UnityMigrationUtf8 -Path $summaryPath -Content (($cleanupSummary | ConvertTo-Json -Depth 8) + "`n")
-                Write-UnityMigrationProgress -Path $progressPath -Module $moduleKey -Phase "failed" `
-                    -Detail $cleanupSummary.error
-            }
-        }
     }
     Record-NewWorkspaceProcesses
     if (-not $KeepServices) {

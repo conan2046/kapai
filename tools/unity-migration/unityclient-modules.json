@@ -65,18 +65,20 @@
         1004,
         88
       ],
+      "unityValidationBackend": "sqlite",
       "entries": [
         "Layer/Login/Btn_Play",
         "Layer/Login/Btn_Sever",
         "Layer/Login/Btn_handover"
       ],
       "prefabs": [
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/LoginBgLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/loginLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/SeverListLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/RoleCreateLayer.prefab",
+        "unityclient/Assets/Prefabs/Login/LoginBgLayer.prefab",
+        "unityclient/Assets/Prefabs/Login/loginLayer.prefab",
+        "unityclient/Assets/Prefabs/Login/SeverListLayer.prefab",
+        "unityclient/Assets/Prefabs/Login/RoleCreateLayer.prefab",
+        "unityclient/Assets/Prefabs/Login/OldMemoryLayer.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/NoticeLayer.prefab"
+        "unityclient/Assets/Prefabs/Login/NoticeLayer.prefab"
       ],
       "configs": [
         "client/ProjectX/src/core/AppDef.lua"
@@ -86,19 +88,9 @@
         "-projectXLoginValidation",
         "-projectXLoginClosureValidation"
       ],
-      "validationData": {
-        "provider": "localMysql",
-        "setupSql": [
-          "DELETE FROM notice_login WHERE title='本地公告验证{{UserId}}'",
-          "INSERT INTO notice_login(title,msg,showType,jumpType,beginTime,endTime) VALUES('本地公告验证{{UserId}}','Unity /88 NoticeLayer local_test validation',0,0,{{NowMinus60}},{{NowPlus3600}})"
-        ],
-        "cleanupSql": [
-          "DELETE FROM notice_login WHERE title='本地公告验证{{UserId}}'"
-        ],
-        "unityFlags": [
-          "-projectXRequireNoticeResponse"
-        ]
-      },
+      "unityRequiredFlags": [
+        "-projectXRequireNoticeResponse"
+      ],
       "screenshots": [
         "build/ui-migration/bootstrap-login.png",
         "build/ui-migration/bootstrap-login-notice.png"
@@ -243,7 +235,7 @@
         "unityclient/Assets/ProjectX/res/csd/Prefabs/common/tanchuangjiangli.prefab"
       ],
       "configs": [
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Tasks/daily_tasks.json"
+        "unityclient/Assets/Resources/ProjectXData/Tasks/daily_tasks.json"
       ],
       "mutatesServer": true,
       "validationFlags": [
@@ -411,7 +403,7 @@
         "server/config/json/break.json",
         "server/config/json/xiulian.json",
         "server/config/json/quality.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXAnimation/catalog.json"
+        "unityclient/Assets/Resources/ProjectXAnimation/catalog.json"
       ],
       "mutatesServer": true,
       "validationFlags": [
@@ -515,15 +507,15 @@
         "unityclient/Assets/ProjectX/res/csd/Prefabs/common/ItemGet.prefab"
       ],
       "configs": [
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/equip.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/equip_qianghua.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/hecheng.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/equip_jinglian.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/equip_juexing.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/equip_shenzhu.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/master.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/quality.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/item.json"
+        "unityclient/Assets/Resources/ProjectXData/Configs/equip.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/equip_qianghua.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/hecheng.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/equip_jinglian.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/equip_juexing.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/equip_shenzhu.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/master.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/quality.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/item.json"
       ],
       "mutatesServer": true,
       "validationFlags": [
@@ -623,8 +615,8 @@
       "configs": [
         "server/config/json/shop.json",
         "server/config/json/shop_config.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/shop.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/item.json"
+        "unityclient/Assets/Resources/ProjectXData/Configs/shop.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/item.json"
       ],
       "mutatesServer": true,
       "validationFlags": [
@@ -670,8 +662,8 @@
         "unityclient/Assets/ProjectX/res/csd/Prefabs/shop/shop_bg.prefab"
       ],
       "configs": [
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/shop.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/item.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/shop.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/item.json",
         "server/config/json/shop_config.json"
       ],
       "mutatesServer": true,
@@ -1064,7 +1056,7 @@
       ],
       "configs": [
         "client/ProjectX/src/ConfigData/function_dat.lua",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/gameplay.json"
+        "unityclient/Assets/Resources/ProjectXData/Configs/gameplay.json"
       ],
       "mutatesServer": false,
       "fixtureContract": {
@@ -1144,7 +1136,7 @@
       "configs": [
         "server/config/json/sanjie.json",
         "server/config/json/sanjie_cost.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/sanjie.json"
+        "unityclient/Assets/Resources/ProjectXData/Configs/sanjie.json"
       ],
       "mutatesServer": false,
       "validationFlags": [
@@ -1240,8 +1232,8 @@
       ],
       "prefabs": [
         "unityclient/Assets/ProjectX/res/csd/Prefabs/common/JingjiLayer.prefab",
-        "unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleFightLayer.asset",
-        "unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleHpNode.asset"
+        "unityclient/Assets/Resources/UiPrefabs/BattleFightLayer.asset",
+        "unityclient/Assets/Resources/UiPrefabs/BattleHpNode.asset"
       ],
       "configs": [
         "server/config/json/function.json",
@@ -1366,7 +1358,7 @@
         "unityclient/Assets/ProjectX/res/csd/Prefabs/wanfa/XunbaoLayer.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/wanfa/Xunbao_souxunLayer.prefab",
         "unityclient/Assets/ProjectX/res/csd/Prefabs/wanfa/Xunbao_popupLayer.prefab",
-        "unityclient/Assets/ProjectX/res/csd/Prefabs/common/saodang.prefab"
+        "unityclient/Assets/Prefabs/XunBao/saodang.prefab"
       ],
       "configs": [
         "server/config/json/function.json",
@@ -1376,9 +1368,9 @@
         "server/config/json/item.json",
         "server/config/json/fabao_looting.json",
         "server/config/json/daily.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/item.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/daily.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Tasks/daily_tasks.json"
+        "unityclient/Assets/Resources/ProjectXData/Configs/item.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/daily.json",
+        "unityclient/Assets/Resources/ProjectXData/Tasks/daily_tasks.json"
       ],
       "mutatesServer": true,
       "validationFlags": [
@@ -1843,8 +1835,8 @@
         "NPC 251..256 -> ShiLianXinMoFight -> EFTScript"
       ],
       "prefabs": [
-        "unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleFightLayer.asset",
-        "unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleHpNode.asset"
+        "unityclient/Assets/Resources/UiPrefabs/BattleFightLayer.asset",
+        "unityclient/Assets/Resources/UiPrefabs/BattleHpNode.asset"
       ],
       "configs": [
         "server/config/json/item.json",
@@ -1981,8 +1973,8 @@
         "server/config/json/function.json",
         "server/config/json/jingjie_config.json",
         "server/config/json/item.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/jingjie.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXAnimation/res2/animation/effect_jingjietupo_1.json"
+        "unityclient/Assets/Resources/ProjectXData/Configs/jingjie.json",
+        "unityclient/Assets/Resources/ProjectXAnimation/res2/animation/effect_jingjietupo_1.json"
       ],
       "mutatesServer": true,
       "validationFlags": [
@@ -1996,7 +1988,7 @@
     {
       "key": "Answer",
       "displayName": "每日答题",
-      "status": "user-play-passed-g1-evidence-missing",
+      "status": "unity-binding-changed-retest-required-g1-evidence-missing",
       "protocols": [
         198
       ],
@@ -2051,12 +2043,12 @@
         "server/config/json/fish_settings.json",
         "server/config/json/fish_reward.json",
         "server/config/json/fish_position.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/item.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/fish_settings.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/fish_reward.json",
-        "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/fish_position.json",
-        "unityclient/Assets/ProjectX/Resources/Fish/Map/map33.jpg",
-        "unityclient/Assets/ProjectX/Resources/ProjectXAnimation/Monster/btm2000_zd.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/item.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/fish_settings.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/fish_reward.json",
+        "unityclient/Assets/Resources/ProjectXData/Configs/fish_position.json",
+        "unityclient/Assets/Resources/Art/Fish/Map/map33.jpg",
+        "unityclient/Assets/Resources/ProjectXAnimation/Monster/btm2000_zd.json",
         "server/sql/item_template.sql",
         "server/sql/sqlite/001_initial_schema.sql",
         "server/config/dat/map33.map"

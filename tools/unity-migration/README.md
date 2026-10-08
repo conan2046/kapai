@@ -12,7 +12,7 @@
 | `New-UnityMigrationModule.ps1` | 原子生成规划、矩阵、门禁、场景、夹具和证据合同；固定身份必填，G2 后才允许实现骨架 |
 | `Get-ProtocolEvidence.ps1` | 按协议号提取服务端、旧客户端、Unity 和 smoke 三方/四方证据 |
 | `Run-UnityModuleValidation.ps1` | 串行启服、运行 Unity、校验结果/日志/截图并清理本阶段进程 |
-| `Run-UnityFixedAccountValidation.ps1` | 通用固定账号快照、注入、矩阵覆盖、精确恢复和重登录复核 |
+| `Run-UnityFixedAccountValidation.ps1` | Unity SQLite 固定账号快照、注入、矩阵覆盖、精确恢复和重登录复核；Cocos/MySQL 合同会被拒绝 |
 | `New-UnityModuleG5Evidence.ps1` | 通用 G5 双端比较、输入哈希、提交来源和联系表 |
 | `Invoke-UnityMigrationCocosEvidence.ps1` | Computer Use preflight、固定身份日志回读和可复用 G1 Cocos 基线 |
 | `Invoke-UnityMigrationGate.ps1` | 校验门禁前置项和证据；按 G0→G6 顺序落账 |
@@ -57,18 +57,19 @@ pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Task -Val
 # 完整商城验收；变更型模块未传 UserId 时自动分配隔离角色
 pwsh -File tools/unity-migration/Run-UnityModuleValidation.ps1 -Module Shop
 
-# 固定账号回滚验收与 G5 对照均由模块契约驱动
-pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Task
+# 固定账号回滚验收只接受显式 SQLite 合同
+pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Login -PreflightOnly
+# Task 的 G5 对照单独由模块证据合同驱动
 pwsh -File tools/unity-migration/New-UnityModuleG5Evidence.ps1 -Module Task
 
 # 工具链自身回归；不启服务、不修改账号
 pwsh -File tools/unity-migration/Test-UnityMigrationToolchain.ps1
 
 # 固定账号编译预检；不修改账号
-pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Shop -PreflightOnly
+pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Login -PreflightOnly
 
 # 固定账号数据预演；快照、注入、断言、恢复并清除残留，不启动 Unity
-pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Shop -DataPreflightOnly
+pwsh -File tools/unity-migration/Run-UnityFixedAccountValidation.ps1 -Module Login -DataPreflightOnly
 
 # 文档与 Manifest 门禁
 pwsh -File tools/unity-migration/Test-UnityMigrationDocs.ps1
@@ -92,7 +93,7 @@ pwsh -File tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module HeroEquip
 - 所有迁移失败使用 `Update-UnityMigrationOperationLedger.ps1` 记录；修复后追加关联的 `Resolved` 记录，写账当下必须提交已存在的文件证据。G6 以解决记录的有效根因生成复盘，并拒绝未诊断、未解决或无文件证据的失败。
 - 运行前发现 Unity 已存在时直接失败，不复用、不强杀。
 - G4/G6 只接受标准 Runner 写出的 `executionMode=batch` 摘要；Unity MCP 仅限 G3 编辑器检查，不能作为逻辑验证或出证。
-- 只关闭本脚本实际启动的 `kapai.exe` 和 workspace-local MySQL。
+- Unity module 和 fixed-account runners 只接受 SQLite 数据库与 schema；Unity 路径不会启动、复用或清理 MySQL。旧 Cocos fixture 保持独立，不得作为 Unity 固定账号适配器。
 - Unity 必须通过 `Start-Process -Wait` 串行执行。
 - 变更型模块默认使用 `.local/unity-migration-userids.json` 分配新角色。
 - 变更型模块没有新结果时不会自动重试，避免同一角色重复消耗；重新运行会分配新角色。
@@ -103,10 +104,11 @@ pwsh -File tools/unity-migration/Invoke-UnityMigrationGate.ps1 -Module HeroEquip
 - 新模块脚手架默认生成 Lua 权威 + C# 只读 DTO/RenderBridge，不再生成业务型 Store/Catalog。
 - 每个界面先记录 Cocos 脚本/操作步骤/UI 资产和基准截图，再记录 Unity 对照与差异报告；不得用“无裁切/无重叠”代替 1:1 验收。
 - G1 应一次取得 G5 所需 Cocos 状态并冻结 SHA/输入指纹；G5 默认复用，只重拍输入发生变化的状态。
-- 启动时缓存配置的模块可在 `validationData` 设置 `setupBeforeServer=true`；Runner 会先启动 MySQL、执行同一套 Manifest SQL，再启动 `kapai.exe`，cleanup 仍在 finally 统一执行。
+- Unity 模块 Runner 不执行 Manifest 中的外部 SQL `validationData`，也不启动 MySQL；遗留 `localMysql` 夹具在进入服务启动前失败关闭，迁移到该模块时必须改用隔离 SQLite fixture adapter。Cocos 对照夹具的 MySQL 工具仅供 Cocos 路线使用，不属于 Unity 数据链。
+- Login Notice 服务端 `/88` 协议专项可运行 `tools/unity-migration/Test-LoginNoticeSqliteProtocol.ps1`：使用 `.local/unity-validation/login-sqlite/LocalServer/projectx.db` 和固定种子身份，逐项快照/恢复 SQLite、以 `--sqlite` 启动 `kapai.exe`、验证实际响应后停掉本轮服务；不启动 Unity，也不访问 Steam Slot。
 - `sourceContracts` 在启服前校验 Cocos/Unity 关键文件与锚点，优先暴露入口、协议和实现漂移。
 - G2 必须完成控件矩阵 `sourceAudit`：入口闭包、共享协议所有权、配置/资源闭包、运行时 Transform 均为 true；已知缺口必须记录处理方式和源码证据。
-- `validationData.setupAssertSql/cleanupAssertSql` 可用 SQL `SIGNAL` 把夹具注入与恢复验证变为硬失败。
+- 旧 `validationData.setupAssertSql/cleanupAssertSql` 只保留为历史格式；Unity 验证必须通过对应 SQLite fixture adapter 对 Setup/Restore/Cleanup 做权威断言。
 - 声明 `controlCoverageRequired` 后，Runner 实际触发 ID 必须与矩阵 ID 完全一致；语义断言失败或缺失同样硬失败。
 - 变更型固定账号模块可在 `fixedAccount` 声明 `extraFlags`、`skipPostValidationFixtureAssert=true` 和 `artifactCopies`：先保存运行原图，再由适配器精确恢复并重登录复核；不得在变更完成后误用“夹具仍处于 Setup 状态”断言。
 - 固定账号合同字段在文档门禁和运行入口双重校验，禁止缺字段后进入 G5。

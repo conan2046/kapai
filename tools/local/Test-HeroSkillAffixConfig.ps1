@@ -11,7 +11,7 @@ $affixPath = Join-Path $Root "server\config\json\equipment_affix.json"
 $rolePath = Join-Path $Root "server\config\json\hero_skill_role.json"
 $petPath = Join-Path $Root "server\config\xml\pet_basic_config.xml"
 $serverSkillPath = Join-Path $Root "server\config\xml\skill_basic.xml"
-$unitySkillPath = Join-Path $Root "unityclient\Assets\ProjectX\Resources\Configs\skill_basic.xml"
+$unitySkillPath = Join-Path $Root "unityclient\Assets\Resources\ProjectXData\Configs\skill_basic.xml"
 
 $affixes = @(Get-Content -LiteralPath $affixPath -Raw -Encoding UTF8 | ConvertFrom-Json)
 $roles = @(Get-Content -LiteralPath $rolePath -Raw -Encoding UTF8 | ConvertFrom-Json)
@@ -67,9 +67,9 @@ $serverDispatch = Get-Content -LiteralPath (Join-Path $Root "server\src\pack_dea
 $cocosProtocol = Get-Content -LiteralPath (Join-Path $Root "client\ProjectX\src\NetWork\LuaNetRecvdMsg.lua") -Raw -Encoding UTF8
 $cocosSend = Get-Content -LiteralPath (Join-Path $Root "client\ProjectX\src\NetWork\LuaNetSendMsg.lua") -Raw -Encoding UTF8
 $cocosUi = Get-Content -LiteralPath (Join-Path $Root "client\ProjectX\src\View\PetEquip\EquipInfoUI.lua") -Raw -Encoding UTF8
-$unityProtocol = Get-Content -LiteralPath (Join-Path $Root "unityclient\Assets\ProjectX\Resources\Lua\Hero\EquipmentController.lua.txt") -Raw -Encoding UTF8
-$unityBootstrap = Get-Content -LiteralPath (Join-Path $Root "unityclient\Assets\ProjectX\Resources\Lua\Bootstrap.txt") -Raw -Encoding UTF8
-$unityUi = Get-Content -LiteralPath (Join-Path $Root "unityclient\Assets\ProjectX\src\UI\HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
+$unityProtocol = Get-Content -LiteralPath (Join-Path $Root "unityclient\Assets\Resources\Lua\Hero\EquipmentController.lua.txt") -Raw -Encoding UTF8
+$unityBootstrap = Get-Content -LiteralPath (Join-Path $Root "unityclient\Assets\Resources\Lua\Bootstrap.txt") -Raw -Encoding UTF8
+$unityUi = Get-Content -LiteralPath (Join-Path $Root "unityclient\Assets\src\UI\HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
 Assert-True ($serverEquip.Contains("PXA1")) "Equipment save extension magic PXA1 is missing."
 Assert-True ($serverEquip.Contains("SendPetEquipAffixList")) "Affix query sender is missing."
 Assert-True ($serverEquip.Contains("IsEquipAffixRuntimeEnabledV1")) "Runtime affix allowlist is missing."

@@ -1,0 +1,125 @@
+local Protocol = require("Protocol")
+
+local GOLD = 60000
+local BOUND_PREMIUM = 60001
+local PREMIUM = 60003
+local STAMINA = 60026
+local M = { validationRequested = false, validationStarted = false, staminaLoaded = false }
+local pendingLevelUp = nil
+
+local function tryStartValidation()
+    if M.validationRequested and M.staminaLoaded and not M.validationStarted then
+        M.validationStarted = true
+        Bridge:BeginPlayerHudValidation()
+    end
+end
+
+function M.requestStamina()
+    local message = Protocol.newMessage(Protocol.STAMINA)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
+function M.beginValidation()
+    M.validationRequested = true
+    Bridge:SetStatus("Player HUD validation: waiting for authoritative /1004 and /321 snapshots.")
+    tryStartValidation()
+end
+
+function M.requestVip()
+    local message = Protocol.newMessage(Protocol.VIP)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
+
+local function readStamina(message)
+    local op = message:ReadByte()
+    if op ~= 1 then pendingLevelUp = nil; return end
+    local success = message:ReadByte()
+    if success == 0 then
+        local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
+        pendingLevelUp = nil
+        Bridge:Fail("Stamina/321 failed: " .. tostring(reason))
+        return
+    end
+    local value = message:ReadWord()
+    message:ReadUInt()
+    Bridge:SetCurrency(STAMINA, value)
+    if pendingLevelUp ~= nil then
+        local pending = pendingLevelUp
+        pendingLevelUp = nil
+        Bridge:NotifyPlayerLevelUp(pending.previousLevel, pending.currentLevel, pending.staminaBefore, value)
+    end
+    M.staminaLoaded = true
+    tryStartValidation()
+end
+
+local function readCharacterUpdate(message)
+    local updateType = message:ReadByte()
+    if updateType == 1 then
+        local count = message:ReadWord()
+        for _ = 1, count do
+            local kind = message:ReadUInt()
+            local value = (kind == 507 or kind == 513) and message:ReadULongInt() or message:ReadUInt()
+            if kind == 501 then Bridge:SetPlayerPotential(value)
+            elseif kind == 502 then Bridge:AddPlayerExperience(value)
+            elseif kind == 504 then Bridge:SetCurrency(GOLD, value)
+            elseif kind == 505 then Bridge:SetCurrency(PREMIUM, value)
+            elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)
+            elseif kind == 513 then Bridge:SetPlayerPower(value)
+            elseif kind == 514 then Bridge:SetPlayerSoul(value) end
+        end
+    elseif updateType == 2 then
+        local id = message:ReadWord()
+        local value = message:ReadUInt()
+        Bridge:SetCurrency(id, value)
+    elseif updateType == 3 then
+        local count = message:ReadByte()
+        for _ = 1, count do message:ReadWord(); message:ReadUInt() end
+    end
+end
+
+local function readVip(message)
+    local operation = message:ReadByte()
+    if operation ~= 4 then return end
+    local vipLevel = message:ReadByte()
+    Bridge:SetPlayerVipLevel(vipLevel)
+    if message.Remaining >= 4 then message:ReadUInt() end
+    if message.Remaining >= 4 then message:ReadUInt() end
+    local cardType = message.Remaining > 0 and message:ReadByte() or 0
+    if message.Remaining > 0 then message:ReadByte() end
+    if message.Remaining >= 4 then message:ReadUInt() end
+    if cardType >= 8 and message.Remaining >= 4 then message:ReadUInt() end
+end
+
+local function readLevelUp(message)
+    local previousLevel = message:ReadByte()
+    message:ReadULongInt()
+    message:ReadULongInt()
+    local level = message:ReadByte()
+    local power = message:ReadULongInt()
+    message:ReadULongInt()
+    Bridge:SetPlayerLevelAndPower(level, power)
+    local count = message:ReadByte()
+    for _ = 1, count do message:ReadWord(); message:ReadByte() end
+    if message.Remaining > 0 then message:ReadByte() end
+    if level > previousLevel then
+        pendingLevelUp = {
+            previousLevel = previousLevel,
+            currentLevel = level,
+            staminaBefore = Bridge:GetCurrency(STAMINA)
+        }
+        M.requestStamina()
+    end
+end
+
+function M.onPacket(command, message)
+    if command == Protocol.UPDATE_CHAR then readCharacterUpdate(message); return true end
+    if command == Protocol.LEVEL_UP then readLevelUp(message); return true end
+    if command == Protocol.STAMINA then readStamina(message); return true end
+    if command == Protocol.VIP then readVip(message); return true end
+    return false
+end
+
+return M

@@ -86,7 +86,7 @@ function Get-GameplayCrossBackendState {
     $cocosRoutes = @([regex]::Matches($cocosText, '(?s)\{\s*function_id\s*=\s*(?<id>\d+).*?\bpage\s*=\s*(?<page>\d+).*?\}') | ForEach-Object {
         [pscustomobject]@{ id = [int]$_.Groups['id'].Value; page = [int]$_.Groups['page'].Value }
     } | Where-Object { $_.id -lt 999 -and $_.page -ne 0 } | Sort-Object id)
-    $unityConfigPath = Join-Path $root "unityclient\Assets\ProjectX\Resources\Configs\gameplay.json"
+    $unityConfigPath = Join-Path $root "unityclient\Assets\Resources\ProjectXData\Configs\gameplay.json"
     $unityRoutes = @(Get-Content -LiteralPath $unityConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json)
     $steamRetained = @($unityRoutes | Where-Object { $_.steamEnabled -ne $false -and $_.page -ne 0 } | Sort-Object id | ForEach-Object { [int]$_.id })
     $unityReady = @($unityRoutes | Where-Object { $_.steamEnabled -ne $false -and $_.migrationReady -ne $false -and $_.page -ne 0 } | Sort-Object id | ForEach-Object { [int]$_.id })
@@ -137,7 +137,7 @@ function Get-GameplayCrossBackendState {
         inputs = [ordered]@{
             cocosConfig = "client/ProjectX/src/ConfigData/function_dat.lua"
             cocosConfigSha256 = Get-Sha256 $sourcePath
-            unityConfig = "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/gameplay.json"
+            unityConfig = "unityclient/Assets/Resources/ProjectXData/Configs/gameplay.json"
             unityConfigSha256 = Get-Sha256 $unityConfigPath
         }
         checkedUtc = [DateTime]::UtcNow.ToString("O")

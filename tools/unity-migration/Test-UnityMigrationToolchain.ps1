@@ -11,25 +11,73 @@ $gameplayFixturePythonSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot
 $gameplayCocosFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-GameplayCocosFixture.ps1") -Raw -Encoding UTF8
 $fixedAccountRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") -Raw -Encoding UTF8
 $moduleRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityModuleValidation.ps1") -Raw -Encoding UTF8
-$projectXAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
-$drawPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/DrawPresenter.cs") -Raw -Encoding UTF8
+$projectXAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$projectXAppMainUiSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.MainUi.cs") -Raw -Encoding UTF8
+$projectXAppWorldUiSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.WorldUi.cs") -Raw -Encoding UTF8
+$projectXAppWorldValidationSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.WorldValidation.cs") -Raw -Encoding UTF8
+$worldChapterUnlockSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.WorldChapterUnlock.cs") -Raw -Encoding UTF8
+$enhanceMasterSuccessSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.EnhanceMasterSuccess.cs") -Raw -Encoding UTF8
+$roleLevelUpSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.RoleLevelUp.cs") -Raw -Encoding UTF8
+$roleLevelUpViewSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/PlayerLevelUpPopupView.cs") -Raw -Encoding UTF8
+$functionUnlockCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Data/FunctionUnlockCatalog.cs") -Raw -Encoding UTF8
+$functionUnlockSourceJson = Get-Content -LiteralPath (Join-Path $root "unitydata/export/client/source/Configs/function-unlocks.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$functionUnlockRuntimeJson = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Resources/ProjectXData/Configs/function-unlocks.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$playerControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Resources/Lua/Player/PlayerController.lua.txt") -Raw -Encoding UTF8
+$worldChapterUnlockFixtureWrapperSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-WorldCocosFixture.ps1") -Raw -Encoding UTF8
+$worldChapterUnlockFixtureSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-WorldCocosFixture.py") -Raw -Encoding UTF8
+$projectXAppStartupSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.Startup.cs") -Raw -Encoding UTF8
+$projectXAppAllSource = @(Get-ChildItem -LiteralPath (Join-Path $root "unityclient/Assets/src/Core") `
+    -Filter "ProjectXApp*.cs" -File | Sort-Object -Property Name | ForEach-Object {
+        Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8
+}) -join "`n"
+$gameplayValidationSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.GameplayValidation.cs") -Raw -Encoding UTF8
+$drawPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/DrawPresenter.cs") -Raw -Encoding UTF8
+$drawLegacySinglePrefabSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/chouka/dancichouka.prefab") -Raw -Encoding UTF8
+$drawLegacyTenPrefabSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/chouka/shilianchouka.prefab") -Raw -Encoding UTF8
+$uiPrefabIdentityGuid = [regex]::Match((Get-Content -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/UI/Migration/UiPrefabIdentity.cs.meta") -Raw -Encoding UTF8), '(?m)^guid:\s*([0-9a-f]+)').Groups[1].Value
+$cocosTimelinePlayerGuid = [regex]::Match((Get-Content -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/UI/Migration/CocosTimelinePlayer.cs.meta") -Raw -Encoding UTF8), '(?m)^guid:\s*([0-9a-f]+)').Groups[1].Value
+$xunBaoHistoricalSaoDangPrefabPath = Join-Path $root 'unityclient/Assets/Prefabs/Retained/common/saodang.prefab'
+$xunBaoHistoricalSaoDangPrefabSource = Get-Content -LiteralPath $xunBaoHistoricalSaoDangPrefabPath -Raw -Encoding UTF8
+$xunBaoHistoricalPopupPrefabPath = Join-Path $root 'unityclient/Assets/Prefabs/Retained/wanfa/Xunbao_popupLayer.prefab'
+$xunBaoHistoricalPopupPrefabSource = Get-Content -LiteralPath $xunBaoHistoricalPopupPrefabPath -Raw -Encoding UTF8
+$settingsPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/SettingsPresenter.cs") -Raw -Encoding UTF8
+$drawNativePrefabBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/DrawNativePrefabBuilder.cs") -Raw -Encoding UTF8
+$worldAchievementNativeBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/WorldAchievementNativePrefabBuilder.cs") -Raw -Encoding UTF8
+$worldNativeBatchBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/WorldNativePrefabBatchBuilder.cs") -Raw -Encoding UTF8
+$worldNativeAssetValidatorSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/WorldNativeAssetValidator.cs") -Raw -Encoding UTF8
+$drawNativeAnimationParityValidatorPath = Join-Path $root "unityclient/Assets/src/Editor/DrawNativeAnimationParityValidator.cs"
 $drawSqliteFixtureSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-DrawSqliteFixture.ps1") -Raw -Encoding UTF8
 $drawSqliteFixturePythonSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-DrawSqliteFixture.py") -Raw -Encoding UTF8
-$heroCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/HeroCatalog.cs") -Raw -Encoding UTF8
-$heroBookCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/HeroBookCatalog.cs") -Raw -Encoding UTF8
-$heroBookPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroBookPresenter.cs") -Raw -Encoding UTF8
-$heroBookControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroBookController.lua.txt") -Raw -Encoding UTF8
-$resourceServiceSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ResourceService.cs") -Raw -Encoding UTF8
-$protocolRegistrySource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Network/ProtocolRegistry.cs") -Raw -Encoding UTF8
-$uiPrefabCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/UiPrefabs/Catalog.asset") -Raw -Encoding UTF8
-$bootstrapSceneBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs") -Raw -Encoding UTF8
-$heroBookActivatePrefabSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongtujianendLayer.prefab") -Raw -Encoding UTF8
+$heroCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Data/HeroCatalog.cs") -Raw -Encoding UTF8
+$heroBookCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Data/HeroBookCatalog.cs") -Raw -Encoding UTF8
+$heroBookPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/HeroBookPresenter.cs") -Raw -Encoding UTF8
+$heroBookControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Resources/Lua/Hero/HeroBookController.lua.txt") -Raw -Encoding UTF8
+$resourceServiceSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ResourceService.cs") -Raw -Encoding UTF8
+$protocolRegistrySource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Network/ProtocolRegistry.cs") -Raw -Encoding UTF8
+$uiPrefabCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Catalog/Catalog.asset") -Raw -Encoding UTF8
+$fishPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/FishPresenter.cs") -Raw -Encoding UTF8
+$fishAnimationSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/UnityNativeFishAnimation.cs") -Raw -Encoding UTF8
+$monopolyPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/MonopolyPresenter.cs") -Raw -Encoding UTF8
+$monopolyAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.Monopoly.cs") -Raw -Encoding UTF8
+$monopolyDiceAnimationSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/UnityNativeMonopolyDiceAnimation.cs") -Raw -Encoding UTF8
+$monopolyNativeArtCount = @(Get-ChildItem -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/AssetReferences/Art/UI/Monopoly') -Filter '*.asset' -File).Count
+$monopolyNativeMapCount = @(Get-ChildItem -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/Monopoly/Maps') -Filter '*.jpg' -File).Count
+$imodAnimationCatalogSource = Get-Content -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-animation-resources/retired-20261008/ProjectXAnimation/catalog.json") -Raw -Encoding UTF8
+$worldPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/WorldPresenter.cs") -Raw -Encoding UTF8
+$fishAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.Fish.cs") -Raw -Encoding UTF8
+$fishNativePrefabPath = Join-Path $root "unityclient/Assets/Prefabs/Fish/FishLayer.prefab"
+$fishReferenceSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Catalog/FishLayer.asset") -Raw -Encoding UTF8
+$bootstrapSceneBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/BootstrapSceneBuilder.cs") -Raw -Encoding UTF8
+$cocosUiImporterSource = Get-Content -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/Editor/CocosUiImporter.cs") -Raw -Encoding UTF8
+$heroBookActivatePrefabSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Hero/Book/yingxiongtujianendLayer.prefab") -Raw -Encoding UTF8
+$heroBookActivateButtonMeta = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Art/UI/Hero/Book/Default/Button_Normal.png.meta") -Raw -Encoding UTF8
+$heroBookActivateButtonGuid = [regex]::Match($heroBookActivateButtonMeta, '(?m)^guid: ([a-f0-9]{32})').Groups[1].Value
 $validationFixtures = (Import-UnityMigrationJson -Root $root `
     -Path "tools/unity-migration/validation-fixtures.json").Value
 $drawPoolConfig = (Import-UnityMigrationJson -Root $root -Path "server/config/json/draw_config.json").Value
 $drawPoolBasic = (Import-UnityMigrationJson -Root $root -Path "server/config/json/draw_basic.json").Value
 $drawItemConfig = (Import-UnityMigrationJson -Root $root -Path "server/config/json/item.json").Value
-$heroBookHeroConfig = (Import-UnityMigrationJson -Root $root -Path "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/hero.json").Value
+$heroBookHeroConfig = (Import-UnityMigrationJson -Root $root -Path "unityclient/Assets/Resources/ProjectXData/Configs/hero.json").Value
 
 function Assert-ToolchainTest {
     param(
@@ -38,6 +86,1160 @@ function Assert-ToolchainTest {
     )
     if (-not $Condition) { throw $Message }
     $script:passed++
+}
+
+$unityProcessSamples = @(
+    [pscustomobject]@{ ProcessId = 41; CommandLine = 'Unity.exe -projectPath E:\neiwang_kapai\Game\unityclient' },
+    [pscustomobject]@{ ProcessId = 42; CommandLine = 'Unity.exe "-adb2" "-batchMode" "-name" "AssetImportWorker0" -projectPath E:/neiwang_kapai/Game/unityclient' },
+    [pscustomobject]@{ ProcessId = 43; CommandLine = 'Unity.exe "-adb2" "-batchMode" "-name" "AssetImportWorker1" -projectPath E:/neiwang_kapai/Game/unityclient' }
+)
+$interactiveUnitySamples = @(Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcessSamples)
+$worldCocosFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-WorldCocosFixture.ps1") -Raw -Encoding UTF8
+$xunBaoSqliteFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-XunBaoSqliteFixture.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $interactiveUnitySamples.Count -eq 1 -and [int]$interactiveUnitySamples[0].ProcessId -eq 41 -and
+    $commonSource.Contains('function Get-UnityMigrationInteractiveUnityEditors') -and
+    $fixedAccountRunnerSource.Contains('Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcessMetadata') -and
+    $worldCocosFixtureSource.Contains('Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcessMetadata') -and
+    $xunBaoSqliteFixtureSource.Contains('Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcessMetadata')
+) "Login, World and XunBao DataPreflightOnly must identify the interactive Editor and ignore batch AssetImportWorker children."
+Write-Host "Unity Editor vs AssetImportWorker process classification passed."
+
+$playModeRootCauseRules = (Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/root-cause-rules.json").Value
+$earlyPlayModeRule = @($playModeRootCauseRules.rules | Where-Object { [string]$_.ruleId -eq "RC-UNITY-PLAYMODE-STATE" })[0]
+Assert-ToolchainTest (
+    [string]$earlyPlayModeRule.requiredAction -match '不得仅凭.*is_changing' -and
+    [string]$earlyPlayModeRule.requiredAction -match 'Runtime readiness'
+) "Unity PlayMode diagnosis must use runtime readiness, not only transition labels."
+Assert-ToolchainTest (
+    (Get-UnityMigrationPlayModeState -IsPlaying $true -IsChanging $true -RuntimeReady $true) -eq "runtime-ready" -and
+    (Get-UnityMigrationPlayModeState -IsPlaying $true -IsChanging $true -RuntimeReady $false) -eq "playing" -and
+    (Get-UnityMigrationPlayModeState -IsPlaying $false -IsChanging $true -RuntimeReady $false) -eq "transitioning" -and
+    (Get-UnityMigrationPlayModeState -IsPlaying $false -IsChanging $false -RuntimeReady $false) -eq "edit-mode"
+) "Unity PlayMode state classification regressed."
+Write-Host "Unity PlayMode policy and four-state regressions passed."
+Assert-ToolchainTest (
+    $projectXAppAllSource.Contains('RecordWorldChapterUnlockNotice(checked((uint)unlockedChapterId))') -and
+    $worldChapterUnlockSource.Contains('OnWorldBattleResultContinue()') -and
+    $worldChapterUnlockSource.Contains('pendingWorldChapterUnlockNoticeChapterName + "通关"') -and
+    $worldChapterUnlockSource.Contains('ContinueBattleOutcomeControl();') -and
+    $worldChapterUnlockSource.Contains('pendingWorldAchievementAutoOpen = unlockedChapterId == MainAchievementAutoOpenChapterId;') -and
+    $worldChapterUnlockSource.Contains('ShowWorldAchievementAfterChapterUnlock()') -and
+    $worldChapterUnlockSource.Contains('ShowWorldAchievement();') -and
+    $worldChapterUnlockSource.Contains('WorldChapterUnlockNotice", 0, 0f') -and
+    $projectXAppWorldUiSource.Contains('OnWorldBattleResultContinue,') -and
+    $uiPrefabCatalogSource.Contains('WorldChapterUnlockNotice') -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/World/WorldChapterUnlockNotice.prefab')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/World/ChapterUnlock/Animations/WorldChapterUnlockNotice.anim')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/World/ChapterUnlock/WorldChapterUnlockNotice.controller')) -and
+    -not $worldChapterUnlockSource.Contains('FindBySource') -and
+    -not $worldChapterUnlockSource.Contains('CocosTimelinePlayer') -and
+    $worldChapterUnlockFixtureWrapperSource.Contains('"SetupChapterUnlock"') -and
+    $worldChapterUnlockFixtureWrapperSource.Contains('SetupChapterUnlock is SQLite-only') -and
+    $worldChapterUnlockFixtureSource.Contains('"SetupChapterUnlock": setup_chapter_unlock') -and
+    $worldChapterUnlockFixtureWrapperSource.Contains('"SetupAchievementUnlock"') -and
+    $worldChapterUnlockFixtureWrapperSource.Contains('SetupAchievementUnlock is SQLite-only') -and
+    $worldChapterUnlockFixtureSource.Contains('"SetupAchievementUnlock": setup_achievement_unlock') -and
+    $worldChapterUnlockFixtureSource.Contains('"achievement-unlock-1003" if achievement_unlock') -and
+    $worldChapterUnlockFixtureSource.Contains('for stage_id in range(10011, 10020):') -and
+    $worldChapterUnlockFixtureSource.Contains('primary["curNodeId"] = target_stage_id') -and
+    $worldChapterUnlockFixtureSource.Contains('if target_stars <= 0 or 1003 not in chapters:') -and
+    $worldChapterUnlockFixtureSource.Contains('"chapter-unlock" if chapter_unlock else "standard"') -and
+    $worldChapterUnlockFixtureSource.Contains('for stage_id in range(10021, 10030):') -and
+    $worldChapterUnlockFixtureSource.Contains('primary["curNodeId"] = 10030') -and
+    $worldChapterUnlockFixtureSource.Contains('if target_stars <= 0 or 1004 not in chapters:')
+) "World chapter-unlock notice must remain an authoritative Unity Prefab/Animator route and preserve the original continue fallback."
+Write-Host "Unity-native World chapter-unlock notice regression passed."
+
+$uiImportManifest = (Import-UnityMigrationJson -Root $root `
+    -Path "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/unity-import-manifest.json").Value
+$timelineImportManifest = (Import-UnityMigrationJson -Root $root `
+    -Path "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/unity-import-manifest.timeline.json").Value
+$fishImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object { [string]$_.name -eq 'FishLayer' })
+Assert-ToolchainTest (
+    $fishPresenterSource.Contains('private readonly UnityUiView view;') -and
+    $fishPresenterSource.Contains('view?.FindNode(path)') -and
+    $fishPresenterSource.Contains('UnityNativeFishAnimation') -and
+    -not $fishPresenterSource.Contains('ImodAnimationPlayer') -and
+    $fishAnimationSource.Contains('Animations/Fish/btm2000_zd') -and
+    -not $fishAnimationSource.Contains('ImodAnimationPlayer') -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/Fish/btm2000_zd_Action_2.anim')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/Fish/btm2000_zd.controller')) -and
+    -not $fishPresenterSource.Contains('CocosUiView') -and
+    -not $fishPresenterSource.Contains('GetSerializedNodeByActionTag') -and
+    -not $fishAppSource.Contains('CocosUiView') -and
+    -not $fishAppSource.Contains('UiPrefabLoader') -and
+    $fishAppSource.Contains('InstantiateUnity(route.PrefabKey, GetDynamicUiRoot())') -and
+    (Test-Path -LiteralPath $fishNativePrefabPath) -and
+    $fishReferenceSource.Contains('guid: c0ed8b14f38b15c42a3485ac41b70394') -and
+    $uiPrefabCatalogSource.Contains('- key: FishLayer') -and
+    $uiPrefabCatalogSource.Contains('source: Unity/Fish/FishLayer') -and
+    $fishImportEntries.Count -eq 0 -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Prefabs/Fish/FishLayer.prefab')
+) "Fish function 32 must use its Unity-owned Prefab, Catalog Reference and Transform lookup with no Cocos importer row."
+Write-Host "Unity-native Fish function route and importer retirement regression passed."
+Assert-ToolchainTest (
+    $worldPresenterSource.Contains('player.LoadFormationAction(visual.MonsterPicture, 0)') -and
+    $worldPresenterSource.Contains('GetComponent<UnityNativeHeroPreviewAnimation>()') -and
+    $worldPresenterSource.Contains('stagePlayerModel.Load(player.Model == 4, false, false)') -and
+    $worldPresenterSource.Contains('stagePlayerModel.Load(player.Model == 4, true, to.x < stageWalkFrom.x)') -and
+    $worldPresenterSource.Contains('UnityNativeWorldStagePlayerAnimation') -and
+    -not $worldPresenterSource.Contains('ImodAnimationPlayer') -and
+    -not $worldPresenterSource.Contains('LoadLegacy(')
+) "World map enemy/player previews must use Unity-native Animator assets without Imod runtime calls."
+Write-Host "Unity-native World stage-monster animation regression passed."
+Assert-ToolchainTest (
+    -not $monopolyPresenterSource.Contains('ProjectX.Animation') -and
+    -not $monopolyPresenterSource.Contains('ImodAnimationPlayer') -and
+    -not $monopolyPresenterSource.Contains('LoadLegacy(') -and
+    $monopolyPresenterSource.Contains('UnityNativeWorldStagePlayerAnimation') -and
+    $monopolyDiceAnimationSource.Contains('Animations/Monopoly/MonopolyDice') -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/Monopoly/MonopolyDiceRoll.anim')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/Monopoly/MonopolyDice.controller')) -and
+    -not $imodAnimationCatalogSource.Contains('"legacyPath": "UI/shaizi"') -and
+    (Test-Path -LiteralPath (Join-Path $root 'docs/unityclient/history/legacy-animation-resources/ProjectXAnimation/UI/shaizi.json'))
+) "Monopoly stage and dice animation must remain Unity-native with its Unity Imod prepared pair retired."
+Write-Host "Unity-native Monopoly animation regression passed."
+$monopolyPrefabPaths = @(
+    "unityclient/Assets/Prefabs/Gameplay/Monopoly/GameSceneLayer.prefab",
+    "unityclient/Assets/Prefabs/Gameplay/Monopoly/GameLayer.prefab",
+    "unityclient/Assets/Prefabs/Gameplay/Monopoly/caiquanLayer.prefab"
+)
+$monopolyImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object { [string]$_.name -in @('GameSceneLayer', 'GameLayer', 'caiquanLayer') })
+$monopolyHistoricalSourcePaths = @(
+    'unityclient/Assets/ProjectX/res/csd/Prefabs/kunlunxunbao/GameSceneLayer.prefab',
+    'unityclient/Assets/ProjectX/res/csd/Prefabs/kunlunxunbao/GameLayer.prefab',
+    'unityclient/Assets/ProjectX/res/csd/Prefabs/caiquanLayer.prefab',
+    'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/kunlunxunbao/GameSceneLayer.json',
+    'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/kunlunxunbao/GameLayer.json',
+    'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/caiquanLayer.json'
+)
+$monopolyHistoricalArchivePaths = @(
+    'docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/kunlunxunbao/GameSceneLayer.prefab',
+    'docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/kunlunxunbao/GameLayer.prefab',
+    'docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/caiquanLayer.prefab',
+    'docs/unityclient/history/legacy-ui-references/cocos-export/documents/kunlunxunbao/GameSceneLayer.json',
+    'docs/unityclient/history/legacy-ui-references/cocos-export/documents/kunlunxunbao/GameLayer.json',
+    'docs/unityclient/history/legacy-ui-references/cocos-export/documents/caiquanLayer.json'
+)
+$monopolyHistoricalSourcesArchived = $true
+$monopolyHistoricalPrefabIdentityGone = $true
+for ($index = 0; $index -lt $monopolyHistoricalSourcePaths.Count; $index++) {
+    $sourcePath = Join-Path $root $monopolyHistoricalSourcePaths[$index]
+    $archivePath = Join-Path $root $monopolyHistoricalArchivePaths[$index]
+    if ((Test-Path -LiteralPath $sourcePath) -or (Test-Path -LiteralPath "${sourcePath}.meta") -or
+        -not (Test-Path -LiteralPath $archivePath) -or -not (Test-Path -LiteralPath "${archivePath}.meta")) {
+        $monopolyHistoricalSourcesArchived = $false
+    }
+    if ($index -lt 3 -and (Get-Content -LiteralPath $archivePath -Raw -Encoding UTF8).Contains("guid: $uiPrefabIdentityGuid")) {
+        $monopolyHistoricalPrefabIdentityGone = $false
+    }
+}
+$monopolyLegacyArtSourcePath = Join-Path $root 'unityclient/Assets/Resources/Monopoly'
+$monopolyLegacyMapsSourcePath = Join-Path $root 'unityclient/Assets/Resources/MonopolyMaps'
+$monopolyLegacyArtArchivePath = Join-Path $root 'docs/unityclient/history/legacy-ui-references/cocos-export/resources/Monopoly'
+$monopolyLegacyMapsArchivePath = Join-Path $root 'docs/unityclient/history/legacy-ui-references/cocos-export/resources/MonopolyMaps'
+$monopolyLegacyResourcesArchived =
+    -not (Test-Path -LiteralPath $monopolyLegacyArtSourcePath) -and
+    -not (Test-Path -LiteralPath $monopolyLegacyMapsSourcePath) -and
+    -not (Test-Path -LiteralPath "${monopolyLegacyArtSourcePath}.meta") -and
+    -not (Test-Path -LiteralPath "${monopolyLegacyMapsSourcePath}.meta") -and
+    (Test-Path -LiteralPath $monopolyLegacyArtArchivePath) -and
+    (Test-Path -LiteralPath $monopolyLegacyMapsArchivePath) -and
+    (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $monopolyLegacyArtArchivePath) 'Monopoly.meta')) -and
+    (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $monopolyLegacyMapsArchivePath) 'MonopolyMaps.meta')) -and
+    @(Get-ChildItem -LiteralPath $monopolyLegacyArtArchivePath -Filter '*.png' -File).Count -eq 11 -and
+    @(Get-ChildItem -LiteralPath $monopolyLegacyMapsArchivePath -Filter '*.jpg' -File).Count -eq 40
+$monopolyReferenceGuidsMatch = $true
+foreach ($key in @('GameSceneLayer', 'GameLayer', 'caiquanLayer')) {
+    $prefabPath = Join-Path $root "unityclient/Assets/Prefabs/Gameplay/Monopoly/$key.prefab"
+    $referencePath = Join-Path $root "unityclient/Assets/Prefabs/Catalog/$key.asset"
+    $prefabGuid = [regex]::Match((Get-Content -LiteralPath "${prefabPath}.meta" -Raw -Encoding UTF8), '(?m)^guid:\s*([0-9a-f]+)').Groups[1].Value
+    $referenceSource = Get-Content -LiteralPath $referencePath -Raw -Encoding UTF8
+    if (-not $prefabGuid -or -not $referenceSource.Contains("guid: $prefabGuid")) { $monopolyReferenceGuidsMatch = $false }
+}
+Assert-ToolchainTest (
+    $monopolyAppSource.Contains('UnityUiView monopolyView, monopolyHudView, monopolyHandView') -and
+    $monopolyAppSource.Contains('services.UiAssets.InstantiateUnity(route.PrefabKey, GetDynamicUiRoot())') -and
+    $monopolyAppSource.Contains('services.UiAssets.InstantiateUnity("GameLayer", monopolyView.GameObject.transform)') -and
+    $monopolyAppSource.Contains('services.UiAssets.InstantiateUnity("caiquanLayer", GetDynamicUiRoot())') -and
+    -not $monopolyAppSource.Contains('CocosUiView') -and
+    -not $monopolyAppSource.Contains('UiPrefabLoader') -and
+    $monopolyPresenterSource.Contains('UnityUiView mapView, hudView, handView') -and
+    $monopolyPresenterSource.Contains('mapView.FindNode($"Layer/bg/Node_{cell}")') -and
+    -not $monopolyPresenterSource.Contains('CocosUiView') -and
+    -not $monopolyPresenterSource.Contains('GetSerializedNodeByActionTag') -and
+    -not $monopolyPresenterSource.Contains('FixedNodeTags') -and
+    $monopolyPresenterSource.Contains('Art/UI/Monopoly/huodong_chuangguan03') -and
+    $monopolyPresenterSource.Contains('Art/UI/Monopoly/ui_chuangguanPlist') -and
+    $monopolyPresenterSource.Contains('Art/UI/Monopoly/guess_npc_505') -and
+    $monopolyPresenterSource.Contains('Art/UI/Monopoly/shaizi_') -and
+    $monopolyPresenterSource.Contains('Art/UI/Monopoly/Maps/UI_Scene_{index}') -and
+    -not $monopolyPresenterSource.Contains('Load<Texture2D>("Monopoly/') -and
+    -not $monopolyPresenterSource.Contains('Load<Texture2D>($"MonopolyMaps/') -and
+    $monopolyLegacyResourcesArchived -and
+    $monopolyNativeArtCount -eq 12 -and
+    $monopolyNativeMapCount -eq 40 -and
+    $uiPrefabCatalogSource.Contains('source: Unity/Gameplay/Monopoly/GameSceneLayer') -and
+    $uiPrefabCatalogSource.Contains('source: Unity/Gameplay/Monopoly/GameLayer') -and
+    $uiPrefabCatalogSource.Contains('source: Unity/Gameplay/Monopoly/caiquanLayer') -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Prefabs/Gameplay/Monopoly/GameSceneLayer.prefab') -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Prefabs/Gameplay/Monopoly/GameLayer.prefab') -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Prefabs/Gameplay/Monopoly/caiquanLayer.prefab') -and
+    -not $bootstrapSceneBuilderSource.Contains('Assets/ProjectX/res/csd/Prefabs/kunlunxunbao/GameSceneLayer.prefab') -and
+    -not $bootstrapSceneBuilderSource.Contains('Assets/ProjectX/res/csd/Prefabs/kunlunxunbao/GameLayer.prefab') -and
+    -not $bootstrapSceneBuilderSource.Contains('Assets/ProjectX/res/csd/Prefabs/caiquanLayer.prefab') -and
+    $monopolyReferenceGuidsMatch -and
+    $monopolyPrefabPaths.Count -eq 3 -and
+    @($monopolyPrefabPaths | Where-Object { Test-Path -LiteralPath (Join-Path $root $_) }).Count -eq 3 -and
+    $monopolyImportEntries.Count -eq 0 -and
+    $monopolyHistoricalSourcesArchived -and
+    $monopolyHistoricalPrefabIdentityGone -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/Common'))
+) "Monopoly function 21 pages must load Unity-owned Prefabs/resources through UnityUiView and leave the Cocos importer chain."
+Write-Host "Unity-native Monopoly UI Prefab/provider regression passed."
+$worldChapterUnlockImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object { [string]$_.name -eq 'tongguanLayer' })
+$worldChapterUnlockHistoricalPrefabPath = Join-Path $root 'unityclient/Assets/Prefabs/Retained/fuben/tongguanLayer.prefab'
+$worldChapterUnlockHistoricalPrefabSource = Get-Content -LiteralPath $worldChapterUnlockHistoricalPrefabPath -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $worldChapterUnlockImportEntries.Count -eq 0 -and
+    (Test-Path -LiteralPath $worldChapterUnlockHistoricalPrefabPath) -and
+    -not $worldChapterUnlockHistoricalPrefabSource.Contains("guid: $uiPrefabIdentityGuid") -and
+    -not $worldChapterUnlockHistoricalPrefabSource.Contains("guid: $cocosTimelinePlayerGuid")
+) "World chapter-unlock must keep its historical source Prefab without Identity/Timeline components or active importer rows."
+Write-Host "Unity-native World chapter-unlock component retirement regression passed."
+$xunBaoHistoricalSaoDangImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object { [string]$_.name -eq 'saodang' })
+Assert-ToolchainTest (
+    $xunBaoHistoricalSaoDangImportEntries.Count -eq 0 -and
+    (Test-Path -LiteralPath $xunBaoHistoricalSaoDangPrefabPath) -and
+    -not $xunBaoHistoricalSaoDangPrefabSource.Contains("guid: $uiPrefabIdentityGuid") -and
+    -not $xunBaoHistoricalSaoDangPrefabSource.Contains("guid: $cocosTimelinePlayerGuid") -and
+    $projectXAppAllSource.Contains('services.UiAssets.GetUnityOrCreate("saodang")') -and
+    -not $projectXAppAllSource.Contains('services.UiRouter.FindBySource("common/saodang")')
+) "The shared sweep Cocos source must remain preserved without migration components or active import/runtime callers."
+Write-Host "Unity-native shared sweep source component retirement regression passed."
+$xunBaoHistoricalPopupImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object { [string]$_.name -eq 'Xunbao_popupLayer' })
+Assert-ToolchainTest (
+    $xunBaoHistoricalPopupImportEntries.Count -eq 0 -and
+    (Test-Path -LiteralPath $xunBaoHistoricalPopupPrefabPath) -and
+    -not $xunBaoHistoricalPopupPrefabSource.Contains("guid: $uiPrefabIdentityGuid") -and
+    -not $xunBaoHistoricalPopupPrefabSource.Contains("guid: $cocosTimelinePlayerGuid") -and
+    $uiPrefabCatalogSource.Contains('- key: Xunbao_popupLayer') -and
+    $uiPrefabCatalogSource.Contains('source: Unity/XunBao/Xunbao_popupLayer') -and
+    $projectXAppAllSource.Contains('services.UiAssets.GetUnityOrCreate("Xunbao_popupLayer")')
+) "The XunBao popup must keep its Unity-native route and preserved historical source without Identity/Timeline or importer rows."
+Write-Host "Unity-native XunBao popup component retirement regression passed."
+$enhanceMasterSuccessImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object { [string]$_.name -eq 'qianghuadashidacheng' })
+Assert-ToolchainTest (
+    $enhanceMasterSuccessImportEntries.Count -eq 0 -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/Retained/zhuangbeiyangcheng/qianghuadashidacheng.prefab'))
+) "EnhanceMaster success popup must use its Unity-native route while preserving its historical Cocos Prefab."
+Write-Host "Unity-native EnhanceMaster success popup importer retirement regression passed."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('ShowEnhanceMasterSuccessPopup(type, level);') -and
+    $enhanceMasterSuccessSource.Contains('InstantiateUnity(') -and
+    $enhanceMasterSuccessSource.Contains('animator.Play("animation0", 0, 0f)') -and
+    $enhanceMasterSuccessSource.Contains('EquipmentCatalog.GetMaster(type, level)') -and
+    -not $enhanceMasterSuccessSource.Contains('CocosUiView') -and
+    -not $enhanceMasterSuccessSource.Contains('UiPrefabIdentity') -and
+    -not $enhanceMasterSuccessSource.Contains('CocosTimelinePlayer') -and
+    $bootstrapSceneBuilderSource.Contains('EnhanceMasterSuccessPopupPrefab') -and
+    $uiPrefabCatalogSource.Contains('EnhanceMasterSuccessPopup') -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/EnhanceMaster/EnhanceMasterSuccessPopup.prefab')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/EnhanceMaster/EnhanceMasterSuccessPopup.anim')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/EnhanceMaster/EnhanceMasterSuccessPopup.controller'))
+) "EnhanceMaster op24 success popup must use a Unity-owned Prefab, native animation and formal master data."
+Write-Host "Unity-native EnhanceMaster success popup source regression passed."
+Assert-ToolchainTest (
+    $playerControllerSource.Contains('local previousLevel = message:ReadByte()') -and
+    $playerControllerSource.Contains('pendingLevelUp = {') -and
+    $playerControllerSource.Contains('M.requestStamina()') -and
+    $playerControllerSource.Contains('Bridge:NotifyPlayerLevelUp(pending.previousLevel, pending.currentLevel, pending.staminaBefore, value)') -and
+    $roleLevelUpSource.Contains('PlayerLevelUpPopupKey, GetDynamicUiRoot())') -and
+    $roleLevelUpSource.Contains('while (IsBattlePresentationActive || CurrentAppState != AppState.Main)') -and
+    $roleLevelUpViewSource.Contains('FunctionUnlockCatalog.GetUpcoming(currentLevel, 3)') -and
+    $roleLevelUpViewSource.Contains('view.BindClick("Mask", this.close, addButtonIfMissing: true)') -and
+    -not $roleLevelUpSource.Contains('CocosUiView') -and
+    -not $roleLevelUpSource.Contains('FindBySource(') -and
+    $bootstrapSceneBuilderSource.Contains('PlayerLevelUpPopupPrefab') -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Animations/') -and
+    $uiPrefabCatalogSource.Contains('PlayerLevelUpPopup') -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/Catalog/PlayerLevelUpPopup.prefab')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/RoleLevelUp/PlayerLevelUpPopup.anim')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/RoleLevelUp/PlayerLevelUpPopup.controller')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/RoleLevelUp/Icons/ui_bangpai_icon_youjian.png')) -and
+    (($functionUnlockSourceJson | ConvertTo-Json -Depth 8 -Compress) -eq ($functionUnlockRuntimeJson | ConvertTo-Json -Depth 8 -Compress)) -and
+    [string]$functionUnlockSourceJson[0].icon -eq 'ui_icon_jianghunshangdian' -and
+    [string]$functionUnlockSourceJson[-1].icon -eq 'ui_bangpai_icon_youjian' -and
+    $functionUnlockCatalogSource.Contains('[JsonProperty("icon")]') -and
+    $functionUnlockCatalogSource.Contains('Art/UI/RoleLevelUp/Icons/ui_bangpai_icon_youjian') -and
+    $roleLevelUpViewSource.Contains('FunctionUnlockCatalog.LoadIcon(definition)') -and
+    $roleLevelUpViewSource.Contains('iconImage.sprite = icon') -and
+    @($uiImportManifest.documents | Where-Object { $_.name -eq 'zhujueshengji' }).Count -eq 0 -and
+    @($timelineImportManifest.documents | Where-Object { $_.name -eq 'zhujueshengji' }).Count -eq 0 -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/Retained/zhujue/zhujueshengji.prefab'))
+) "Main-character level-up must use Unity assets, keep both Cocos importer rows retired, refresh stamina, defer across battle, and preserve the historical Cocos source."
+Write-Host "Unity-native main-character level-up source regression passed."
+Assert-ToolchainTest (
+    $settingsPresenterSource.Contains('slider.handleRect.SetSizeWithCurrentAnchors') -and
+    $settingsPresenterSource.Contains('colors.disabledColor = Color.white') -and
+    $settingsPresenterSource.Contains('private readonly UnityUiView view;') -and
+    $settingsPresenterSource.Contains('public SettingsPresenter(UnityUiView view,') -and
+    $settingsPresenterSource.Contains('target.FindNode(path)') -and
+    $settingsPresenterSource.Contains('background.color = selected ? Color.white : new Color(1f, 1f, 1f, 0f);') -and
+    $settingsPresenterSource.Contains('normalLabel.gameObject.SetActive(!selected);') -and
+    $settingsPresenterSource.Contains('choose.gameObject.SetActive(selected);') -and
+    -not $settingsPresenterSource.Contains('CocosUiView') -and
+    -not $settingsPresenterSource.Contains('GetSerializedNodeByActionTag') -and
+    -not $settingsPresenterSource.Contains('PageNodeTags') -and
+    $projectXAppSource.Contains('services.UiAssets.GetUnityOrCreate("SystemLayer")') -and
+    -not $projectXAppSource.Contains('FindBySource("zhujue/SystemLayer")') -and
+    $projectXAppAllSource.Contains('HideOtherOneLevelChildren();') -and
+    $projectXAppAllSource.Contains('HideOneLevelDynamicChildren(jingJieView, jingJiePreviewView);') -and
+    [regex]::IsMatch($projectXAppAllSource,
+        'ShowMergedSettings\(\)[\s\S]*?HideOtherOneLevelChildren\(\);[\s\S]*?bagView\?\.SetVisible\(false\);[\s\S]*?settingsView\.SetVisible\(true\);') -and
+    $bootstrapSceneBuilderSource.Contains('SettingsPrefab = "Assets/Prefabs/Settings/SystemLayer.prefab"') -and
+    $uiPrefabCatalogSource.Contains('source: Unity/SystemLayer') -and
+    @($uiImportManifest.documents | Where-Object { $_.name -eq 'SystemLayer' }).Count -eq 0
+) "Settings runtime/asset route must use Unity bindings and remain out of the Cocos UI importer."
+Write-Host "Settings Unity resource/provider regression passed."
+$mainBackupImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object {
+        [string]$_.name -eq "UImainLayer_backup" -or
+        [string]$_.prefabAssetPath -match '/UImainLayer_backup\.prefab$'
+    })
+Assert-ToolchainTest (
+    $mainBackupImportEntries.Count -eq 0 -and
+    -not $projectXAppMainUiSource.Contains('FindBySource("UImainLayer_backup")') -and
+    -not $projectXAppMainUiSource.Contains('DestroyBackupMainView') -and
+    -not $uiPrefabCatalogSource.Contains('UImainLayer_backup') -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Catalog/UImainLayer_backup.asset")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Editor/LegacyUiReferences/UImainLayer_backup.asset"))
+) "Unused Cocos Main backup Prefab reappeared in the active route or import chain."
+$retiredLoginImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object {
+        [string]$_.name -in @("GameNoticeLayer", "LoginBgLayer2", "RoleCreateLayer2", "LoadingCommonLayer", "LoadingCommenLayer") -or
+        [string]$_.prefabAssetPath -match '/(GameNoticeLayer|LoginBgLayer2|RoleCreateLayer2|LoadingCommonLayer|LoadingCommenLayer)\.prefab$'
+    })
+Assert-ToolchainTest (
+    $retiredLoginImportEntries.Count -eq 0
+) "Retired Cocos Login/Notice/Loading Prefabs reappeared in an active import manifest."
+$legacyNoticePrefabPaths = @(
+    "docs/unityclient/history/legacy-ui-references/GameNoticeLayer.prefab",
+    "docs/unityclient/history/legacy-ui-references/NoticeLayer.prefab"
+)
+$unityEditorLegacyNoticePrefabPaths = @(
+    "unityclient/Assets/Editor/LegacyUiReferences/GameNoticeLayer.prefab",
+    "unityclient/Assets/Editor/LegacyUiReferences/NoticeLayer.prefab"
+)
+$runtimeNoticePrefabPaths = @(
+    "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/Prefabs/GameNoticeLayer.prefab",
+    "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/Prefabs/NoticeLayer.prefab"
+)
+Assert-ToolchainTest (
+    @($legacyNoticePrefabPaths | Where-Object { -not (Test-Path -LiteralPath (Join-Path $root $_)) }).Count -eq 0 -and
+    @($unityEditorLegacyNoticePrefabPaths | Where-Object { Test-Path -LiteralPath (Join-Path $root $_) }).Count -eq 0 -and
+    @($runtimeNoticePrefabPaths | Where-Object { Test-Path -LiteralPath (Join-Path $root $_) }).Count -eq 0
+) "Retired Cocos Notice Prefabs must stay archived outside Unity Assets and the runtime res tree."
+$legacyNoticePrefabSources = @($legacyNoticePrefabPaths | ForEach-Object {
+    Get-Content -LiteralPath (Join-Path $root $_) -Raw -Encoding UTF8
+})
+$legacyNoticeMigrationComponentRefs = @($legacyNoticePrefabSources | Where-Object {
+    $_ -match '(?i)guid: (1acd4692cebe3e74e956ef3d8bca1229|1adb1cbe63b222847b80234c3bd855ae)'
+})
+Assert-ToolchainTest (
+    $legacyNoticeMigrationComponentRefs.Count -eq 0
+) "Editor-only Notice comparison Prefabs must not retain UiPrefabIdentity or CocosTimelinePlayer."
+$retiredLoginNoticeLoadingCocosArchivePairs = @(
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/LoginBgLayer.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/Login/LoginBgLayer.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/LoginBgLayer.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/Login/LoginBgLayer.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/loginLayer.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/Login/loginLayer.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/loginLayer.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/Login/loginLayer.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/RoleCreateLayer.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/Login/RoleCreateLayer.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/RoleCreateLayer.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/Login/RoleCreateLayer.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/SeverListLayer.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/Login/SeverListLayer.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/SeverListLayer.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/Login/SeverListLayer.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/LoadingLayer.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/Login/LoadingLayer.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/Login/LoadingLayer.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/Login/LoadingLayer.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/LoadingCommonLayer.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/LoadingCommonLayer.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/LoadingCommonLayer.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/LoadingCommonLayer.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/csb/LoadingCommenLayer.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/csb/LoadingCommenLayer.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/csb/LoadingCommenLayer.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/csb/LoadingCommenLayer.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/common/jiemianjiazai.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/common/jiemianjiazai.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/common/jiemianjiazai.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/common/jiemianjiazai.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/LoadingLayer.json"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/Login/LoadingLayer.json" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/LoadingLayer.json.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/Login/LoadingLayer.json.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/LoadingCommonLayer.json"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/LoadingCommonLayer.json" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/LoadingCommonLayer.json.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/LoadingCommonLayer.json.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/csb/LoadingCommenLayer.json"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/csb/LoadingCommenLayer.json" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/csb/LoadingCommenLayer.json.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/csb/LoadingCommenLayer.json.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/jiemianjiazai.json"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/common/jiemianjiazai.json" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/jiemianjiazai.json.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/common/jiemianjiazai.json.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/GameNoticeLayer.json"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/GameNoticeLayer.json" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/GameNoticeLayer.json.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/GameNoticeLayer.json.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/NoticeLayer.json"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/NoticeLayer.json" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/NoticeLayer.json.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/NoticeLayer.json.meta" }
+)
+$missingRetiredLoginNoticeLoadingArchives = @($retiredLoginNoticeLoadingCocosArchivePairs | Where-Object {
+    -not (Test-Path -LiteralPath (Join-Path $root $_.Archive))
+})
+$stillImportedRetiredLoginNoticeLoadingSources = @($retiredLoginNoticeLoadingCocosArchivePairs | Where-Object {
+    Test-Path -LiteralPath (Join-Path $root $_.Asset)
+})
+Assert-ToolchainTest (
+    $missingRetiredLoginNoticeLoadingArchives.Count -eq 0 -and
+    $stillImportedRetiredLoginNoticeLoadingSources.Count -eq 0
+) "Retired Login/Notice/Loading Cocos Prefabs and source documents must be archived intact outside Unity Assets."
+Write-Host "Login/Notice/Loading legacy Cocos source archive regression passed."
+Write-Host "Editor-only Notice comparison Prefab migration-component regressions passed."
+$retiredHeroCoreCocosArchivePairs = @(
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/shenjiangyangcheng/yingxiongListLayer.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongListLayer.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/shenjiangyangcheng/yingxiongListLayer.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/shenjiangyangcheng/yingxiongInfoLayer.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongbeibao.prefab"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/shenjiangyangcheng/yingxiongbeibao.prefab" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/Prefabs/shenjiangyangcheng/yingxiongbeibao.prefab.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/shenjiangyangcheng/yingxiongbeibao.prefab.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shenjiangyangcheng/yingxiongListLayer.json"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/shenjiangyangcheng/yingxiongListLayer.json" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shenjiangyangcheng/yingxiongListLayer.json.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/shenjiangyangcheng/yingxiongListLayer.json.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shenjiangyangcheng/yingxiongInfoLayer.json"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/shenjiangyangcheng/yingxiongInfoLayer.json" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shenjiangyangcheng/yingxiongInfoLayer.json.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/shenjiangyangcheng/yingxiongInfoLayer.json.meta" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shenjiangyangcheng/yingxiongbeibao.json"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/shenjiangyangcheng/yingxiongbeibao.json" },
+    @{ Asset = "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shenjiangyangcheng/yingxiongbeibao.json.meta"; Archive = "docs/unityclient/history/legacy-ui-references/cocos-export/documents/shenjiangyangcheng/yingxiongbeibao.json.meta" }
+)
+$missingRetiredHeroCoreArchives = @($retiredHeroCoreCocosArchivePairs | Where-Object {
+    -not (Test-Path -LiteralPath (Join-Path $root $_.Archive))
+})
+$stillImportedRetiredHeroCoreSources = @($retiredHeroCoreCocosArchivePairs | Where-Object {
+    Test-Path -LiteralPath (Join-Path $root $_.Asset)
+})
+$heroPresenterSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/HeroPresenter.cs") -Raw -Encoding UTF8
+$heroUiPrefabCatalogSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/Prefabs/Catalog/Catalog.asset") -Raw -Encoding UTF8
+$heroLegacyPrefabGuid = "1acd4692cebe3e74e956ef3d8bca1229"
+$heroUnityPrefabPaths = @(
+    "unityclient/Assets/Prefabs/Hero/yingxiongListLayer.prefab",
+    "unityclient/Assets/Prefabs/Hero/yingxiongInfoLayer.prefab",
+    "unityclient/Assets/Prefabs/Hero/yingxiongbeibao.prefab"
+)
+$heroPrefabSources = @($heroUnityPrefabPaths | ForEach-Object {
+    Get-Content -LiteralPath (Join-Path $root $_) -Raw -Encoding UTF8
+})
+Assert-ToolchainTest (
+    $missingRetiredHeroCoreArchives.Count -eq 0 -and
+    $stillImportedRetiredHeroCoreSources.Count -eq 0 -and
+    @($heroUnityPrefabPaths | Where-Object { -not (Test-Path -LiteralPath (Join-Path $root $_)) }).Count -eq 0 -and
+    @($heroPrefabSources | Where-Object { $_ -match [regex]::Escape($heroLegacyPrefabGuid) }).Count -eq 0 -and
+    @($uiImportManifest.documents | Where-Object { $_.name -in @("yingxiongListLayer", "yingxiongInfoLayer", "yingxiongbeibao") }).Count -eq 0 -and
+    $heroPresenterSource.Contains("UnityUiView listView") -and
+    -not $heroPresenterSource.Contains("FixedNodeTags") -and
+    -not $heroPresenterSource.Contains("GetSerializedNodeByActionTag") -and
+    -not $heroPresenterSource.Contains("CocosUiView") -and
+    $projectXAppAllSource.Contains('services.UiRouter.FindByKey("yingxiongListLayer")') -and
+    $projectXAppAllSource.Contains('services.UiRouter.FindByKey("yingxiongInfoLayer")') -and
+    $projectXAppAllSource.Contains('services.UiRouter.FindByKey("yingxiongbeibao")') -and
+    $heroUiPrefabCatalogSource.Contains("source: Unity/Hero/yingxiongListLayer") -and
+    $heroUiPrefabCatalogSource.Contains("source: Unity/Hero/yingxiongInfoLayer") -and
+    $heroUiPrefabCatalogSource.Contains("source: Unity/Hero/yingxiongbeibao")
+) "Hero core list/detail/bag routes or Cocos source retirement regressed."
+Write-Host "Hero core Unity-owned Prefab/View and archived Cocos source regression passed."
+$unityOwnedLoginNames = @("LoginBgLayer", "loginLayer", "SeverListLayer", "RoleCreateLayer", "OldMemoryLayer", "NoticeLayer", "LoadingLayer", "MessageBoxLayer", "StartupLayer")
+$unityOwnedLoginImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object {
+        [string]$_.name -in $unityOwnedLoginNames -or
+        [string]$_.prefabAssetPath -match '/(LoginBgLayer|loginLayer|SeverListLayer|RoleCreateLayer|OldMemoryLayer|NoticeLayer|LoadingLayer|MessageBoxLayer|StartupLayer)\.prefab$'
+    })
+$timelineManifestSource = Get-Content -LiteralPath (Join-Path $root `
+    "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/unity-import-manifest.timeline.json") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $unityOwnedLoginImportEntries.Count -eq 0 -and
+    $timelineManifestSource -notmatch '(?i)(LoginBgLayer|loginLayer|SeverListLayer|RoleCreateLayer|OldMemoryLayer|NoticeLayer|LoadingLayer|MessageBoxLayer)\.prefab'
+) "Unity-owned Login/Notice Prefabs must not re-enter Cocos UI or Timeline importer manifests."
+$drawMainUiEntries = @($uiImportManifest.documents | Where-Object { [string]$_.name -eq "shenjiangzhaomu" })
+$drawMainTimelineEntries = @($timelineImportManifest.documents | Where-Object { [string]$_.name -eq "shenjiangzhaomu" })
+$drawMainDocument = Get-Content -LiteralPath (Join-Path $root `
+    "docs/unityclient/history/legacy-ui-references/cocos-export/documents/chouka/shenjiangzhaomu.json") -Raw -Encoding UTF8 |
+    ConvertFrom-Json
+Assert-ToolchainTest (
+    $drawMainUiEntries.Count -eq 0 -and
+    $drawMainTimelineEntries.Count -eq 0 -and
+    [int]$drawMainDocument.animation.duration -eq 0 -and
+    @($drawMainDocument.animation.timelines).Count -eq 0
+) "Draw main UI must not retain an active Cocos Timeline manifest row when its imported animation document has no tracks."
+$fengShenStoryUiEntries = @($uiImportManifest.documents | Where-Object { [string]$_.name -eq "fengshenliezhuanlLayer" })
+$fengShenStoryTimelineEntries = @($timelineImportManifest.documents | Where-Object { [string]$_.name -eq "fengshenliezhuanlLayer" })
+$fengShenStoryDocument = Get-Content -LiteralPath (Join-Path $root `
+    "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/documents/fengshenliezhuan/fengshenliezhuanlLayer.json") -Raw -Encoding UTF8 |
+    ConvertFrom-Json
+Assert-ToolchainTest (
+    $fengShenStoryTimelineEntries.Count -eq 0 -and
+    @($fengShenStoryDocument.animation.timelines).Count -eq 0
+) "FengShenStory main UI must not retain Timeline generation when animation0 has no tracks."
+$noOpTimelineNames = @("OnlineLayer", "juezhankunlun", "LilianLayer")
+$noOpTimelineUiEntries = @($uiImportManifest.documents | Where-Object {
+    [string]$_.name -in $noOpTimelineNames
+})
+$noOpTimelineEntries = @($timelineImportManifest.documents | Where-Object {
+    [string]$_.name -in $noOpTimelineNames
+})
+$noOpTimelineDocumentPaths = @(
+    "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/documents/huodong/OnlineLayer.json",
+    "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/documents/kunlun/juezhankunlun.json",
+    "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/documents/LilianLayer.json"
+)
+$noOpTimelineDocuments = @($noOpTimelineDocumentPaths | ForEach-Object {
+    Get-Content -LiteralPath (Join-Path $root $_) -Raw -Encoding UTF8 | ConvertFrom-Json
+})
+Assert-ToolchainTest (
+    $noOpTimelineUiEntries.Count -eq 0 -and
+    $noOpTimelineEntries.Count -eq 0 -and
+    $noOpTimelineDocuments.Count -eq 3 -and
+    @($noOpTimelineDocuments | Where-Object {
+        @($_.animation.clips).Count -ne 0 -or @($_.animation.timelines).Count -ne 0
+    }).Count -eq 0
+) "Retained OnlineLayer, juezhankunlun, and LilianLayer references must remain out of retired UI/Timeline generation."
+$retiredFengShenStoryUiEntries = @($uiImportManifest.documents | Where-Object {
+    [string]$_.name -in @("fengshenliezhuanlLayer", "fengshenliezhuanlevel")
+})
+$fengShenStoryPresenterNativeRouteSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/FengShenStoryPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $retiredFengShenStoryUiEntries.Count -eq 0 -and
+    $projectXAppSource.Contains('FindByKey(UiPrefabKey.FengShenStoryMain)') -and
+    $projectXAppSource.Contains('FindByKey(UiPrefabKey.FengShenStoryLevel)') -and
+    -not $projectXAppSource.Contains('FindBySource("fengshenliezhuan/') -and
+    $fengShenStoryPresenterNativeRouteSource.Contains('private readonly UnityUiView view;') -and
+    $fengShenStoryPresenterNativeRouteSource.Contains('private UnityUiView levelView;') -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Effects/Common/FengShenStory/Prefabs/fengshenliezhuanlLayer.prefab")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Effects/Common/FengShenStory/Prefabs/fengshenliezhuanlevel.prefab"))
+) "FengShenStory main/level must load Unity-owned Prefabs by key and stay out of Cocos UI import."
+$disabledFengShenTrialImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object { [string]$_.name -in @("fengshenshilian1", "fengshenshilian2", "FengShenLayer2") })
+$worldTrialEntrySource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/WorldPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $disabledFengShenTrialImportEntries.Count -eq 0 -and
+    -not $uiPrefabCatalogSource.Contains("fengshenshilian1") -and
+    $projectXAppAllSource.Contains('mainView.FindNode("Layer/Main_UI/ButtonGroup1/btn_fuli")?.SetActive(false);') -and
+    $worldTrialEntrySource.Contains('SetActive(mapView, "Layer/Panel_youxia/Button_fengshenshilian", false);')
+) "Disabled Unity FengShen trial entries must stay out of active Cocos UI/Timeline import while their buttons remain hidden."
+Write-Host "Unity-disabled FengShen trial importer retirement regression passed."
+$deferredDeletePrefabNames = @(
+    "GangsLayer", "Fenjie2Layer", "QiriLayer", "TowerLayer2", "TowerLayer3", "VoiceWindow", "zhujueshengji"
+)
+$deferredDeleteImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object { [string]$_.name -in $deferredDeletePrefabNames })
+Assert-ToolchainTest (
+    $deferredDeleteImportEntries.Count -eq 0 -and
+    @($timelineImportManifest.documents).Count -eq 0 -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/bangpai/GangsLayer.prefab")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/Fenjie2Layer.prefab")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/huodong/QiriLayer.prefab")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/TowerLayer2.prefab")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/TowerLayer3.prefab")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/VoiceWindow.prefab")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/zhujue/zhujueshengji.prefab"))
+) "Out-of-scope or unavailable feature Prefabs must stay out of active import/animation generation while historical Prefabs remain preserved for deferred deletion."
+Write-Host "Deferred-deletion feature Prefab importer regression passed."
+Assert-ToolchainTest (
+    @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+        Where-Object {
+            [string]$_.name -eq "FengShenLayer" -or
+            [string]$_.prefabAssetPath -match '/FengShenLayer\.prefab$|/fengshenlayer\.prefab$'
+        }).Count -eq 0 -and
+    $timelineManifestSource -notmatch '(?i)FengShenLayer\.csb' -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/CocosTimelineVisualValidation.cs")) -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/CocosTimelineVisualValidation.cs.meta"))
+) "Unreferenced FengShenLayer Cocos Prefab must stay out of active UI/Timeline import and preview chains."
+$drawResultImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object {
+        [string]$_.name -in @("dancichouka", "shilianchouka") -or
+        [string]$_.prefabAssetPath -match '/(dancichouka|shilianchouka)\.prefab$'
+    })
+$drawResultNativeSources = @(
+    (Join-Path $root "unityclient/Assets/Prefabs/Draw/dancichouka.prefab"),
+    (Join-Path $root "unityclient/Assets/Prefabs/Draw/shilianchouka.prefab")
+) | ForEach-Object { if (Test-Path -LiteralPath $_) { Get-Content -LiteralPath $_ -Raw -Encoding UTF8 } else { "" } }
+$drawResultNativeSerialized = $drawResultNativeSources -join "`n"
+$drawLegacyComponentGuids = @(
+    "UiPrefabIdentity.cs.meta",
+    "CocosTimelinePlayer.cs.meta",
+    "CocosUiBinding.cs.meta"
+) | ForEach-Object {
+    $metaPath = Join-Path $root "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/UI/Migration/$_"
+    [regex]::Match((Get-Content -LiteralPath $metaPath -Raw -Encoding UTF8), '(?m)^guid:\s+([a-f0-9]{32})\s*$').Groups[1].Value
+}
+$drawResultArtFiles = @(Get-ChildItem -LiteralPath (Join-Path $root `
+    "unityclient/Assets/Art/UI/Draw") -Recurse -File |
+    Where-Object { $_.Extension -ne ".meta" })
+$drawFurnaceFrameFiles = @(Get-ChildItem -LiteralPath (Join-Path $root `
+    "unityclient/Assets/Art/UI/Draw/FurnaceFrames") -File |
+    Where-Object { $_.Extension -eq ".png" })
+Assert-ToolchainTest (
+    $drawResultImportEntries.Count -eq 0 -and
+    $uiPrefabCatalogSource.Contains('source: Unity/dancichouka') -and
+    $uiPrefabCatalogSource.Contains('source: Unity/shilianchouka') -and
+    $drawPresenterSource.Contains('private Animator singleResultAnimator;') -and
+    $drawPresenterSource.Contains('private Animator tenResultAnimator;') -and
+    $drawPresenterSource.Contains('private readonly UnityUiView singleResultView;') -and
+    $drawPresenterSource.Contains('private readonly UnityUiView tenResultView;') -and
+    $drawPresenterSource.Contains('public DrawPresenter(UnityUiView view, UnityUiView singleResultView, UnityUiView tenResultView,') -and
+    $drawPresenterSource.Contains('UnityUiView previewView, UnityUiView previewFrameView, UnityUiView heroPreviewTemplate,') -and
+    $projectXAppSource -match 'services\.UiAssets\.InstantiateUnity\(\s*"OneLevelLayer"' -and
+    $projectXAppSource.Contains('services.UiAssets.Release(cleanPreviewFrame)') -and
+    -not ($projectXAppSource -match 'services\.CocosUiAssets\.Instantiate\(\s*"OneLevelLayer"') -and
+    $drawPresenterSource.Contains('Animations/Draw/FurnaceDraw') -and
+    -not $drawPresenterSource.Contains('LoadLegacy("res2/fx/choukaluzi")') -and
+    $drawFurnaceFrameFiles.Count -eq 15 -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Animations/Draw/FurnaceDraw.anim")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Animations/Draw/FurnaceDraw.controller")) -and
+    $drawPresenterSource.Contains('public static GameObject Get(UnityUiView view, string path)') -and
+    $projectXAppSource.Contains('services.UiAssets.GetUnityOrCreate("dancichouka")') -and
+    $projectXAppSource.Contains('services.UiAssets.GetUnityOrCreate("shilianchouka")') -and
+    -not $projectXAppSource.Contains('FindBySource("chouka/dancichouka")') -and
+    -not $projectXAppSource.Contains('FindBySource("chouka/shilianchouka")') -and
+    -not $drawLegacySinglePrefabSource.Contains("guid: $uiPrefabIdentityGuid") -and
+    -not $drawLegacySinglePrefabSource.Contains("guid: $cocosTimelinePlayerGuid") -and
+    -not $drawLegacyTenPrefabSource.Contains("guid: $uiPrefabIdentityGuid") -and
+    -not $drawLegacyTenPrefabSource.Contains("guid: $cocosTimelinePlayerGuid") -and
+    -not $drawPresenterSource.Contains('CocosTimelinePlayer') -and
+    -not $drawPresenterSource.Contains('GotoFrameAndPlay') -and
+    $drawResultNativeSources.Count -eq 2 -and
+    @($drawLegacyComponentGuids | Where-Object { $drawResultNativeSerialized.Contains("guid: $_") }).Count -eq 0 -and
+    $drawResultArtFiles.Count -gt 0 -and
+    @(Get-ChildItem -LiteralPath (Join-Path $root 'unityclient/Assets/Art/Fonts') -Filter 'xiaokaiSJ2.ttf' -File).Count -eq 1 -and
+    $drawNativePrefabBuilderSource.Contains('public static class DrawNativeAssetValidator') -and
+    $drawNativePrefabBuilderSource.Contains('[MenuItem("Tools/ProjectX/Validate Unity Draw Native Assets")]') -and
+    $drawNativePrefabBuilderSource.Contains('ValidateClipTargets') -and
+    -not $drawNativePrefabBuilderSource.Contains('AssetDatabase.CopyAsset') -and
+    -not $drawNativePrefabBuilderSource.Contains('PrefabUtility.SaveAsPrefabAsset') -and
+    -not $drawNativePrefabBuilderSource.Contains('res/csd/Prefabs/chouka') -and
+    -not (Test-Path -LiteralPath $drawNativeAnimationParityValidatorPath) -and
+    $bootstrapSceneBuilderSource.Contains('DrawSingleResultPrefab') -and
+    $bootstrapSceneBuilderSource.Contains('DrawTenResultPrefab') -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Animations/')
+) "Draw result Prefabs or their art/animation chain re-entered active Cocos maintenance."
+Write-Host "Unity-native Draw result Prefab/resource/animation regressions passed."
+$worldAchievementImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object {
+        [string]$_.name -eq "zhuxianchengjiu" -or
+        [string]$_.prefabAssetPath -match '/zhuxianchengjiu\.prefab$'
+    })
+$worldAchievementNativePrefabPath = Join-Path $root "unityclient/Assets/Prefabs/World/zhuxianchengjiu.prefab"
+$worldAchievementNativePrefabSource = if (Test-Path -LiteralPath $worldAchievementNativePrefabPath) {
+    Get-Content -LiteralPath $worldAchievementNativePrefabPath -Raw -Encoding UTF8
+} else { "" }
+$worldAchievementNativeClipPath = Join-Path $root "unityclient/Assets/Animations/World/WorldAchievement.anim"
+$worldAchievementLegacyComponentGuids = @(
+    "UiPrefabIdentity.cs.meta",
+    "CocosTimelinePlayer.cs.meta",
+    "CocosUiBinding.cs.meta"
+) | ForEach-Object {
+    $metaPath = Join-Path $root "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/UI/Migration/$_"
+    [regex]::Match((Get-Content -LiteralPath $metaPath -Raw -Encoding UTF8), '(?m)^guid:\s+([a-f0-9]{32})\s*$').Groups[1].Value
+}
+Assert-ToolchainTest (
+    $worldAchievementImportEntries.Count -eq 0 -and
+    $uiPrefabCatalogSource.Contains('source: Unity/zhuxianchengjiu') -and
+    $projectXAppWorldUiSource.Contains('GetUnityOrCreate("zhuxianchengjiu")') -and
+    $projectXAppWorldUiSource.Contains('animator.Play("WorldAchievement", 0, 0f)') -and
+    -not $projectXAppWorldUiSource.Contains('FindBySource("fuben/zhuxianchengjiu")') -and
+    -not $projectXAppWorldUiSource.Contains('CocosTimelinePlayer') -and
+    -not $projectXAppWorldValidationSource.Contains('CocosTimelinePlayer achievementTimeline') -and
+    (Test-Path -LiteralPath $worldAchievementNativeClipPath) -and
+    $worldAchievementNativePrefabSource.Length -gt 0 -and
+    @($worldAchievementLegacyComponentGuids | Where-Object { $worldAchievementNativePrefabSource.Contains("guid: $_") }).Count -eq 0 -and
+    $worldAchievementNativeBuilderSource.Contains('WorldNativeAssetValidator.ValidateAchievement()') -and
+    -not $worldAchievementNativeBuilderSource.Contains('SourcePrefab') -and
+    -not $worldAchievementNativeBuilderSource.Contains('DrawNativeAnimationClipMigrator') -and
+    $worldNativeBatchBuilderSource.Contains('WorldNativeAssetValidator.ValidateAll()') -and
+    -not $worldNativeBatchBuilderSource.Contains('SourcePrefab') -and
+    -not $worldNativeBatchBuilderSource.Contains('DrawNativeAnimationClipMigrator') -and
+    $worldNativeAssetValidatorSource.Contains('ValidateControllerAndClip') -and
+    $worldNativeAssetValidatorSource.Contains('AnimationUtility.GetCurveBindings') -and
+    $bootstrapSceneBuilderSource.Contains('WorldAchievementPrefab') -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Animations/')
+) "World main-achievement Prefab, Animator, or source-maintenance chain re-entered Cocos dependencies."
+Write-Host "Unity-native World achievement Prefab/resource/animation regressions passed."
+Assert-ToolchainTest (
+    $cocosUiImporterSource.Contains('BootstrapSceneBuilder.IsUnityOwnedPrefabName(item.name)') -and
+    $cocosUiImporterSource.Contains('BootstrapSceneBuilder.IsUnityOwnedPrefabName(prefabName)') -and
+    $bootstrapSceneBuilderSource.Contains('internal static bool IsUnityOwnedPrefabName(string prefabName)')
+) "Cocos importer must reject Unity-owned Login/Notice Prefabs even when an entry targets a legacy res path."
+$unityOwnedMainNames = @("UImainLayer_new", "UImain_cloudLayer")
+$unityOwnedMainImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object {
+        [string]$_.name -in $unityOwnedMainNames -or
+        [string]$_.prefabAssetPath -match '/(UImainLayer_new|UImain_cloudLayer)\.prefab$'
+    })
+Assert-ToolchainTest (
+    $unityOwnedMainImportEntries.Count -eq 0 -and
+    [regex]::IsMatch($uiPrefabCatalogSource, '(?m)^  - key: UImainLayer_new\r?\n    source: Unity/UImainLayer_new\r?$') -and
+    [regex]::IsMatch($uiPrefabCatalogSource, '(?m)^  - key: UImain_cloudLayer\r?\n    source: Unity/UImain_cloudLayer\r?$')
+) "Unity-owned Main HUD and cloud Prefabs must stay out of Cocos manifests and retain Unity Catalog sources."
+Write-Host "Unity-owned Main HUD and cloud import/source regressions passed."
+$loginCatalogSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/Prefabs/Catalog/Catalog.asset") -Raw -Encoding UTF8
+$loginNativeCatalogPaths = @(
+    "Unity/LoginBgLayer",
+    "Unity/loginLayer",
+    "Unity/SeverListLayer",
+    "Unity/RoleCreateLayer",
+    "Unity/OldMemoryLayer",
+    "Unity/NoticeLayer",
+    "Unity/LoadingLayer",
+    "Unity/MessageBoxLayer"
+)
+Assert-ToolchainTest (
+    @($loginNativeCatalogPaths | Where-Object { -not $loginCatalogSource.Contains($_) }).Count -eq 0
+) "Unity Login/Notice/Loading/Error Catalog sources must identify Unity-owned resources instead of Cocos exports."
+Write-Host "Unity-owned Login/Notice/Loading/Error import-manifest regressions passed."
+
+$unityLoginSourceFiles = @(
+    "unityclient/Assets/src/Core/ProjectXApp.Login.cs",
+    "unityclient/Assets/src/Core/ProjectXApp.Notice.cs",
+    "unityclient/Assets/src/UI/LoginPresenter.cs",
+    "unityclient/Assets/src/UI/OldMemoryPresenter.cs",
+    "unityclient/Assets/src/UI/NoticePresenter.cs",
+    "unityclient/Assets/src/UI/NoticeViewBindings.cs",
+    "unityclient/Assets/src/UI/NoticeRowBindings.cs"
+)
+$unityLoginSource = @($unityLoginSourceFiles | ForEach-Object {
+    Get-Content -LiteralPath (Join-Path $root $_) -Raw -Encoding UTF8
+}) -join "`n"
+$loginEntrySource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/Core/ProjectXApp.Login.cs") -Raw -Encoding UTF8
+$noticeRouteSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/Core/ProjectXApp.Notice.cs") -Raw -Encoding UTF8
+$noticePrefabSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/Prefabs/Login/NoticeLayer.prefab") -Raw -Encoding UTF8
+$noticePresenterSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/NoticePresenter.cs") -Raw -Encoding UTF8
+$loginCocosRuntimeMarkers = @(
+    "ICocosUiAssetProvider", "CocosUiView", "UiPrefabIdentity",
+    "CocosNodeMetadata", "CocosTimelinePlayer", "FindOrLoadBySource"
+)
+$loginCocosRuntimeLeaks = @($loginCocosRuntimeMarkers | Where-Object { $unityLoginSource.Contains($_) })
+$unityProviderSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/ResourcesUiAssetProvider.cs") -Raw -Encoding UTF8
+$compatibilityAdapterSource = Get-Content -LiteralPath (Join-Path $root `
+    "docs/unityclient/history/legacy-ui-references/runtime-adapters-20261008/retired/ResourcesCocosUiAssetProvider.cs") -Raw -Encoding UTF8
+$deferredCompatibilitySource = Get-Content -LiteralPath (Join-Path $root `
+    "docs/unityclient/history/legacy-ui-references/runtime-adapters-20261008/retired/DeferredCocosUiAssetProvider.cs") -Raw -Encoding UTF8
+$gameServicesUiSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/Core/GameServices.cs") -Raw -Encoding UTF8
+$loginValidationSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/Core/ProjectXApp.LoginValidation.cs") -Raw -Encoding UTF8
+$uiPrefabLoaderSource = Get-Content -LiteralPath (Join-Path $root `
+    "docs/unityclient/history/legacy-ui-references/runtime-adapters-20261008/retired/UiPrefabLoader.cs") -Raw -Encoding UTF8
+$uiRouterSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/UiRouter.cs") -Raw -Encoding UTF8
+$loginAnimationValidator = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/Editor/LoginNativeAnimationAssetValidator.cs") -Raw -Encoding UTF8
+$imodAnimationValidator = Get-Content -LiteralPath (Join-Path $root `
+    "docs/unityclient/history/legacy-animation-resources/retired-20261008/ImodAnimationValidation.cs") -Raw -Encoding UTF8
+$imodTextureImporter = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/Editor/ImodAnimationTextureImporter.cs") -Raw -Encoding UTF8
+$nativeLoginSpriteImporter = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/Editor/UnityNativeLoginSpriteImporter.cs") -Raw -Encoding UTF8
+$loginPresenterSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/LoginPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    -not $imodAnimationValidator.Contains("ProjectX.UI.Migration") -and
+    -not $imodAnimationValidator.Contains("UiPrefabIdentity") -and
+    -not $imodAnimationValidator.Contains("CocosTimelinePlayer") -and
+    -not $imodAnimationValidator.Contains("CocosTimelineDefinition") -and
+    $imodAnimationValidator.Contains("player.PlayActionRepeat(0)") -and
+    $imodAnimationValidator.Contains("player.Advance(0.11f)")
+) "Archived Imod validation reference must preserve its original behavior independently of the native runtime."
+Assert-ToolchainTest (
+    $loginCocosRuntimeLeaks.Count -eq 0 -and
+    -not $loginEntrySource.Contains('GetUnityOrCreate("NoticeLayer")') -and
+    $noticeRouteSource.Contains('noticeView = noticeView ?? services.UiAssets.GetUnityOrCreate("NoticeLayer");') -and
+    -not $noticeRouteSource.Contains("UiRouter.FindBySource(") -and
+    -not $noticeRouteSource.Contains("UiPrefabLoader.Load(") -and
+    -not $noticeRouteSource.Contains("CocosUiView") -and
+    $noticePrefabSource.Contains('m_Name: CloseButton') -and
+    $noticePrefabSource.Contains('m_Sprite: {fileID: 21300000, guid: 4ecbd7fd3a689594ead1f53d791355fc, type: 3}') -and
+    $noticePresenterSource.Contains('active serialized Image/Button raycast binding') -and
+    -not $noticePresenterSource.Contains('closeImage.raycastTarget =') -and
+    -not $noticePresenterSource.Contains('closeButton.targetGraphic =') -and
+    -not $noticePresenterSource.Contains('closeButton.interactable = true') -and
+    -not $noticePresenterSource.Contains('closeNode.SetActive(') -and
+    -not $noticePresenterSource.Contains('view.SecondaryPanel') -and
+    -not $noticePresenterSource.Contains('view.SubmitButton') -and
+    -not $unityLoginSource.Contains('SecondaryPanel') -and
+    -not $unityLoginSource.Contains('SubmitButton') -and
+    $noticePrefabSource.Contains('m_Interactable: 1') -and
+    $noticePrefabSource.Contains('m_TargetGraphic: {fileID:') -and
+    $noticePresenterSource.Contains('view.ContentText') -and
+    $noticePresenterSource.Contains('view.ListViewport') -and
+    $noticePresenterSource.Contains('view.ListTemplate') -and
+    $noticePresenterSource.Contains('view.CloseButton') -and
+    $noticePresenterSource.Contains('row.GetComponent<NoticeRowBindings>()') -and
+    $noticePresenterSource.Contains('bindings.SelectedBackground.SetActive(index == selectedIndex);') -and
+    $noticePresenterSource.Contains('Button button = bindings.Button;') -and
+    -not $noticePresenterSource.Contains('FindNamed(') -and
+    -not $noticePresenterSource.Contains('GetComponentsInChildren<Text>') -and
+    -not $noticePresenterSource.Contains('row.gameObject.AddComponent<Button>()') -and
+    -not $noticePresenterSource.Contains('text.fontSize =') -and
+    -not $noticePresenterSource.Contains('text.color =') -and
+    -not $noticePresenterSource.Contains('text.alignment =') -and
+    -not $noticePresenterSource.Contains('Layer/Panel/') -and
+    -not $noticePresenterSource.Contains('FindNode(') -and
+    $unityLoginSource.Contains('[SerializeField] private RectTransform listViewport;') -and
+    $unityLoginSource.Contains('[SerializeField] private RectTransform listTemplate;') -and
+    $unityLoginSource.Contains('[SerializeField] private Text contentText;') -and
+    $unityLoginSource.Contains('[SerializeField] private Button closeButton;') -and
+    $unityLoginSource.Contains('GetComponent<NoticeViewBindings>()') -and
+    -not $noticePresenterSource.Contains('contentNode.AddComponent<Text>()') -and
+    -not $noticePresenterSource.Contains('contentText.font =') -and
+    -not $noticePresenterSource.Contains('contentText.fontSize =') -and
+    -not $noticePresenterSource.Contains('contentText.rectTransform') -and
+    $noticePrefabSource.Contains('m_AnchorMin: {x: 0.04, y: 0.04}') -and
+    $noticePrefabSource.Contains('m_AnchorMax: {x: 0.96, y: 0.96}') -and
+    $noticePrefabSource.Contains('m_Font: {fileID: 12800000, guid: 6fcdd8f2b3e9c1e43b69ce67b0691eb8, type: 3}') -and
+    $noticePrefabSource.Contains('guid: 354915a1b79919b49ab45a47129bafd0, type: 3}') -and
+    [regex]::IsMatch($noticePrefabSource, '(?m)^  listViewport: \{fileID: [1-9][0-9]*\}$') -and
+    [regex]::IsMatch($noticePrefabSource, '(?m)^  listTemplate: \{fileID: [1-9][0-9]*\}$') -and
+    [regex]::IsMatch($noticePrefabSource, '(?m)^  contentText: \{fileID: [1-9][0-9]*\}$') -and
+    [regex]::IsMatch($noticePrefabSource, '(?m)^  closeButton: \{fileID: [1-9][0-9]*\}$') -and
+    $noticePrefabSource.Contains('guid: c5a2dd4d5e7da174db6a29f4471d3fd5, type: 3}') -and
+    [regex]::IsMatch($noticePrefabSource, '(?m)^  nameText: \{fileID: [1-9][0-9]*\}$') -and
+    [regex]::IsMatch($noticePrefabSource, '(?m)^  titleText: \{fileID: [1-9][0-9]*\}$') -and
+    [regex]::IsMatch($noticePrefabSource, '(?m)^  selectedBackground: \{fileID: [1-9][0-9]*\}$') -and
+    [regex]::IsMatch($noticePrefabSource, '(?m)^  button: \{fileID: [1-9][0-9]*\}$') -and
+    [regex]::IsMatch($noticePrefabSource, 'm_TargetGraphic: \{fileID: [1-9][0-9]*\}') -and
+    -not $noticePresenterSource.Contains('Resources.Load<Sprite>') -and
+    -not $noticePresenterSource.Contains('new GameObject("RuntimeUnityNoticeClose"') -and
+    -not $unityProviderSource.Contains("ICocosUiAssetProvider") -and
+    $compatibilityAdapterSource.Contains("ICocosUiAssetProvider") -and
+    -not $gameServicesUiSource.Contains('UiPrefabLoader') -and
+    $gameServicesUiSource.Contains('UiRouter = new UiRouter(UiAssets);') -and
+    -not $gameServicesUiSource.Contains('DeferredCocosUiAssetProvider') -and
+    $gameServicesUiSource.Contains('public bool IsCocosUiCompatibilityProviderCreated => false;') -and
+    $loginValidationSource.Contains('if (services.IsCocosUiCompatibilityProviderCreated)') -and
+    $loginValidationSource.Contains('Login/Notice/Loading route instantiated the legacy Cocos UI compatibility provider.') -and
+    $uiPrefabLoaderSource.Contains('public static void Configure(Func<ICocosUiAssetProvider> factory)') -and
+    $uiPrefabLoaderSource.Contains('private static ICocosUiAssetProvider Provider => provider ??= providerFactory?.Invoke();') -and
+    $uiRouterSource.Contains('public UiRouter(IUiAssetProvider unityAssets)') -and
+    $deferredCompatibilitySource.Contains('private ICocosUiAssetProvider Provider => provider ??= factory()') -and
+    -not $loginAnimationValidator.Contains("ImodAnimationData") -and
+    -not $loginAnimationValidator.Contains("ImodAnimationResources") -and
+    -not $loginAnimationValidator.Contains("CocosTimelineDefinition") -and
+    -not $loginAnimationValidator.Contains("ProjectXAnimation/UnityNativeLogin") -and
+    $loginAnimationValidator.Contains("Assets/Animations/Login") -and
+    -not $nativeLoginSpriteImporter.Contains("ProjectXAnimation/UnityNativeLogin") -and
+    $nativeLoginSpriteImporter.Contains("Art/AnimationFrames/Login/SpriteFrames/") -and
+    -not $loginPresenterSource.Contains("ProjectXAnimation/UnityNativeLogin") -and
+    $loginPresenterSource.Contains("Animations/Login/Controllers/LoginTitleEffect") -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Resources/ProjectXAnimation/UnityNativeLogin")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Animations/Login/Controllers/LoginTitleEffect.controller")) -and
+    $imodTextureImporter.Contains('private static readonly string[] LegacyAnimationRoots') -and
+    $imodTextureImporter.Contains('private static bool IsLegacyAnimationAsset(string path)') -and
+    @('CopyRes/', 'hero/', 'item/', 'Monster/', 'NPC/', 'res2/', 'UI/' |
+        Where-Object { -not $imodTextureImporter.Contains("AnimationRoot + `"$_`"") }).Count -eq 0 -and
+    -not $imodTextureImporter.Contains('AnimationRoot + "Skill/"') -and
+    $imodTextureImporter.Contains('AnimationRoot + "jiazaiquan.png"') -and
+    -not $imodTextureImporter.Contains('UnityNativeLogin') -and
+    -not $imodTextureImporter.Contains('NativeLoginSpriteRoot') -and
+    -not $imodTextureImporter.Contains("TextureImporterType.Sprite") -and
+    $nativeLoginSpriteImporter.Contains("Art/AnimationFrames/Login/SpriteFrames/") -and
+    $nativeLoginSpriteImporter.Contains("TextureImporterType.Sprite")
+) "Unity Login/Notice runtime, animation validator, or native Sprite import regained a Cocos dependency."
+Write-Host "Unity Login/Notice runtime and animation-source regressions passed."
+
+$loginControllerLuaSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/Resources/Lua/Login/LoginController.lua.txt") -Raw -Encoding UTF8
+$loginProtocolLuaSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/Resources/Lua/Login/LoginProtocol.lua.txt") -Raw -Encoding UTF8
+$protocolLuaSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/Resources/Lua/Protocol.lua.txt") -Raw -Encoding UTF8
+$noticeMainUiSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/Core/ProjectXApp.MainUi.cs") -Raw -Encoding UTF8
+$noticeNetworkSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/Core/ProjectXApp.Network.cs") -Raw -Encoding UTF8
+$noticeLuaSources = $loginControllerLuaSource + "`n" + $loginProtocolLuaSource + "`n" + $protocolLuaSource
+$mainUiStatusIndex = $noticeMainUiSource.IndexOf('SetStatus("Main UI active.");', [StringComparison]::Ordinal)
+$mainUiNoticeIndex = $noticeMainUiSource.IndexOf('RequestGameNotice();', [StringComparison]::Ordinal)
+Assert-ToolchainTest (
+    $noticeLuaSources -notmatch '(?i)(requestGameNotice|GAME_NOTICE|WriteUShort\s*\(\s*88\s*\))' -and
+    $noticeRouteSource.Contains('message.WriteUShort(88);') -and
+    $noticeRouteSource.Contains('Send(message);') -and
+    $mainUiStatusIndex -ge 0 -and $mainUiNoticeIndex -gt $mainUiStatusIndex -and
+    $projectXAppStartupSource.Contains('services.Protocols.Register(88, HandleGameNoticeResponse);') -and
+    $noticeNetworkSource.Contains('if (message.OutgoingCommand == 88) gameNoticeRequested = true;')
+) "Notice /88 request and response ownership must remain in Unity C# after the Main UI route."
+Write-Host "Unity-owned Notice /88 protocol regression passed."
+
+$loadingPresenterSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/LoadingPresenter.cs") -Raw -Encoding UTF8
+$gameErrorPresenterSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/GameErrorPresenter.cs") -Raw -Encoding UTF8
+$loadingViewBindingsSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/LoadingViewBindings.cs") -Raw -Encoding UTF8
+$gameErrorViewBindingsSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/GameErrorViewBindings.cs") -Raw -Encoding UTF8
+$startupPresenterSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/StartupPresenter.cs") -Raw -Encoding UTF8
+$startupViewBindingsSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/UI/StartupViewBindings.cs") -Raw -Encoding UTF8
+$startupPrefabSource = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/Prefabs/Login/StartupLayer.prefab") -Raw -Encoding UTF8
+$commonPresentersStart = $projectXAppSource.IndexOf("private void EnsureCommonPresenters()", [StringComparison]::Ordinal)
+$commonPresentersEnd = $projectXAppSource.IndexOf("private void HandleRequestTimeout(", $commonPresentersStart, [StringComparison]::Ordinal)
+$commonPresentersSource = if ($commonPresentersStart -ge 0 -and $commonPresentersEnd -gt $commonPresentersStart) {
+    $projectXAppSource.Substring($commonPresentersStart, $commonPresentersEnd - $commonPresentersStart)
+} else { "" }
+$startupCocosRuntimeLeaks = @($loginCocosRuntimeMarkers | Where-Object {
+    $loadingPresenterSource.Contains($_) -or
+    $gameErrorPresenterSource.Contains($_) -or
+    $startupPresenterSource.Contains($_)
+})
+Assert-ToolchainTest (
+    $startupCocosRuntimeLeaks.Count -eq 0 -and
+    $projectXAppStartupSource.Contains("new StartupPresenter(") -and
+    $projectXAppSource.Contains('errorView = errorView ?? services.UiAssets.GetUnityOrCreate("MessageBoxLayer");') -and
+    $projectXAppSource.Contains('loadingView = loadingView ?? services.UiAssets.GetUnityOrCreate("LoadingLayer");') -and
+    $loadingPresenterSource.Contains("public LoadingPresenter(UnityUiView view)") -and
+    $gameErrorPresenterSource.Contains("public GameErrorPresenter(UnityUiView view)") -and
+    $loadingPresenterSource.Contains("LoadingViewBindings") -and
+    -not $loadingPresenterSource.Contains("CreateMessage(") -and
+    -not $loadingPresenterSource.Contains("new GameObject(") -and
+    $commonPresentersSource.Contains('services.UiAssets.GetUnityOrCreate("LoadingLayer")') -and
+    -not $commonPresentersSource.Contains("UiRouter.FindBySource(") -and
+    -not $commonPresentersSource.Contains("UiPrefabLoader.Load(") -and
+    -not $commonPresentersSource.Contains("CocosUiView") -and
+    $gameErrorPresenterSource.Contains("GameErrorViewBindings") -and
+    -not $gameErrorPresenterSource.Contains("FindNode(") -and
+    -not $gameErrorPresenterSource.Contains('MessageBoxUI/') -and
+    -not $gameErrorPresenterSource.Contains("new GameObject(") -and
+    -not $gameErrorPresenterSource.Contains("SetAsFirstSibling(") -and
+    -not $gameErrorPresenterSource.Contains("SetParent(") -and
+    -not $gameErrorPresenterSource.Contains("ConfigureMessageText(") -and
+    $loadingViewBindingsSource.Contains("[SerializeField] private Text message;") -and
+    $gameErrorViewBindingsSource.Contains("[SerializeField] private Text title;") -and
+    $gameErrorViewBindingsSource.Contains("[SerializeField] private Button confirmButton;") -and
+    $startupPresenterSource.Contains("StartupViewBindings") -and
+    $startupPresenterSource.Contains("public StartupPresenter(UnityUiView view)") -and
+    -not $startupPresenterSource.Contains("Resources.Load<Texture2D>") -and
+    -not $startupPresenterSource.Contains("new GameObject(") -and
+    -not $startupPresenterSource.Contains("Sprite.Create(") -and
+    $startupViewBindingsSource.Contains("[SerializeField] private Image background;") -and
+    $startupViewBindingsSource.Contains("[SerializeField] private Sprite logoSprite;") -and
+    $startupViewBindingsSource.Contains("[SerializeField] private Sprite preloadSprite;") -and
+    $startupPrefabSource.Contains('guid: c0af92af14e749843b432124b1c478f9, type: 3}') -and
+    [regex]::IsMatch($startupPrefabSource, '(?m)^  logoSprite: \{fileID: [1-9][0-9]*, guid: [0-9a-f]{32}, type: 3\}$') -and
+    [regex]::IsMatch($startupPrefabSource, '(?m)^  preloadSprite: \{fileID: [1-9][0-9]*, guid: [0-9a-f]{32}, type: 3\}$') -and
+    $bootstrapSceneBuilderSource.Contains('StartupPrefab = "Assets/Prefabs/Login/StartupLayer.prefab"') -and
+    [regex]::IsMatch($uiPrefabCatalogSource, '(?m)^  - key: StartupLayer\r?\n    source: Unity/StartupLayer\r?$') -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Catalog/StartupLayer.asset"))
+) "Login/Startup loading and error views must use serialized Unity bindings without runtime nodes or Cocos hierarchy paths."
+Write-Host "Unity Login/Startup loading and error compatibility regressions passed."
+Assert-ToolchainTest (
+    -not $bootstrapSceneBuilderSource.Contains('EnsureFloatNoticePrefab') -and
+    -not $bootstrapSceneBuilderSource.Contains('GameplayFloatNoticePrefab') -and
+    -not $bootstrapSceneBuilderSource.Contains('FloatNoticeBackground') -and
+    -not $bootstrapSceneBuilderSource.Contains('FloatNoticeFont') -and
+    -not $uiPrefabCatalogSource.Contains('Generated/FloatNoticeLayer') -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Catalog/FloatNoticeLayer.asset")) -and
+    (Test-Path -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-ui-references/FloatNoticeLayer.asset")) -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Editor/LegacyUiReferences/FloatNoticeLayer.asset"))
+) "Unused Cocos-backed FloatNotice generation or Catalog registration returned."
+Write-Host "Unused Cocos-backed FloatNotice generation regression passed."
+$orphanLoadingImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object {
+        [string]$_.name -eq 'jiemianjiazai' -or
+        [string]$_.prefabAssetPath -match '/jiemianjiazai\.prefab$'
+    })
+Assert-ToolchainTest (
+    -not $projectXAppAllSource.Contains('jiemianjiazai') -and
+    $orphanLoadingImportEntries.Count -eq 0 -and
+    -not $uiPrefabCatalogSource.Contains('jiemianjiazai') -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Catalog/jiemianjiazai.asset")) -and
+    (Test-Path -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-ui-references/jiemianjiazai.asset")) -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Editor/LegacyUiReferences/jiemianjiazai.asset"))
+) "Unused Cocos loading Prefab jiemianjiazai re-entered the active route, manifest, Catalog, or Resources."
+Write-Host "Unused Cocos loading Prefab retirement regression passed."
+$registerImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
+    Where-Object {
+        [string]$_.name -eq 'RegisterLayer' -or
+        [string]$_.prefabAssetPath -match '/RegisterLayer\.prefab$'
+    })
+$registerRuntimeFiles = @(
+    Get-ChildItem -LiteralPath (Join-Path $root "unityclient/Assets/src") `
+        -Recurse -File -Filter "*.cs"
+    Get-ChildItem -LiteralPath (Join-Path $root "unityclient/Assets/Resources/Lua") `
+        -Recurse -File -Filter "*.lua.txt"
+)
+$registerRuntimeSource = @($registerRuntimeFiles | ForEach-Object {
+    Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8
+}) -join "`n"
+Assert-ToolchainTest (
+    -not $registerRuntimeSource.Contains('RegisterLayer') -and
+    $registerRuntimeSource.Contains('SetActive("Btn_Register", false)') -and
+    $registerImportEntries.Count -eq 0 -and
+    -not $uiPrefabCatalogSource.Contains('RegisterLayer') -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Catalog/RegisterLayer.asset")) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/Login/RegisterLayer.prefab")) -and
+    (Test-Path -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/documents/Login/RegisterLayer.json"))
+) "Hidden Unity Register button must not keep an unused Cocos RegisterLayer in the active import route; preserve its historical sources."
+Write-Host "Unused Cocos RegisterLayer import retirement regression passed."
+Assert-ToolchainTest (
+    $bootstrapSceneBuilderSource.Contains('UnityOwnedPrefabPaths = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase)') -and
+    $bootstrapSceneBuilderSource.Contains('private static string ResolveCatalogSource(string prefabPath, string key)') -and
+    $bootstrapSceneBuilderSource.Contains('internal static bool IsUnityOwnedPrefabPath(string prefabPath)') -and
+    $bootstrapSceneBuilderSource.Contains('normalized.StartsWith("Assets/Prefabs/", System.StringComparison.OrdinalIgnoreCase)') -and
+    $bootstrapSceneBuilderSource.Contains('if (!IsUnityOwnedPrefabPath(prefabPath))') -and
+    $bootstrapSceneBuilderSource.Contains('return $"Unity/{key}";') -and
+    @('LoginBackgroundPrefab', 'LoginPrefab', 'LoginServerListPrefab', 'RoleCreatePrefab', 'OldMemoryPrefab', 'NoticePrefab', 'StartupPrefab', 'ErrorPrefab', 'LoadingPrefab', 'MainPrefab', 'MainCloudPrefab' |
+        Where-Object { -not $bootstrapSceneBuilderSource.Contains("            $_,") }).Count -eq 0
+) "Unity-owned Login/Notice/Loading/Main Prefabs must reject reintroduced Cocos identity before Catalog maintenance."
+Write-Host "Unity-owned Prefab Catalog maintenance identity guard passed."
+Assert-ToolchainTest (
+    $cocosUiImporterSource.Contains('EnsureManifestExcludesUnityOwnedPrefabs(manifest, manifestPath);') -and
+    $cocosUiImporterSource.Contains('BootstrapSceneBuilder.IsUnityOwnedPrefabPath(item.prefabAssetPath)') -and
+    $cocosUiImporterSource.Contains('Cocos importer refuses to write Unity-owned Prefab') -and
+    $cocosUiImporterSource.Contains('Cocos Timeline generation is retired; author animation in Unity') -and
+    -not $cocosUiImporterSource.Contains('public static void ImportTimelinePrefabsBatch()') -and
+    -not $cocosUiImporterSource.Contains('private static void PatchTimelinePrefabs(') -and
+    -not $cocosUiImporterSource.Contains('TimelineManifestPath') -and
+    -not $cocosUiImporterSource.Contains('ValidateTimelinePlaybackBatch') -and
+    -not $cocosUiImporterSource.Contains('ValidateTimelinePrefabsBatch') -and
+    -not $cocosUiImporterSource.Contains('AddComponent<CocosTimelinePlayer>().Initialize(document.animation)') -and
+    -not $cocosUiImporterSource.Contains('CocosTimelineDefinition') -and
+    -not $cocosUiImporterSource.Contains('CocosTimelinePlayer') -and
+    -not $cocosUiImporterSource.Contains('CocosTimelineTrack') -and
+    -not $cocosUiImporterSource.Contains('ValidateTimeline(') -and
+    $cocosUiImporterSource.Contains('private static bool HasTimelineTracks(JObject animation)') -and
+    $cocosUiImporterSource.Contains('Cocos Timeline source data is not supported') -and
+    $cocosUiImporterSource.Contains('BootstrapSceneBuilder.IsUnityOwnedAssetPath(assetPath)') -and
+    $cocosUiImporterSource.Contains('Cocos texture import refuses to change Unity-owned asset') -and
+    $cocosUiImporterSource.Contains('BootstrapSceneBuilder.IsLegacyCocosPrefabPath(item.prefabAssetPath)') -and
+    $cocosUiImporterSource.Contains('BootstrapSceneBuilder.IsLegacyCocosAssetPath(assetPath)') -and
+    $cocosUiImporterSource.Contains('EnsurePreviewSceneIsLegacyScoped(manifest)') -and
+    $cocosUiImporterSource.Contains('private const string PreviewScenePath = "Assets/ProjectX/Scenes/UIMigrationPreview.unity";') -and
+    -not $cocosUiImporterSource.Contains('ConfigurePlayerSettings()') -and
+    -not $cocosUiImporterSource.Contains('PlayerSettings.defaultScreenWidth') -and
+    $bootstrapSceneBuilderSource.Contains('internal static bool IsUnityOwnedAssetPath(string assetPath)') -and
+    $bootstrapSceneBuilderSource.Contains('"Assets/Art/"') -and
+    $bootstrapSceneBuilderSource.Contains('"Assets/Art/"') -and
+    $bootstrapSceneBuilderSource.Contains('"Assets/Animations/"') -and
+    $bootstrapSceneBuilderSource.Contains('"Assets/Resources/AssetReferences/"') -and
+    $bootstrapSceneBuilderSource.Contains('internal static bool IsLegacyCocosAssetPath(string assetPath)') -and
+    $bootstrapSceneBuilderSource.Contains('internal static bool IsLegacyCocosPrefabPath(string prefabPath)') -and
+    $bootstrapSceneBuilderSource.Contains('private static bool HasSafeAssetPathSegments(string normalized)') -and
+    $bootstrapSceneBuilderSource.Contains('segment != ".."') -and
+    $bootstrapSceneBuilderSource.Contains('normalized.StartsWith("Assets/ProjectX/res/"') -and
+    $bootstrapSceneBuilderSource.Contains('normalized.StartsWith("Assets/ProjectX/res/csd/Prefabs/"') -and
+    @('Assets/Art/', 'Assets/Animations/', 'Assets/Prefabs/', 'Assets/Resources/AssetReferences/' |
+        Where-Object { -not $bootstrapSceneBuilderSource.Contains($_) }).Count -eq 0 -and
+    $bootstrapSceneBuilderSource.Contains('"Assets/UnityOwned/WorldBattle/"') -and
+    $cocosUiImporterSource.Contains('EnsureManifestExcludesUnityOwnedPrefabs(manifest, ManifestPath);')
+) "Cocos maintenance must remain inside legacy Prefab/resource paths and avoid Unity build settings."
+Write-Host "Cocos importer legacy-path boundary and Unity-owned asset write guards passed."
+
+$loginModules = (Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/unityclient-modules.json").Value
+$loginModule = @($loginModules.modules | Where-Object { [string]$_.key -eq "Login" })[0]
+$loginEvidenceContracts = (Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/module-evidence-contracts.json").Value
+$loginFixedAccount = @($loginEvidenceContracts.modules | Where-Object { [string]$_.module -eq "Login" })[0].fixedAccount
+$loginSqliteAdapterSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-LoginSqliteFixture.py") -Raw -Encoding UTF8
+$loginSqliteAdapterWrapper = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-LoginSqliteFixture.ps1") -Raw -Encoding UTF8
+$loginNoticeProtocolRunner = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Test-LoginNoticeSqliteProtocol.ps1") -Raw -Encoding UTF8
+$loginNoticeProtocolClient = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Test-LoginNoticeSqliteProtocol.py") -Raw -Encoding UTF8
+$fixedAccountRunnerSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Run-UnityFixedAccountValidation.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    [string]$loginModule.unityValidationBackend -eq "sqlite" -and
+    @($loginModule.unityRequiredFlags) -contains "-projectXRequireNoticeResponse" -and
+    $null -eq $loginModule.PSObject.Properties["validationData"] -and
+    [string]$loginFixedAccount.dataBackend -eq "sqlite" -and
+    [string]$loginFixedAccount.sqlitePathRoot -eq "project" -and
+    [string]$loginFixedAccount.sqlitePath -eq ".local/unity-validation/login-sqlite/LocalServer/projectx.db" -and
+    [string]$loginFixedAccount.sqliteSchema -eq "unityserver/sql/sqlite/001_initial_schema.sql" -and
+    [string]$loginFixedAccount.adapter -eq "tools/unity-migration/Invoke-LoginSqliteFixture.ps1" -and
+    @($loginFixedAccount.extraFlags) -contains "-projectXRequireNoticeResponse" -and
+    [uint32]$loginFixedAccount.userId -eq 7200057 -and [uint32]$loginFixedAccount.roleId -eq 1000003 -and
+    [string]$loginSqliteAdapterWrapper -match 'isolated project-local SQLite test database' -and
+    $loginSqliteAdapterSource.Contains('snapshot_file_set') -and
+    $loginSqliteAdapterSource.Contains('restore_file_set') -and
+    $loginSqliteAdapterSource.Contains('install_sanitized_seed_if_missing') -and
+    $loginSqliteAdapterSource.Contains('snapshotHash') -and
+    $loginSqliteAdapterSource.Contains('AssertRestored') -and
+    $loginSqliteAdapterSource.Contains('AssertCleanup') -and
+    $loginSqliteAdapterWrapper.Contains('[switch]$AllowUnityEditorForDataPreflight') -and
+    $loginSqliteAdapterWrapper.Contains('Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcesses') -and
+    $loginSqliteAdapterWrapper.Contains('Stop kapai.exe and ProjectX.exe') -and
+    $loginSqliteAdapterWrapper.Contains('$commandLine.IndexOf($normalizedDatabasePath') -and
+    -not $loginSqliteAdapterWrapper.Contains('Get-Process kapai, ProjectX, Unity') -and
+    $loginNoticeProtocolRunner.Contains('$fixtureRunId = [Guid]::NewGuid().ToString("N")') -and
+    -not $loginNoticeProtocolRunner.Contains('w8-login-notice-sqlite-protocol-fixture-20260928.json') -and
+    $loginNoticeProtocolRunner.Contains('Start-Server.ps1') -and
+    $loginNoticeProtocolRunner.Contains('AssertRestored') -and
+    $loginNoticeProtocolClient.Contains('send_packet(sock, 88)') -and
+    $loginNoticeProtocolClient.Contains('expected one authoritative SQLite notice') -and
+    $fixedAccountRunnerSource.Contains('$sqlitePathRoot -eq "project"') -and
+    $fixedAccountRunnerSource.Contains('Resolve-UnityMigrationPath -Root $root -Path $sqliteRelative') -and
+    $commonSource.Contains("must declare dataBackend 'sqlite'") -and
+    $commonSource.Contains("unsupported sqlitePathRoot")
+) "Unity Login fixed-account and Notice fixtures must use the SQLite seed and exact database restore contract."
+$loginModuleRunnerSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Run-UnityModuleValidation.ps1") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $loginModuleRunnerSource.Contains('if ($unityValidationBackend -and $unityValidationBackend -ne "sqlite")') -and
+    $loginModuleRunnerSource.Contains("Unity validation requires -SqlitePath/-SqliteSchemaPath; MySQL is not a Unity data backend.") -and
+    $loginModuleRunnerSource.Contains("Unity validation cannot use external SQL validationData; use an isolated SQLite fixture adapter.") -and
+    $loginModuleRunnerSource.Contains("Unity runtime module validation requires an explicit SQLite database and schema; MySQL is not a Unity data backend.") -and
+    $loginModuleRunnerSource.Contains("Existing kapai.exe on port 8711 is not using the required SQLite database/schema for Unity validation.") -and
+    $loginModuleRunnerSource.Contains('$SqlitePath = [IO.Path]::GetFullPath($SqlitePath)') -and
+    -not $loginModuleRunnerSource.Contains("Start-LocalMySql.ps1") -and
+    -not $loginModuleRunnerSource.Contains("Invoke-UnityMigrationValidationData") -and
+    -not $loginModuleRunnerSource.Contains("-Port 3306")
+) "Unity module validation must require SQLite and contain no MySQL startup or SQL-fixture path."
+
+$loginFixtureTestRoot = Join-Path $root ".local\unity-validation\login-sqlite-fixture-toolchain-test-$PID"
+$loginFixtureTestRoot = [IO.Path]::GetFullPath($loginFixtureTestRoot)
+$loginFixtureTestBase = [IO.Path]::GetFullPath((Join-Path $root ".local\unity-validation")) + [IO.Path]::DirectorySeparatorChar
+if (-not $loginFixtureTestRoot.StartsWith($loginFixtureTestBase, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Login SQLite fixture regression test escaped .local/unity-validation."
+}
+try {
+    $testDatabase = Join-Path $loginFixtureTestRoot "LocalServer\projectx.db"
+    $testBackup = Join-Path $loginFixtureTestRoot "fixture-backup.db"
+    $testEvidence = Join-Path $loginFixtureTestRoot "fixture-evidence.json"
+    [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($testDatabase)) | Out-Null
+    $testSeedHash = (Get-FileHash -LiteralPath (Join-Path $root "server/sql/sqlite/fixtures/projectx-validation-base.db") -Algorithm SHA256).Hash
+    $testAdapter = Join-Path $root "tools/unity-migration/Invoke-LoginSqliteFixture.py"
+    $testPython = Get-UnityMigrationPythonExecutable -Root $root
+    foreach ($action in @("Setup", "AssertSetup", "AssertReloginHash", "Restore", "AssertRestored", "Cleanup", "AssertCleanup")) {
+        $adapterOutput = @(& $testPython -X utf8 $testAdapter --action $action --database $testDatabase `
+            --backup $testBackup --evidence $testEvidence --user-id 7200057 --role-id 1000003 2>&1)
+        if ($LASTEXITCODE -ne 0) {
+            throw "Login SQLite fixture lifecycle failed at $action`: $($adapterOutput -join [Environment]::NewLine)"
+        }
+    }
+    $testFixtureEvidence = Get-Content -LiteralPath $testEvidence -Raw -Encoding UTF8 | ConvertFrom-Json
+    Assert-ToolchainTest (
+        -not (Test-Path -LiteralPath $testDatabase) -and
+        [string]$testFixtureEvidence.snapshotFiles.database.sha256 -eq $testSeedHash -and
+        [string]$testFixtureEvidence.restoredHash -eq [string]$testFixtureEvidence.snapshotHash -and
+        -not (Test-Path -LiteralPath $testBackup) -and
+        [int]$testFixtureEvidence.residualCount -eq 0
+    ) "Unity Login SQLite fixture failed exact seed restore or residue cleanup: seed=$testSeedHash snapshot=$($testFixtureEvidence.snapshotHash) restored=$($testFixtureEvidence.restoredHash) residual=$($testFixtureEvidence.residualCount)."
+    Write-Host "Unity Login SQLite fixture setup/restore/relogin/cleanup regressions passed."
+}
+finally {
+    if (Test-Path -LiteralPath $loginFixtureTestRoot) {
+        $resolvedCleanup = [IO.Path]::GetFullPath((Resolve-Path -LiteralPath $loginFixtureTestRoot).Path)
+        if (-not $resolvedCleanup.StartsWith($loginFixtureTestBase, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Refusing to clean Login SQLite fixture test path outside .local/unity-validation."
+        }
+        Remove-Item -LiteralPath $resolvedCleanup -Recurse -Force
+    }
 }
 
 # hardGateVersion=4 failure-first regression: none of these bypasses may be accepted.
@@ -96,8 +1298,8 @@ $drawDeclaredCount = Assert-UnityMigrationControlMatrixDeclared -Root $root -Mod
     -Path "docs/unityclient/matrices/DRAW_CONTROLS.json"
 Assert-ToolchainTest ($drawDeclaredCount -eq 28) "Draw hardGateVersion=4 declaration must not require legacy v3 scenarioStateControlIds."
 $runtimeSchema = (Import-UnityMigrationJson -Root $root -Path "tools/unity-migration/runtime-snapshot.schema.json").Value
-$runtimeInputSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "unityclient/Assets/ProjectX/src/Validation/RuntimeInputDispatcher.cs")
-$runtimeCollectorSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "unityclient/Assets/ProjectX/src/Validation/RuntimeSnapshotCollector.cs")
+$runtimeInputSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "unityclient/Assets/src/Validation/RuntimeInputDispatcher.cs")
+$runtimeCollectorSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "unityclient/Assets/src/Validation/RuntimeSnapshotCollector.cs")
 $runtimeCocosReplaySource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "client/ProjectX/src/Validation/RuntimeSnapshotReplay.lua")
 $runtimeCocosCollectorSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "client/ProjectX/src/Validation/RuntimeSnapshotCollector.lua")
 $runtimeCocosAppDelegateSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "client/ProjectX/frameworks/runtime-src/Classes/AppDelegate.cpp")
@@ -161,8 +1363,8 @@ foreach ($rewardType in @($drawDirectRewardIds | Sort-Object)) {
         $drawDirectRewardFailures.Add("missing item config $rewardType")
         continue
     }
-    $idIcon = Join-Path $root ("unityclient/Assets/ProjectX/Resources/ItemIcons/equip{0}.png" -f $rewardType)
-    $pictureIcon = Join-Path $root ("unityclient/Assets/ProjectX/Resources/ItemIcons/equip{0}.png" -f [int]$item.pic)
+    $idIcon = Join-Path $root ("unityclient/Assets/Art/Icons/Items/equip{0}.png" -f $rewardType)
+    $pictureIcon = Join-Path $root ("unityclient/Assets/Art/Icons/Items/equip{0}.png" -f [int]$item.pic)
     if (-not (Test-Path -LiteralPath $idIcon -PathType Leaf) -and
         -not (Test-Path -LiteralPath $pictureIcon -PathType Leaf)) {
         $drawDirectRewardFailures.Add("missing item icon $rewardType/$([int]$item.pic)")
@@ -199,12 +1401,12 @@ Assert-ToolchainTest (
     $drawPresenterSource.Contains('graphic.raycastTarget = false;')
 ) "Draw preview visible cards are no longer attached to the real raycastable ScrollRect or can block frame tabs."
 Assert-ToolchainTest (
-    $drawPresenterSource.Contains('Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1') -and
+    $drawPresenterSource.Contains('"Panel_12/Bg/Btn_ListView/Panel_10/Button1"') -and
     $drawPresenterSource.Contains('RuntimePreviewTabRaycast') -and
     $drawPresenterSource.Contains('button.targetGraphic = hitTarget;')
 ) "Draw visible Cocos preview tabs no longer have stable raycast surfaces or exact source binding."
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('FindBySource("chouka/shenjiangyulan")') -and
+    $projectXAppSource.Contains('GetUnityOrCreate("shenjiangyulan", GetDynamicUiRoot())') -and
     $bootstrapSceneBuilderSource.Contains('new PrefabSpec(DrawHeroPreviewPrefab, false, DrawPrefab)') -and
     $drawPresenterSource.Contains('DrawHeroPreviewFrame') -and
     $drawPresenterSource.Contains('HeroCatalog.ResolveSkillDescription(definition.SkillDescription, 1)') -and
@@ -213,7 +1415,7 @@ Assert-ToolchainTest (
     $drawPresenterSource.Contains('GetBreakTalentDescriptionsForPreview') -and
     $heroCatalogSource.Contains('ParseInt(pet.Attribute("gongji")?.Value)') -and
     -not $drawPresenterSource.Contains('神将预览 #{heroId}')
-) "Draw preview hero click regressed to a generic text popup instead of the Cocos hero-preview surface."
+) "Draw preview hero click regressed to a generic text popup instead of the native hero-preview surface."
 
 $validationDatabaseSeed = Join-Path $root "server/sql/sqlite/fixtures/projectx-validation-base.db"
 $validationDatabaseManifestPath = Join-Path $root "server/sql/sqlite/fixtures/projectx-validation-base.manifest.json"
@@ -249,7 +1451,11 @@ Assert-ToolchainTest (
 $valid = [pscustomobject]@{
     userId = 7200057
     roleId = 1000115
-    adapter = "tools/unity-migration/Invoke-ShopCocosFixture.ps1"
+    adapter = "tools/unity-migration/Invoke-LoginSqliteFixture.ps1"
+    dataBackend = "sqlite"
+    sqlitePathRoot = "project"
+    sqlitePath = ".local/test/projectx.db"
+    sqliteSchema = "unityserver/sql/sqlite/001_initial_schema.sql"
     snapshot = ".local/test/snapshot.json"
     resultEvidence = ".local/test/result.json"
     reloginRequired = $true
@@ -270,12 +1476,12 @@ Assert-ToolchainTest ($validFailures.Count -eq 0) "Valid fixed-account contract 
 $missing = [pscustomobject]@{
     userId = 1
     roleId = 2
-    adapter = "tools/unity-migration/Invoke-ShopCocosFixture.ps1"
+    adapter = "tools/unity-migration/Invoke-LoginSqliteFixture.ps1"
 }
 $missingFailures = @(Get-UnityMigrationFixedAccountContractFailures `
     -Root $root -Module "Missing" -FixedAccount $missing)
 foreach ($field in @(
-    "snapshot", "resultEvidence", "reloginRequired", "extraFlags",
+    "snapshot", "resultEvidence", "reloginRequired", "extraFlags", "dataBackend", "sqlitePath", "sqliteSchema",
     "skipPostValidationFixtureAssert", "artifactCopies", "dataPreflight"
 )) {
     Assert-ToolchainTest (
@@ -287,6 +1493,7 @@ $invalid = [pscustomobject]@{
     userId = 1
     roleId = 2
     adapter = "tools/unity-migration/Invoke-ShopCocosFixture.ps1"
+    dataBackend = "mysql"
     snapshot = ".local/test/snapshot.json"
     resultEvidence = ".local/test/result.json"
     reloginRequired = "yes"
@@ -308,6 +1515,7 @@ $invalid = [pscustomobject]@{
 $invalidFailures = @(Get-UnityMigrationFixedAccountContractFailures `
     -Root $root -Module "Invalid" -FixedAccount $invalid)
 Assert-ToolchainTest (
+    @($invalidFailures | Where-Object { $_ -like "*must declare dataBackend 'sqlite'*" }).Count -eq 1 -and
     @($invalidFailures | Where-Object { $_ -like "*reloginRequired*boolean*" }).Count -eq 1
 ) "Non-boolean reloginRequired was not rejected."
 Assert-ToolchainTest (
@@ -367,8 +1575,8 @@ Assert-ToolchainTest (
     }).Count -eq 1
 ) "Gameplay SQLite fixed-account fixture profile is missing or drifted."
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('return (route == null || route.Page == 0)') -and
-    $projectXAppSource.Contains('services.Gameplay.Items.All(value => value.Definition.Id != id)') -and
+    $gameplayValidationSource.Contains('return (route == null || route.Page == 0)') -and
+    $gameplayValidationSource.Contains('services.Gameplay.Items.All(value => value.Definition.Id != id)') -and
     -not $projectXAppSource.Contains('services.GameplayCatalog.Find(15) == null')
 ) "Gameplay hub regression again treats a page=0 direct destination route as a visible lobby card."
 Assert-ToolchainTest (
@@ -383,11 +1591,13 @@ Assert-ToolchainTest (
     $fixedAccountRunnerSource.Contains('Required UI document asset is missing:')
 ) "Fixed-account runner no longer supports optional hydrated roots plus recursive UI image/font dependencies."
 Assert-ToolchainTest (
-    $commonSource.Contains('function Get-UnityMigrationRuntimeRoots') -and
-    $commonSource.Contains('function Test-UnityMigrationWorkspaceMySqlOwnership') -and
-    $fixedAccountRunnerSource.Contains('Test-UnityMigrationWorkspaceMySqlOwnership -Root $root -ProcessId $mysqlListenerPid') -and
-    $moduleRunnerSource.Contains('Test-UnityMigrationWorkspaceMySqlOwnership -Root $root -ProcessId $listenerPid')
-) "Unity validation runners no longer recognize a command-line-proven workspace-local MySQL owned by the primary checkout from a Git worktree."
+    $fixedAccountRunnerSource.Contains('requires dataBackend=''sqlite''') -and
+    $fixedAccountRunnerSource.Contains('SQLite database is missing') -and
+    -not $fixedAccountRunnerSource.Contains('Start-LocalMySql.ps1') -and
+    -not $fixedAccountRunnerSource.Contains('mysqld') -and
+    -not $commonSource.Contains('Test-UnityMigrationWorkspaceMySqlOwnership') -and
+    -not $moduleRunnerSource.Contains('Start-LocalMySql.ps1')
+) "Unity validation runners must require isolated SQLite and must not start or manage MySQL."
 
 $pwshExecutable = Get-UnityMigrationPowerShellExecutable
 $pythonExecutable = Get-UnityMigrationPythonExecutable
@@ -401,9 +1611,9 @@ Assert-ToolchainTest (
 ) "Shell route no longer enforces literal in-process workspace selection without a broker workdir argument."
 
 $resolvedBootstrapRunner = Resolve-UnityMigrationExistingPath -Root $root `
-    -Path "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs" -PathType Leaf
+    -Path "unityclient/Assets/src/Editor/BootstrapAppRunner.cs" -PathType Leaf
 Assert-ToolchainTest (
-    $resolvedBootstrapRunner -eq [IO.Path]::GetFullPath((Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs"))
+    $resolvedBootstrapRunner -eq [IO.Path]::GetFullPath((Join-Path $root "unityclient/Assets/src/Editor/BootstrapAppRunner.cs"))
 ) "Existing migration source path resolution failed."
 $unresolvedMigrationPathRejected = $false
 try {
@@ -438,7 +1648,8 @@ Assert-ToolchainTest (
 ) "Central root-cause rule registry is missing or undersized."
 $requiredSpeedRules = @(
     "RC-POWERSHELL-PIPELINE", "RC-FULL-RUN-AS-DEBUGGER", "RC-BUSINESS-PRECONDITION",
-    "RC-JSON-ONLY-ACCEPTANCE", "RC-CUA-CAPABILITY", "RC-WIN-GIT-EOL-CHECK"
+    "RC-JSON-ONLY-ACCEPTANCE", "RC-CUA-CAPABILITY", "RC-WIN-GIT-EOL-CHECK",
+    "RC-UNITY-PLAYMODE-STATE"
 )
 Assert-ToolchainTest (
     @($requiredSpeedRules | Where-Object { $_ -notin @($rootCauseRules.rules.ruleId) }).Count -eq 0
@@ -725,15 +1936,22 @@ Assert-ToolchainTest (
     $networkFlags -contains "-projectXScenarioManagedReconnect"
 ) "Scenario network capability did not produce the generic managed-reconnect runtime flag."
 $bootstrapRunnerSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapAppRunner.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/Editor/BootstrapAppRunner.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $bootstrapRunnerSource.Contains('bool scenarioManagedReconnect = Array.IndexOf(Environment.GetCommandLineArgs(), "-projectXScenarioManagedReconnect") >= 0;') -and
     $bootstrapRunnerSource.Contains('reconnectValidation || manualReconnectValidation || scenarioManagedReconnect')
 ) "Bootstrap runner no longer honors the generic scenario-managed reconnect flag."
-$bagRunnerSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$bagRunnerSource = @(
+    "unityclient/Assets/src/Core/ProjectXApp.cs",
+    "unityclient/Assets/src/Core/ProjectXApp.Login.cs",
+    "unityclient/Assets/src/Core/ProjectXApp.Bag.cs",
+    "unityclient/Assets/src/Core/ProjectXApp.BagUi.cs"
+) | ForEach-Object {
+    Get-Content -LiteralPath (Join-Path $root $_) -Raw -Encoding UTF8
+}
+$bagRunnerSource = $bagRunnerSource -join "`n"
 $bagControllerSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Bag/BagController.lua.txt") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/Resources/Lua/Bag/BagController.lua.txt") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $bagRunnerSource.Contains('if (invoked && HasCommandLineFlag("-projectXBagG4Validation"))') -and
     $bagRunnerSource.Contains('MarkValidationControl("BAG-01-MAIN-ENTRY");') -and
@@ -846,7 +2064,7 @@ Assert-ToolchainTest (
     $bagSqliteAdapterSource.Contains('elif args.action == "AssertReloginHash":') -and
     $bagSqliteAdapterSource.Contains('remove_sqlite_sidecars(database)') -and
     $bagSqliteAdapterSource.Contains('for suffix in ("-wal", "-shm")') -and
-    $bagSqliteAdapterSource.Contains('current["packageSha256"] != expected["packageSha256"]') -and
+    $bagSqliteAdapterSource.Contains('current["packageItemTotalsSha256"] != expected["packageItemTotalsSha256"]') -and
     $bagSqliteAdapterSource.Contains('FIXTURE_SPIRIT = 50') -and
     $bagSqliteAdapterSource.Contains('while position < len(data):') -and
     $bagSqliteAdapterSource.Contains('if len(records) >= 500:') -and
@@ -890,7 +2108,8 @@ Assert-ToolchainTest (
         $bagRunnerSource.IndexOf('if (!InvokeBagControl("BAG-07-USE") || !IsBagInputOpen)', [System.StringComparison]::Ordinal)
 ) "Bag click-state regression: the visual scrolled-state selection leaked into the real batch-use control."
 Assert-ToolchainTest (
-    $bagRunnerSource.Contains('bool preserveBagForScenario = HasCommandLineFlag("-projectXBagG4Validation") && IsBagOpen;') -and
+    $bagRunnerSource.Contains('bool preserveBagForScenario = false;') -and
+    $bagRunnerSource.Contains('preserveBagForScenario = HasCommandLineFlag("-projectXBagG4Validation") && IsBagOpen;') -and
     $bagRunnerSource.Contains('case "BAG-01-ENTRY": artifactName = "bootstrap-bag.png";') -and
     $bagRunnerSource.Contains('ShowToast("重新连接成功", 2f);') -and
     $bagRunnerSource.Contains('if (!bagInitialG5DisconnectCaptured)') -and
@@ -929,17 +2148,126 @@ Assert-ToolchainTest (
         [System.Text.RegularExpressions.RegexOptions]::CultureInvariant)
 ) "Bag G4 direct-use regression: the authoritative /15 callback consumes item3201 a second time instead of sorting and reloading."
 $bagFlowSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/BagFlowPresenter.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/UI/BagFlowPresenter.cs") -Raw -Encoding UTF8
 $bagPresenterSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/BagPresenter.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/UI/BagPresenter.cs") -Raw -Encoding UTF8
 $bagRewardSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/RewardPresenter.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/UI/RewardPresenter.cs") -Raw -Encoding UTF8
 $bagStoreSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/Data/BagStore.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/Data/BagStore.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    -not $bagFlowSource.Contains('CocosUiView') -and
+    -not $bagFlowSource.Contains('UiPrefabIdentity') -and
+    -not $bagFlowSource.Contains('GetSerializedNodeByActionTag') -and
+    $bagFlowSource.Contains('Get(IUiStackView view, string path)') -and
+    $bagFlowSource.Contains('root.Find(path)')
+) "Bag flow UI access regressed to Cocos views, Identity, or ActionTag lookup."
+$bagUiSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.BagUi.cs") -Raw -Encoding UTF8
+$bagNativePrefabMeta = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Bag/beibao.prefab.meta") -Raw -Encoding UTF8
+$bagPopupFramePrefabMeta = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Bag/BagPopupFrame.prefab.meta") -Raw -Encoding UTF8
+$bagPopupFrameReference = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Catalog/BagPopupFrame.asset") -Raw -Encoding UTF8
+$bagNativePrefabReference = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Catalog/beibao.asset") -Raw -Encoding UTF8
+$bagNativeCatalog = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Catalog/Catalog.asset") -Raw -Encoding UTF8
+$bagNativeValidator = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/src/Editor/BagNativePrefabValidator.cs") -Raw -Encoding UTF8
+$bagUiManifest = Get-Content -LiteralPath `
+    (Join-Path $root "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/unity-import-manifest.json") -Raw -Encoding UTF8 |
+    ConvertFrom-Json
+$bagLegacyTimelineManifest = Get-Content -LiteralPath `
+    (Join-Path $root "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/unity-import-manifest.timeline.json") -Raw -Encoding UTF8 |
+    ConvertFrom-Json
+$bagLegacyIdentityGuid = [regex]::Match((Get-Content -LiteralPath `
+    (Join-Path $root "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/UI/Migration/UiPrefabIdentity.cs.meta") -Raw -Encoding UTF8),
+    'guid: ([0-9a-f]+)').Groups[1].Value
+$bagLegacyLayerPrefab = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Retained/BagLayer.prefab") -Raw -Encoding UTF8
+$bagLegacyOpenBoxPrefab = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Retained/common/OpenBox_1Layer.prefab") -Raw -Encoding UTF8
+$bagManifestEntries = @($bagUiManifest.documents | Where-Object {
+    $_.source -eq "cocosstudio/csd/zhujue/beibao.csd"
+})
+Assert-ToolchainTest (
+    $bagUiSource.Contains('services.UiAssets.GetUnityOrCreate("beibao"') -and
+    -not $bagUiSource.Contains('FindBySource("zhujue/beibao")') -and
+    $bagUiSource.Contains('services.UiAssets.GetUnityOrCreate("BagEnterNumLayer"') -and
+    -not $bagUiSource.Contains('FindBySource("EnterNumLayer")') -and
+    $bagUiSource.Contains('services.UiAssets.GetUnityOrCreate("BagPopupFrame"') -and
+    -not $bagUiSource.Contains('FindBySource("shop/shop_bg")') -and
+    $bagPopupFrameReference.Contains("guid: $($bagPopupFramePrefabMeta | Select-String -Pattern '^guid: (.+)$' | ForEach-Object { $_.Matches[0].Groups[1].Value })") -and
+    $bagNativeCatalog.Contains('source: Unity/Bag/BagPopupFrame') -and
+    $bagNativePrefabReference.Contains("guid: $($bagNativePrefabMeta | Select-String -Pattern '^guid: (.+)$' | ForEach-Object { $_.Matches[0].Groups[1].Value })") -and
+    $bagNativeCatalog.Contains('source: Unity/Bag') -and
+    $bagNativeValidator.Contains('Validate Unity-owned Bag Prefab') -and
+    -not $bagNativeValidator.Contains('Assets/ProjectX/res/csd/Prefabs/zhujue/beibao.prefab') -and
+    -not $bagNativeValidator.Contains('AssetDatabase.CopyAsset') -and
+    $bagManifestEntries.Count -eq 0
+) "Bag page load regressed to the Cocos loader, source Prefab importer, or Cocos-backed generation workflow."
+$sharedItemSourceConsumer = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$sharedItemSourcePresenter = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/src/UI/FengShenStoryPresenter.cs") -Raw -Encoding UTF8
+$sharedItemSourceBootstrap = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/src/Editor/BootstrapSceneBuilder.cs") -Raw -Encoding UTF8
+$sharedItemSourceArchive = @(
+    "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/common/huoqutujing.prefab",
+    "docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/common/huoqutujing.prefab.meta",
+    "docs/unityclient/history/legacy-ui-references/cocos-export/documents/common/huoqutujing.json",
+    "docs/unityclient/history/legacy-ui-references/cocos-export/documents/common/huoqutujing.json.meta",
+    "docs/unityclient/history/legacy-ui-references/cocos-export/references/common/huoqutujing.asset",
+    "docs/unityclient/history/legacy-ui-references/cocos-export/references/common/huoqutujing.asset.meta"
+) | ForEach-Object { Test-Path -LiteralPath (Join-Path $root $_) -PathType Leaf }
+Assert-ToolchainTest (
+    $sharedItemSourceConsumer.Contains('private UnityUiView heroItemSourceView;') -and
+    ([regex]::Matches($sharedItemSourceConsumer, 'FindByKey\("BagItemSource"\)')).Count -eq 4 -and
+    -not $sharedItemSourceConsumer.Contains('FindBySource("common/huoqutujing")') -and
+    $sharedItemSourcePresenter.Contains('private readonly UnityUiView itemSourceView;') -and
+    -not $sharedItemSourcePresenter.Contains('cocosstudio/csd/common/huoqutujing.csd') -and
+    $sharedItemSourcePresenter.Contains('private readonly UnityUiView rewardView;') -and
+    -not $sharedItemSourcePresenter.Contains('cocosstudio/csd/common/tanchuangjiangli.csd') -and
+    $sharedItemSourceBootstrap.Contains('"Assets/Prefabs/Bag/huoqutujing.prefab"') -and
+    $sharedItemSourceBootstrap.Contains('            HeroItemSourcePrefab,') -and
+    $bootstrapSceneBuilderSource.Contains('ProjectX.Foundation.ResourceLoader.Configure(new UnityResourceLoader());') -and
+    $bagNativeCatalog.Contains('  - key: BagItemSource') -and
+    -not $bagNativeCatalog.Contains('  - key: huoqutujing') -and
+    @($bagUiManifest.documents | Where-Object { $_.source -eq 'cocosstudio/csd/common/huoqutujing.csd' }).Count -eq 0 -and
+    @($sharedItemSourceArchive | Where-Object { -not $_ }).Count -eq 0
+) "Hero/FengShenStory item-source views must share Unity BagItemSource and preserve the retired Cocos source outside Assets."
+$nativeRewardPrefabSource = Get-Content -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/Common/tanchuangjiangli.prefab') -Raw -Encoding UTF8
+$nativeRewardGuid = [regex]::Match((Get-Content -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/Common/tanchuangjiangli.prefab.meta') -Raw -Encoding UTF8), '(?m)^guid:\s*([0-9a-f]+)').Groups[1].Value
+$nativeRewardReference = Get-Content -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/Catalog/tanchuangjiangli.asset') -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $bagRewardSource.Contains('RewardPresenter(UnityUiView view') -and
+    -not $bagRewardSource.Contains('GetSerializedNodeByActionTag') -and
+    -not $sharedItemSourcePresenter.Contains('CocosUiView') -and
+    $sharedItemSourceConsumer.Contains('UiAssets.GetUnityOrCreate("tanchuangjiangli")') -and
+    -not $sharedItemSourceConsumer.Contains('FindBySource("common/tanchuangjiangli")') -and
+    $nativeRewardReference.Contains("guid: $nativeRewardGuid") -and
+    -not $nativeRewardPrefabSource.Contains("guid: $uiPrefabIdentityGuid") -and
+    -not $nativeRewardPrefabSource.Contains("guid: $cocosTimelinePlayerGuid") -and
+    $bagNativeCatalog.Contains('source: Unity/Common/tanchuangjiangli') -and
+    @($bagUiManifest.documents | Where-Object { $_.name -eq 'tanchuangjiangli' }).Count -eq 0 -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/res/csd/Prefabs/common/tanchuangjiangli.prefab')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'docs/unityclient/history/legacy-ui-references/cocos-export/prefabs/common/tanchuangjiangli.prefab'))
+) "Shared reward popup must use Unity Prefab/Provider/Transform lookup and keep its legacy source outside Assets."
+Assert-ToolchainTest (
+    @($bagUiManifest.documents | Where-Object { $_.name -eq "BagLayer" }).Count -eq 0 -and
+    @($bagLegacyTimelineManifest.documents | Where-Object { $_.name -in @("BagLayer", "OpenBox_1Layer") }).Count -eq 0 -and
+    -not $bagNativeCatalog.Contains("  - key: OpenBox_1Layer") -and
+    -not $bagLegacyLayerPrefab.Contains("guid: $bagLegacyIdentityGuid") -and
+    -not $bagLegacyOpenBoxPrefab.Contains("guid: $bagLegacyIdentityGuid") -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/BagLayer.prefab.meta") -PathType Leaf) -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/common/OpenBox_1Layer.prefab.meta") -PathType Leaf)
+) "Bag retired source Prefabs regained active manifest/Catalog entries, Identity, or lost their preserved files."
 $bootstrapIdempotenceSource = Get-Content -LiteralPath `
     (Join-Path $root "tools/unity-migration/Test-BootstrapSceneIdempotence.ps1") -Raw -Encoding UTF8
 $gameErrorSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/GameErrorPresenter.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/UI/GameErrorPresenter.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $bagRunnerSource.Contains('bagFlowPresenter?.SelectedChoiceId != 4621') -and
     $bagRunnerSource.Contains('bagFlowPresenter.SourceChoiceId != 4621') -and
@@ -1079,6 +2407,8 @@ $ledgerTestPath = ".local/unity-validation/toolchain-operation-ledger-$([Guid]::
 $resolvedLegacyLedgerPath = $null
 $retryModule = "ToolchainRetry$([Guid]::NewGuid().ToString('N'))"
 $retryLedgerPath = Get-UnityMigrationOperationLedgerPath -Root $root -Module $retryModule
+$contextModule = "ToolchainContext$([Guid]::NewGuid().ToString('N'))"
+$contextLedgerPath = Get-UnityMigrationOperationLedgerPath -Root $root -Module $contextModule
 try {
     $failedWrite = Add-UnityMigrationOperationRecord -Root $root -Module "ToolchainSample" -Gate G0 `
         -Tool "test" -Operation "fail" -Outcome Failed -ErrorMessage "failure" -RootCause "known" -Path $ledgerTestPath
@@ -1142,6 +2472,16 @@ try {
         -Operation "fixed-account-batch-validation" -Policy $workflowPolicy
     Assert-ToolchainTest $true "Resolved current failure still blocked the next planned full run."
 
+    $contextFailure = Add-UnityMigrationOperationRecord -Root $root -Module $contextModule -Gate G0 `
+        -Tool "test" -Operation "single-latest-failure-context" -Outcome Failed `
+        -ErrorMessage "single failure" -RootCause "test fixture"
+    $context = Get-UnityMigrationContextSummary -Root $root `
+        -ModuleConfig ([pscustomobject]@{ key = $contextModule })
+    Assert-ToolchainTest (
+        $context.openFailureCount -eq 1 -and
+        $context.latestFailureSignature -eq $contextFailure.Record.failureSignature
+    ) "Context summary failed to return a one-record latest failure without a Count property error."
+
     $legacyLedgerPath = ".local/unity-validation/toolchain-legacy-operation-ledger-$([Guid]::NewGuid().ToString('N')).json"
     $resolvedLegacyLedgerPath = Resolve-UnityMigrationPath -Root $root -Path $legacyLedgerPath
     [pscustomobject][ordered]@{
@@ -1164,6 +2504,7 @@ finally {
         Remove-Item -LiteralPath $resolvedLegacyLedgerPath -Force
     }
     if (Test-Path -LiteralPath $retryLedgerPath) { Remove-Item -LiteralPath $retryLedgerPath -Force }
+    if (Test-Path -LiteralPath $contextLedgerPath) { Remove-Item -LiteralPath $contextLedgerPath -Force }
 }
 $resolutionAudit = @(Get-UnityMigrationOperationResolutionAudit -Ledger $operationLedger -RecordIds @("failure-1"))
 Assert-ToolchainTest (
@@ -1342,7 +2683,7 @@ Assert-ToolchainTest (
     [int]$gameplayMatrix.hardGateVersion -eq 3 -and
     @($gameplayMatrix.controls | Where-Object {
         (Get-UnityMigrationControlVerificationKind -Matrix $gameplayMatrix -Control $_) -eq 'direct-control'
-    }).Count -eq 12 -and
+    }).Count -eq 11 -and
     $gameplayScenarioControlCount -eq 5 -and
     $commonSource.Contains('manualAcceptanceCurrent') -and
     $commonSource.Contains('must keep realEntryClick=false') -and
@@ -1354,37 +2695,37 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     @($allEvidenceContracts.fixedAccountDefaults.requiredHydratedRoots).Count -eq 1 -and
     @($allEvidenceContracts.fixedAccountDefaults.requiredHydratedRoots) -contains
-        'unityclient/Assets/ProjectX' -and
+        'unityclient/Assets' -and
     @($gameplayEvidenceContract.fixedAccount.g3ValidationFlags).Count -eq 1 -and
     @($gameplayEvidenceContract.fixedAccount.g3ValidationFlags) -contains '-projectXGameplayValidation' -and
-    @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots).Count -eq 4 -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots).Count -eq 5 -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
-        'unityclient/Assets/ProjectX/Resources/ProjectXStartup' -and
+        'unityclient/Assets/Resources/ProjectXStartup' -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
-        'unityclient/Assets/ProjectX/Resources/GameplayIcons' -and
+        'unityclient/Assets/Resources/GameplayIcons' -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
         'unityclient/Assets/ProjectX/res/res/UI/ui_login' -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
-        'unityclient/Assets/ProjectX/Resources/RoleBust/5_touxiang.png' -and
-    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments).Count -eq 9 -and
+        'unityclient/Assets/Art/Portraits/Roles/5_touxiang.png' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedRoots) -contains
+        'unityclient/Assets/Resources/UnityNativeMain' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments).Count -eq 7 -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
-        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/LoginBgLayer.json' -and
+        'unityclient/Assets/Prefabs/Login/LoginBgLayer.prefab' -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
-        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/loginLayer.json' -and
+        'unityclient/Assets/Prefabs/Login/loginLayer.prefab' -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
-        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/SeverListLayer.json' -and
+        'unityclient/Assets/Prefabs/Login/SeverListLayer.prefab' -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
-        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/Login/RoleCreateLayer.json' -and
+        'unityclient/Assets/Prefabs/Login/RoleCreateLayer.prefab' -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
-        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImainLayer_new.json' -and
-    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
-        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImain_cloudLayer.json' -and
-    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
+        'unityclient/Assets/Animations/Main/CloudLoop.anim' -and
+    @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -notcontains
         'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/ChatLayer.json' -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
-        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/shop/shop_bg.json' -and
+        'unityclient/Assets/Prefabs/Common/shop_bg.prefab' -and
     @($gameplayEvidenceContract.fixedAccount.requiredHydratedUiDocuments) -contains
-        'unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/ActivityLayer.json' -and
+        'unityclient/Assets/Prefabs/Gameplay/ActivityLayer.prefab' -and
     [string]$gameplayEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
     [string]$gameplayEvidenceContract.fixedAccount.sqlitePath -eq
         'AppData/LocalLow/Xuancai/ProjectX/LocalServer/projectx.db' -and
@@ -1424,7 +2765,7 @@ Assert-ToolchainTest (
     $bootstrapRunnerSource.Contains('settingsValidation && status == "Main UI active."') -and
     $bootstrapRunnerSource.Contains('app.IsSettingsDataReady') -and
     $bootstrapRunnerSource.Contains('SessionState.GetInt(SettingsPhaseKey, 0) == 0') -and
-    $bootstrapRunnerSource.Contains('app.RunSettingsValidation();') -and
+    $bootstrapRunnerSource.Contains('RuntimeValidationEntrypoints.RunSettingsValidation(app);') -and
     $bootstrapRunnerSource.Contains('SettingsVisualPreparedKey') -and
     $bootstrapRunnerSource.Contains('queued after stable-frame delay') -and
     $bootstrapRunnerSource.Contains('MirrorSettingsIsolationScreenshot')
@@ -1456,11 +2797,15 @@ Assert-ToolchainTest (
 ) "Hero G4 runner no longer enters Formation through the real EventSystem/raycast button path."
 
 $projectXAppSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
 $networkServiceSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/Network/NetworkService.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/Network/NetworkService.cs") -Raw -Encoding UTF8
+$projectXAppNetworkSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.Network.cs") -Raw -Encoding UTF8
+$projectXAppLoginSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.Login.cs") -Raw -Encoding UTF8
 $playerHudTempActivitySource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Activity/TempActivityController.lua.txt") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/Resources/Lua/Activity/TempActivityController.lua.txt") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $projectXAppSource.Contains('public string CompletionStatus => completionStatus;') -and
     $projectXAppSource.Contains('completionStatus = status;')
@@ -1469,16 +2814,16 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('InvokeEventSystemRaycastClick(formationButton)')
 ) "Hero validation entry no longer resolves through the real EventSystem raycast helper."
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('bagEquipmentInfoView = bagEquipmentInfoView ?? services.UiRouter.FindBySource("zhuangbeiyangcheng/zhuangbeiInfo")') -and
-    $projectXAppSource.Contains('?? UiPrefabLoader.Load("HeroEquipmentDetail", GetDynamicUiRoot());') -and
-    $projectXAppSource.Contains('capturingBagUseRewards = item.ItemType == 5 || item.ItemType == 6;')
+    $bagRunnerSource.Contains('bagEquipmentInfoView = bagEquipmentInfoView ?? services.UiAssets.InstantiateUnity("HeroEquipmentDetail", GetDynamicUiRoot());') -and
+    -not $bagRunnerSource.Contains('UiPrefabLoader.Load(') -and
+    $bagRunnerSource.Contains('capturingBagUseRewards = item.ItemType == 5 || item.ItemType == 6;')
 ) "Bag lost its dynamic equipment-detail surface or post-open reward feedback for random/selectable boxes."
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('public void SendUntracked(LegacyTcpMessage message)') -and
+    $projectXAppNetworkSource.Contains('public void SendUntracked(LegacyTcpMessage message)') -and
     $playerHudTempActivitySource.Contains('do not initiate /222 op4 or op89-91 from the Steam HUD') -and
     -not $playerHudTempActivitySource.Contains('Bridge:SendUntracked(discount)') -and
-    $projectXAppSource.Contains('if (CurrentAppState == AppState.Disconnected) return;') -and
-    $projectXAppSource.Contains('services.ProtocolRegistry.ClearPending();') -and
+    $projectXAppLoginSource.Contains('if (CurrentAppState == AppState.Disconnected) return;') -and
+    $projectXAppLoginSource.Contains('services.ProtocolRegistry.ClearPending();') -and
     $networkServiceSource.Contains('public void Disconnect(string reason = "Disconnected by client.")') -and
     $networkServiceSource.Contains('Disconnected?.Invoke(reason);') -and
     $projectXAppSource.Contains('services.Network.Disconnect("PlayerHud deliberate disconnect")')
@@ -1486,31 +2831,130 @@ Assert-ToolchainTest (
 
 $mainHudPresenterSource = Get-Content -LiteralPath `
     (Resolve-UnityMigrationExistingPath -Root $root `
-        -Path "unityclient/Assets/ProjectX/src/UI/MainHudPresenter.cs" -PathType Leaf) -Raw -Encoding UTF8
+        -Path "unityclient/Assets/src/UI/MainHudPresenter.cs" -PathType Leaf) -Raw -Encoding UTF8
+$mainHudPromptBindingsSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/src/UI/MainHudPromptBindings.cs" -PathType Leaf) -Raw -Encoding UTF8
 $cocosUiBindingSource = Get-Content -LiteralPath `
     (Resolve-UnityMigrationExistingPath -Root $root `
-        -Path "unityclient/Assets/ProjectX/src/UI/Migration/CocosUiBinding.cs" -PathType Leaf) -Raw -Encoding UTF8
+        -Path "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/UI/Migration/CocosUiBinding.cs" -PathType Leaf) -Raw -Encoding UTF8
 $uiRouterSource = Get-Content -LiteralPath `
     (Resolve-UnityMigrationExistingPath -Root $root `
-        -Path "unityclient/Assets/ProjectX/src/UI/UiRouter.cs" -PathType Leaf) -Raw -Encoding UTF8
+        -Path "unityclient/Assets/src/UI/UiRouter.cs" -PathType Leaf) -Raw -Encoding UTF8
+$cocosUiImporterSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/Editor/CocosUiImporter.cs" -PathType Leaf) -Raw -Encoding UTF8
+$uiPrefabKeySource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/src/UI/UiPrefabKey.cs" -PathType Leaf) -Raw -Encoding UTF8
+$mainHudPrefabSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/Prefabs/Main/UImainLayer_new.prefab" -PathType Leaf) -Raw -Encoding UTF8
+$mainUiBindingsSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/src/Core/ProjectXApp.MainUiBindings.cs" -PathType Leaf) -Raw -Encoding UTF8
 $firstPlayableLoopSource = Get-Content -LiteralPath `
     (Resolve-UnityMigrationExistingPath -Root $root `
-        -Path "unityclient/Assets/ProjectX/src/LuaRuntime/FirstPlayableLoopBridge.cs" -PathType Leaf) -Raw -Encoding UTF8
+        -Path "unityclient/Assets/src/Core/FirstPlayableLoopBridge.cs" -PathType Leaf) -Raw -Encoding UTF8
+$mainUiSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/src/Core/ProjectXApp.MainUi.cs" -PathType Leaf) -Raw -Encoding UTF8
+$mainCloudBuilderSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/src/Editor/MainCloudAnimationAssetBuilder.cs" -PathType Leaf) -Raw -Encoding UTF8
+$mainCloudMigrationReference = Join-Path $root `
+    "docs/unityclient/history/animation-migration-references/UImain_cloudLayer.json"
+$mainCloudUnityAssetReference = Join-Path $root `
+    "unityclient/Assets/Editor/AnimationMigrationReferences/UImain_cloudLayer.json"
+$mainCloudRuntimeJson = Join-Path $root `
+    "unityclient/Assets/Animations/Main/UImain_cloudLayer.json"
+$bootstrapBuilderSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/src/Editor/BootstrapSceneBuilder.cs" -PathType Leaf) -Raw -Encoding UTF8
+$firstPlayableRunnerSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/src/Editor/FirstPlayableLoopRunner.cs" -PathType Leaf) -Raw -Encoding UTF8
+$mainImportManifestSource = Get-Content -LiteralPath (Join-Path $root `
+    "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/unity-import-manifest.json") -Raw -Encoding UTF8
+$mainHudValidatorSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/src/Editor/MainHudNativeAssetValidator.cs" -PathType Leaf) -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $mainUiSource.Contains('services.UiAssets.GetUnityOrCreate("UImain_cloudLayer")') -and
+    $mainUiSource.Contains('cloudAnimator.Play("CloudLoop", 0, 0f)') -and
+    -not $mainUiSource.Contains('FindBySource("UImain_cloudLayer"') -and
+    -not $mainUiSource.Contains('CocosTimelinePlayer') -and
+    $mainCloudBuilderSource.Contains('CloudLoop.anim') -and
+    $mainCloudBuilderSource.Contains('Unity Animation window') -and
+    $mainCloudBuilderSource.Contains('ValidateAssets()') -and
+    -not $mainCloudBuilderSource.Contains('ProjectX.UI.Migration') -and
+    -not $mainCloudBuilderSource.Contains('CocosTimelinePlayer') -and
+    -not $mainCloudBuilderSource.Contains('UiPrefabIdentity') -and
+    -not $mainCloudBuilderSource.Contains('CocosUiBinding') -and
+    $mainCloudBuilderSource.Contains('GetComponentsInChildren<MonoBehaviour>(true)') -and
+    -not $mainCloudBuilderSource.Contains('UImain_cloudLayer.json') -and
+    -not $mainCloudBuilderSource.Contains('BuildClip(') -and
+    -not $mainCloudBuilderSource.Contains('SaveAsPrefabAsset(') -and
+    -not $mainCloudBuilderSource.Contains('CreateAnimatorControllerAtPath') -and
+    (Test-Path -LiteralPath $mainCloudMigrationReference -PathType Leaf) -and
+    -not (Test-Path -LiteralPath $mainCloudUnityAssetReference -PathType Leaf) -and
+    -not (Test-Path -LiteralPath $mainCloudRuntimeJson -PathType Leaf)
+) "Main cloud animation maintenance must use the Unity-authored AnimationClip, with validation only."
+Assert-ToolchainTest (
+    $bootstrapBuilderSource.Contains('private const string MainPrefab = "Assets/Prefabs/Main/UImainLayer_new.prefab";') -and
+    $firstPlayableRunnerSource.Contains('private const string MainPrefab = "Assets/Prefabs/Main/UImainLayer_new.prefab";') -and
+    $firstPlayableRunnerSource.Contains('RebuildValidationSceneForEditMode()') -and
+    -not $mainImportManifestSource.Contains('"name": "UImainLayer_new"') -and
+    -not $mainImportManifestSource.Contains('"prefabAssetPath": "Assets/ProjectX/res/csd/Prefabs/common/UImainLayer_new.prefab"')
+) "Main HUD resource maintenance has regressed to the Cocos importer or Cocos Prefab paths."
+Assert-ToolchainTest (
+$mainHudValidatorSource.Contains('Prefabs/Catalog/UImainLayer_new.asset') -and
+    $mainHudValidatorSource.Contains('ValidateUnityOwnedBehaviours(root);') -and
+    $mainHudValidatorSource.Contains('StartsWith("UnityEngine."') -and
+    -not $mainHudValidatorSource.Contains('ProjectX.UI.Migration') -and
+    -not $mainHudValidatorSource.Contains('UiPrefabIdentity') -and
+    -not $mainHudValidatorSource.Contains('CocosUiBinding') -and
+    -not $mainHudValidatorSource.Contains('CocosTimelinePlayer') -and
+    $mainHudValidatorSource.Contains('RequiredUnityPaths') -and
+    $mainHudValidatorSource.Contains('MainHudPromptBindings') -and
+    $mainHudValidatorSource.Contains('UiPrefabKey.MainHud') -and
+    $mainHudValidatorSource.Contains('HorizontalLayoutGroup') -and
+    $mainHudValidatorSource.Contains('ContentSizeFitter.FitMode.PreferredSize') -and
+    $mainHudValidatorSource.Contains('nativeVisuals.Length != 58') -and
+    $mainHudValidatorSource.Contains('oldDependencies.Length != 0')
+) "Main HUD Unity-owned resource-chain validator no longer proves identity removal, Unity hierarchy bindings, and imported asset dependencies."
 Assert-ToolchainTest (
     $projectXAppSource.Contains('public const string RankingPath = "Layer/Main_UI/ButtonGroup1/btn_paihangbang";') -and
-    $projectXAppSource.Contains('public const string DrawPath = "Layer/Main_UI/ButtonGroup1/btn_zhaomu";') -and
-    $projectXAppSource.Contains('public const string GameplayPath = "Layer/Main_UI/ButtonGroup1/btn_wanfa";') -and
+    $projectXAppSource.Contains('public const string DrawPath = "Layer/Bg/btn_zhaomu";') -and
+    $projectXAppSource.Contains('public const string GameplayPath = "Layer/Bg/btn_wanfa";') -and
     $cocosUiBindingSource.Contains('Transform hierarchyTarget = transform.Find(cocosPath);') -and
     $cocosUiBindingSource.Contains('cocosPath.StartsWith("Layer/", StringComparison.Ordinal)') -and
     $cocosUiBindingSource.Contains('transform.Find(cocosPath.Substring("Layer/".Length))') -and
-    $uiRouterSource.Contains('public const string MainHudSourceToken = "common/UImainLayer_new";') -and
-    $uiRouterSource.Contains('EditorSceneManager.IsPreviewScene(binding.gameObject.scene)') -and
-    ([regex]::Matches($uiRouterSource, 'IsRuntimeSceneBinding\(item\)').Count -eq 2) -and
-    $projectXAppSource.Contains('FindBySource(UiRouter.MainHudSourceToken, true)') -and
-    -not $projectXAppSource.Contains('FindBySource("UImainLayer", true)') -and
-    $firstPlayableLoopSource.Contains('FindBySource(UiRouter.MainHudSourceToken, true)') -and
-    -not $firstPlayableLoopSource.Contains('FindBySource("UImainLayer", true)')
-) "Unity-authored ButtonGroup1 controls no longer resolve through their current hierarchy paths."
+    $uiRouterSource.Contains('public UnityUiView FindByKey(string key, bool excludeBackup = false)') -and
+    $uiRouterSource.Contains('GetUnityOrCreate(key)') -and
+    $uiRouterSource.Contains('new UnityUiView(marker.gameObject)') -and
+    -not $uiRouterSource.Contains('FindBySource(') -and
+    $uiRouterSource.Contains('Resources.FindObjectsOfTypeAll<UiPrefabKey>()') -and
+    -not $uiRouterSource.Contains('MainHudSourceToken') -and
+    $uiRouterSource.Contains('EditorSceneManager.IsPreviewScene(gameObject.scene)') -and
+    ([regex]::Match($uiRouterSource, '(?s)public UnityUiView FindByKey\(.*?\n        \}').Value.Contains('IsRuntimeSceneObject(item.gameObject)')) -and
+    ([regex]::Match($uiRouterSource, '(?s)public void SetExclusiveVisibleByKey\(.*?\n        \}').Value.Contains('IsRuntimeSceneObject(item.gameObject)')) -and
+    $uiPrefabKeySource.Contains('public const string MainHud = "UImainLayer_new";') -and
+    $mainHudPrefabSource.Contains('key: UImainLayer_new') -and
+    $mainHudPrefabSource.Contains('guid: 0fb45dddc8684d63a3e3f06ea1721049') -and
+    $mainUiBindingsSource.Contains('FindByKey(UiPrefabKey.MainHud, true)') -and
+    -not $mainUiBindingsSource.Contains('FindBySource("UImainLayer", true)') -and
+    $mainHudPresenterSource.Contains('private readonly UnityUiView view;') -and
+    -not $mainHudPresenterSource.Contains('GetSerializedNodeByActionTag') -and
+    $mainHudPresenterSource.Contains('Layer/Main_UI/Head/bg_CombatEffetiveness/Value/Wan') -and
+    $firstPlayableLoopSource.Contains('FindByKey(UiPrefabKey.MainHud, true)') -and
+    $firstPlayableLoopSource.Contains('private UnityUiView mainView;') -and
+    -not $firstPlayableLoopSource.Contains('FindBySource("UImainLayer", true)') -and
+    -not $cocosUiImporterSource.Contains('MainHudDocumentPath') -and
+    -not $cocosUiImporterSource.Contains('MainHudPrefabPath') -and
+    -not $cocosUiImporterSource.Contains('ScheduleMainHudLayoutContract') -and
+    -not $cocosUiImporterSource.Contains('ApplyMainHudHorizontalLayout')
+) "Main HUD key lookup or Unity-authored ButtonGroup1 hierarchy binding has regressed."
 foreach ($steamHiddenCommercialPath in @(
     'Layer/Main_UI/ButtonGroup4/btn_Qiri',
     'Layer/Main_UI/ButtonGroup4/btn_shouchong',
@@ -1525,12 +2969,12 @@ foreach ($steamHiddenCommercialPath in @(
 Assert-ToolchainTest (
     $projectXAppSource.Contains('mainHudPresenter?.SetDiscountEntriesEnabled(false);') -and
     $mainHudPresenterSource.Contains('discountEntriesEnabled && available && seconds > 0') -and
-    $projectXAppSource.Contains('HasCommandLineFlag("-projectXSteamHudExclusionAcceptance")') -and
+    $projectXAppLoginSource.Contains('HasCommandLineFlag("-projectXSteamHudExclusionAcceptance")') -and
     $projectXAppSource.Contains('[SteamHudExclusionAcceptance] PASS hidden=')
 ) "An authoritative /222 push can reopen Steam-excluded discount entries."
 $mainTaskTrackerSource = Get-Content -LiteralPath `
     (Resolve-UnityMigrationExistingPath -Root $root `
-        -Path "unityclient/Assets/ProjectX/src/UI/MainTaskTrackerPresenter.cs" -PathType Leaf) -Raw -Encoding UTF8
+        -Path "unityclient/Assets/src/UI/MainTaskTrackerPresenter.cs" -PathType Leaf) -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $mainHudPresenterSource.Contains('onlineTimeRoot.SetActive(remaining > 0)') -and
     $mainHudPresenterSource.Contains('new GameObject("ItemIconLayer.csb"') -and
@@ -1547,8 +2991,10 @@ Assert-ToolchainTest (
     $mainHudPresenterSource.Contains('public int VisibleDiscountCount =>') -and
     $mainHudPresenterSource.Contains('public int VisibleRedDotCount =>') -and
     $mainHudPresenterSource.Contains('public string VisibleRedDotSummary =>') -and
-    $mainHudPresenterSource.Contains('StableVisiblePromptPaths') -and
-    $mainHudPresenterSource.Contains('serverRedDots.Any(entry => RedDotTarget(entry.Key) == target && entry.Value)') -and
+    $mainHudPresenterSource.Contains('stablePrompts = promptBindings.StablePrompts;') -and
+    $mainHudPresenterSource.Contains('serverRedDots.Any(entry => entry.Value') -and
+    $mainHudPresenterSource.Contains('promptBindings.ResolveRedDot(entry.Key) == prompt') -and
+    $mainHudPromptBindingsSource.Contains('public GameObject[] StablePrompts => new[]') -and
     $mainHudPresenterSource.Contains('native Cocos') -and
     -not $mainHudPresenterSource.Contains('SetAllRedDots(false);') -and
     -not $mainHudPresenterSource.Contains('discountButtons[index].SetActive(false);') -and
@@ -1562,32 +3008,32 @@ Assert-ToolchainTest (
     $mainHudPresenterSource.Contains('public void RefreshAfterVisibilityRestore()') -and
     $mainHudPresenterSource.Contains('text.enabled = false;') -and
     $mainHudPresenterSource.Contains('text.enabled = wasEnabled;') -and
-    $projectXAppSource.Contains('private bool PopUiStackWithHudRefresh()') -and
-    $projectXAppSource.Contains('mainHudPresenter?.RefreshAfterVisibilityRestore();') -and
-    $projectXAppSource.Contains('hudShopSubmenuOrigin = CalculateShopSubmenuPosition(rect);') -and
-    $projectXAppSource.Contains('RectTransformUtility.CalculateRelativeRectTransformBounds(parent, button)') -and
-    $projectXAppSource.Contains('LayoutRebuilder.ForceRebuildLayoutImmediate(buttonGroup)') -and
-    $projectXAppSource.Contains('AnimateHudSubmenu(rect, hudShopSubmenuOrigin - new Vector2(0f, 24f), 24f)') -and
-    $projectXAppSource.Contains('AnimateHudSubmenu(rect, hudWearSubmenuOrigin, 112f)') -and
-    $projectXAppSource.Contains('"HudSubmenuDismissOverlay", typeof(RectTransform), typeof(Image), typeof(Button)') -and
-    $projectXAppSource.Contains('overlayButton.onClick.AddListener(HideHudSubmenus);') -and
-    $projectXAppSource.Contains('submenu.SetAsLastSibling();') -and
-    $projectXAppSource.Contains('if (graphic != null && !graphic.enabled)') -and
-    $projectXAppSource.Contains('target.Find("RuntimeHitArea")') -and
-    $projectXAppSource.Contains('HUD wear submenu did not collapse through the blank-area overlay.') -and
-    $projectXAppSource.Contains('HUD shop submenu did not collapse through the blank-area overlay.') -and
-    $projectXAppSource.Contains('while (IsToastVisible && Time.realtimeSinceStartup < toastDeadline)') -and
-    $projectXAppSource.Contains('mainHudPresenter?.BeginReconnectChatSummary();') -and
-    $projectXAppSource.Contains('mainHudPresenter.VisibleRedDotCount < 7') -and
-    $projectXAppSource.Contains('hud-commercial-entries-excluded') -and
-    $projectXAppSource.Contains('hud-authoritative-red-dots') -and
-    $projectXAppSource.Contains('ReconnectFromConnectionFailure, "确认", "取消", false') -and
-    $projectXAppSource.Contains('mainHudPresenter?.Dispose();') -and
-    $projectXAppSource.Contains('mainHudPresenter = null;') -and
-    $projectXAppSource.Contains('mainTaskTracker?.Dispose();') -and
-    $projectXAppSource.Contains('mainTaskTracker = null;') -and
-    $projectXAppSource.Contains('!mainTaskTracker.IsAuthorityReady') -and
-    $projectXAppSource.Contains('while (!services.Currencies.Has(CurrencyIds.Stamina) && Time.realtimeSinceStartup < deadline)')
+    $projectXAppAllSource.Contains('private bool PopUiStackWithHudRefresh()') -and
+    $projectXAppAllSource.Contains('mainHudPresenter?.RefreshAfterVisibilityRestore();') -and
+    $projectXAppAllSource.Contains('hudShopSubmenuOrigin = CalculateShopSubmenuPosition(rect);') -and
+    $projectXAppAllSource.Contains('RectTransformUtility.CalculateRelativeRectTransformBounds(parent, button)') -and
+    $projectXAppAllSource.Contains('LayoutRebuilder.ForceRebuildLayoutImmediate(buttonGroup)') -and
+    $projectXAppAllSource.Contains('AnimateHudSubmenu(rect, hudShopSubmenuOrigin - new Vector2(0f, 24f), 24f)') -and
+    $projectXAppAllSource.Contains('AnimateHudSubmenu(rect, hudWearSubmenuOrigin - new Vector2(0f, 24f), 24f)') -and
+    $projectXAppAllSource.Contains('"HudSubmenuDismissOverlay", typeof(RectTransform), typeof(Image), typeof(Button)') -and
+    $projectXAppAllSource.Contains('overlayButton.onClick.AddListener(HideHudSubmenus);') -and
+    $projectXAppAllSource.Contains('submenu.SetAsLastSibling();') -and
+    $projectXAppAllSource.Contains('if (graphic != null && !graphic.enabled)') -and
+    $projectXAppAllSource.Contains('target.Find("RuntimeHitArea")') -and
+    $projectXAppAllSource.Contains('HUD direct wear equipment bag did not close cleanly.') -and
+    $projectXAppAllSource.Contains('HUD shop submenu did not collapse through the blank-area overlay.') -and
+    $projectXAppAllSource.Contains('while (IsToastVisible && Time.realtimeSinceStartup < toastDeadline)') -and
+    $projectXAppAllSource.Contains('mainHudPresenter?.BeginReconnectChatSummary();') -and
+    $projectXAppAllSource.Contains('mainHudPresenter.VisibleRedDotCount < 6') -and
+    $projectXAppAllSource.Contains('hud-commercial-entries-excluded') -and
+    $projectXAppAllSource.Contains('hud-authoritative-red-dots') -and
+    $projectXAppAllSource.Contains('ReconnectFromConnectionFailure, "确认", "取消", false') -and
+    $projectXAppAllSource.Contains('mainHudPresenter?.Dispose();') -and
+    $projectXAppAllSource.Contains('mainHudPresenter = null;') -and
+    $projectXAppAllSource.Contains('mainTaskTracker?.Dispose();') -and
+    $projectXAppAllSource.Contains('mainTaskTracker = null;') -and
+    $projectXAppAllSource.Contains('!mainTaskTracker.IsAuthorityReady') -and
+    $projectXAppAllSource.Contains('while (!services.Currencies.Has(CurrencyIds.Stamina) && Time.realtimeSinceStartup < deadline)')
 ) "PlayerHud native online reward, chat clipping/expansion, submenu animation, or stable-frame capture regressed."
 Assert-ToolchainTest (
     $mainHudPresenterSource.Contains('powerWanRect.localScale = new Vector3(.39f, .39f, 1f);') -and
@@ -1597,18 +3043,21 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     $mainTaskTrackerSource.Contains('private bool serverHotPointReceived;') -and
     $mainTaskTrackerSource.Contains('public bool IsAuthorityReady => store.Count > 0 || serverHotPointReceived;') -and
-    $mainTaskTrackerSource.Contains('else if (serverHotPointReceived) prompt.SetActive(serverHotPoint);') -and
-    -not $mainTaskTrackerSource.Contains('prompt.SetActive(store.Count > 0 ? store.HasClaimable : serverHotPoint);')
+    $mainTaskTrackerSource.Contains('public void SetServerHotPoint(bool visible) => serverHotPointReceived = true;') -and
+    $mainTaskTrackerSource.Contains('public MainTaskTrackerPresenter(TaskStore store)') -and
+    -not $mainTaskTrackerSource.Contains('CocosUiView') -and
+    -not $mainTaskTrackerSource.Contains('Action openTasks') -and
+    -not $mainTaskTrackerSource.Contains('prompt.SetActive(')
 ) "PlayerHud task red-dot state can again be overwritten before /65 or TaskStore authority exists."
 $currencyStoreSource = Get-Content -LiteralPath `
     (Resolve-UnityMigrationExistingPath -Root $root `
-        -Path "unityclient/Assets/ProjectX/src/Data/CurrencyStore.cs" -PathType Leaf) -Raw -Encoding UTF8
+        -Path "unityclient/Assets/src/Data/CurrencyStore.cs" -PathType Leaf) -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $currencyStoreSource.Contains('A same-account reconnect receives /1004 again') -and
     -not $currencyStoreSource.Contains("public void Initialize(long gold, long premium, long boundPremium, uint soul, uint guildContribution)`r`n        {`r`n            values.Clear();")
 ) "CurrencyStore no longer preserves auxiliary authoritative currencies across same-account reconnect."
 $playerControllerSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Player/PlayerController.lua.txt") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/Resources/Lua/Player/PlayerController.lua.txt") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $playerControllerSource.Contains('local BOUND_PREMIUM = 60001') -and
     $playerControllerSource.Contains('elseif kind == 505 then Bridge:SetCurrency(PREMIUM, value)') -and
@@ -1616,11 +3065,39 @@ Assert-ToolchainTest (
     -not $playerControllerSource.Contains('elseif kind == 505 or kind == 506 then Bridge:SetCurrency(PREMIUM, value)') -and
     -not $playerControllerSource.Contains('if id == 60001 then Bridge:SetCurrency(PREMIUM, value) end')
 ) "PlayerHud currency updates can again merge bound premium into regular premium."
+$playerHudPowerPopupViewSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/src/UI/PowerChangedPopupView.cs" -PathType Leaf) -Raw -Encoding UTF8
+$playerHudPowerPopupValidatorSource = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "unityclient/Assets/src/Editor/PlayerHudPowerPopupNativeAssetValidator.cs" -PathType Leaf) -Raw -Encoding UTF8
+$playerHudPowerPopupUiManifest = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/unity-import-manifest.json" -PathType Leaf) -Raw -Encoding UTF8 |
+    ConvertFrom-Json
+$playerHudPowerPopupTimelineManifest = Get-Content -LiteralPath `
+    (Resolve-UnityMigrationExistingPath -Root $root `
+        -Path "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/unity-import-manifest.timeline.json" -PathType Leaf) -Raw -Encoding UTF8 |
+    ConvertFrom-Json
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('services.Currencies.Changed += RefreshSharedCurrencyHeaders;') -and
-    $projectXAppSource.Contains('services.Currencies.Changed -= RefreshSharedCurrencyHeaders;') -and
-    $projectXAppSource.Contains('RefreshStandardCurrencyHeader(bagFrameView?.Binding, "Layer/GoldCheck");') -and
-    $projectXAppSource.Contains('RefreshStandardCurrencyHeader(taskBackgroundView?.Binding, "Layer/Panel_1/GoldCheck");')
+    $playerControllerSource.Contains('elseif kind == 513 then Bridge:SetPlayerPower(value)') -and
+    $projectXAppAllSource.Contains('ShowPlayerPowerChange(previous, services.Player.Power);') -and
+    $projectXAppAllSource.Contains('worldBattlePlaybackPresenter?.IsVisible != true') -and
+    $projectXAppAllSource.Contains('UnityAssetReference.LoadAsset<GameObject>("Prefabs/Common/PlayerHud/PowerChangedPopup")') -and
+    $playerHudPowerPopupViewSource.Contains('amount.text = (increased ? "+" : "-") + shown.ToString(CultureInfo.InvariantCulture);') -and
+    $playerHudPowerPopupValidatorSource.Contains('AssetDatabase.GetDependencies(PrefabPath, true)') -and
+    $playerHudPowerPopupValidatorSource.Contains('typeName == "UiPrefabIdentity" || typeName == "CocosTimelinePlayer"') -and
+    -not $playerHudPowerPopupValidatorSource.Contains('Assets/ProjectX/res/csd/Prefabs/') -and
+    -not $playerHudPowerPopupValidatorSource.Contains('SaveAsPrefabAsset') -and
+    @($playerHudPowerPopupUiManifest.documents | Where-Object { $_.name -eq 'zhanlitishengLayer' }).Count -eq 0 -and
+    @($playerHudPowerPopupTimelineManifest.documents | Where-Object { $_.name -eq 'zhanlitishengLayer' }).Count -eq 0 -and
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Runtime/Common/PlayerHud/PowerChangedPopup.prefab") -PathType Leaf)
+) "PlayerHud /226 kind=513 or its Unity-owned popup resource retirement regressed."
+Assert-ToolchainTest (
+    $projectXAppAllSource.Contains('services.Currencies.Changed += RefreshSharedCurrencyHeaders;') -and
+    $projectXAppAllSource.Contains('services.Currencies.Changed -= RefreshSharedCurrencyHeaders;') -and
+    $projectXAppAllSource.Contains('RefreshStandardCurrencyHeader(oneLevelFrameView, "Layer/GoldCheck");') -and
+    $projectXAppAllSource.Contains('RefreshStandardCurrencyHeader(taskBackgroundView, "Layer/Panel_1/GoldCheck");')
 ) "Shared FirstClassBg/Task GoldCheck consumers no longer refresh from CurrencyStore changes."
 $playerHudEvidenceContract = @($allEvidenceContracts.modules |
     Where-Object { $_.module -eq "PlayerHud" })[0]
@@ -1636,24 +3113,6 @@ Assert-ToolchainTest (
     $playerHudSqliteFixtureSource.Contains('PlayerHud isolation rows remained after restore')
 ) "PlayerHud fixed-account validation no longer freezes the versioned persistentDataPath SQLite identity, split currencies, or exact restore."
 
-$settingsPresenterSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/SettingsPresenter.cs") -Raw -Encoding UTF8
-Assert-ToolchainTest (
-    $settingsPresenterSource.Contains('slider.handleRect.SetSizeWithCurrentAnchors') -and
-    $settingsPresenterSource.Contains('colors.disabledColor = Color.white')
-) "Settings Slider no longer repairs the imported zero-size Cocos handle or preserves its disabled visual."
-Assert-ToolchainTest (
-    $settingsPresenterSource.Contains('if (secondBackground != null) secondBackground.enabled = false;') -and
-    $settingsPresenterSource.Contains('normalLabel.gameObject.SetActive(!selected);') -and
-    $settingsPresenterSource.Contains('choose.gameObject.SetActive(selected);')
-) "Settings tabs no longer disable the cloned root Image or switch normal/selected labels exclusively."
-Assert-ToolchainTest (
-    $projectXAppSource.Contains('HideOneLevelChildPagesForSettings();') -and
-    $projectXAppSource.Contains('child.name.StartsWith("DynamicUi_", StringComparison.Ordinal)') -and
-    [regex]::IsMatch($projectXAppSource,
-        'ShowSettings\(\)[\s\S]*?EnsureSettingsPresenter\(\);\s*HideOneLevelChildPagesForSettings\(\);\s*bagFrameView\.SetVisible\(true\);')
-) "Settings can again reactivate stale Hero child pages when it reuses OneLevelLayer."
-
 $fixedRunnerSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Run-UnityFixedAccountValidation.ps1") `
     -Raw -Encoding UTF8
 Assert-ToolchainTest (
@@ -1665,7 +3124,7 @@ Assert-ToolchainTest (
     $fixedRunnerSource.Contains('if (-not $DataPreflightOnly)') -and
     $fixedRunnerSource.Contains('$startServerScript = Join-Path $root "tools/local/Start-Server.ps1"') -and
     $fixedRunnerSource.Contains('$serverStartParameters = @{ WaitSeconds = 60 }') -and
-    ([regex]::Matches($fixedRunnerSource, '& \$startServerScript @serverStartParameters').Count -eq 4) -and
+    ([regex]::Matches($fixedRunnerSource, '& \$startServerScript @serverStartParameters').Count -eq 5) -and
     -not $fixedRunnerSource.Contains('& $pwshExecutable -NoProfile -File (Join-Path $root "tools/local/Start-Server.ps1")')
 ) "Fixed-account data/compile preflights no longer run after G2 while the full run remains gated by G3."
 Assert-ToolchainTest (
@@ -1697,7 +3156,7 @@ catch { $unsafeRgRejected = $_.Exception.Message -like "rg path arguments must b
 Assert-ToolchainTest $unsafeRgRejected "Windows wildcard rg path arguments are no longer rejected by the shared guard."
 $resolvedRgPaths = @(Resolve-UnityMigrationRgPathArguments -Root $root -Paths @(
     "client/ProjectX/src/ConfigData",
-    "unityclient/Assets/ProjectX/Resources/Config"
+    "unityclient/Assets/Resources/ProjectXData/Configs"
 ))
 Assert-ToolchainTest (
     $resolvedRgPaths.Count -eq 2 -and
@@ -1719,24 +3178,24 @@ Assert-ToolchainTest $missingRgPathRejected `
 $missingHudPrefabPathRejected = $false
 try {
     Resolve-UnityMigrationRgPathArguments -Root $root -Paths @(
-        "unityclient/Assets/ProjectX/Prefabs"
+        "unityclient/Assets/Prefabs/common/__missing_for_rg_preflight__"
     ) | Out-Null
 }
 catch {
     $missingHudPrefabPathRejected = $_.Exception.Message -like `
-        "rg path preflight rejected 'unityclient/Assets/ProjectX/Prefabs' before native rg execution.*"
+        "rg path preflight rejected 'unityclient/Assets/Prefabs/common/__missing_for_rg_preflight__' before native rg execution.*"
 }
 Assert-ToolchainTest $missingHudPrefabPathRejected `
-    "The repeated PlayerHud guessed-prefab path is no longer rejected by central preflight before native rg execution."
+    "A nonexistent nested prefab path no longer fails before native rg execution."
 $discoveredPlayerHudPrefab = @(Find-UnityMigrationFiles -Root $root `
-    -SearchRoot "unityclient/Assets/ProjectX" `
-    -Pattern '[\\/]Prefabs[\\/]common[\\/]UImainLayer_new\.prefab$')
+    -SearchRoot "unityclient/Assets" `
+    -Pattern '[\\/]Prefabs[\\/]Main[\\/]UImainLayer_new\.prefab$')
 Assert-ToolchainTest (
     $discoveredPlayerHudPrefab.Count -eq 1 -and
     (Test-Path -LiteralPath $discoveredPlayerHudPrefab[0] -PathType Leaf)
 ) "Central file discovery no longer resolves the PlayerHud prefab from a verified root without guessed directories."
 $playerHudPromptNodes = @(Find-UnityMigrationJsonNodes -Root $root `
-    -JsonPath "unityclient/Assets/ProjectX/res/csd/UnityMigration/documents/common/UImainLayer_new.json" `
+    -JsonPath "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/documents/common/UImainLayer_new.json" `
     -Name "Prompt")
 Assert-ToolchainTest (
     $playerHudPromptNodes.Count -gt 3 -and
@@ -1758,11 +3217,33 @@ Assert-ToolchainTest (
     $commonSource.Contains('retrying the same compile preflight (attempt $($attempt + 1)/4)')
 ) "Compile preflight no longer performs bounded same-tool retries for proven transient Unity compile/reload locks, including localized file-use errors."
 $bootstrapBuilderSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/Editor/BootstrapSceneBuilder.cs")
+    (Join-Path $root "unityclient/Assets/src/Editor/BootstrapSceneBuilder.cs")
+$battleFightPrefabGuid = [regex]::Match((Get-Content -Raw -Encoding UTF8 -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Battle/BattleFightLayer.prefab.meta")),
+    '(?m)^guid: ([0-9a-f]{32})$').Groups[1].Value
+$battleHpPrefabGuid = [regex]::Match((Get-Content -Raw -Encoding UTF8 -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Battle/BattleHpNode.prefab.meta")),
+    '(?m)^guid: ([0-9a-f]{32})$').Groups[1].Value
+$battleFightReferenceSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Catalog/BattleFightLayer.asset")
+$battleHpReferenceSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Catalog/BattleHpNode.asset")
+$battleFightPrefabSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Battle/BattleFightLayer.prefab")
+$battleHpPrefabSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
+    (Join-Path $root "unityclient/Assets/Prefabs/Battle/BattleHpNode.prefab")
 $resourcesUiAssetProviderSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/ResourcesUiAssetProvider.cs")
+    (Join-Path $root "unityclient/Assets/src/UI/ResourcesUiAssetProvider.cs")
 $resourceFoundationTestSource = Get-Content -Raw -Encoding UTF8 -LiteralPath `
     (Join-Path $root "tools/unity-migration/Test-ResourceFoundation.ps1")
+Assert-ToolchainTest (
+    $bootstrapBuilderSource.Contains('reference.SetPrefab(prefab);') -and
+    $bootstrapBuilderSource.Contains('EditorUtility.SetDirty(reference);') -and
+    $bootstrapBuilderSource.Contains('AssetDatabase.SaveAssetIfDirty(reference);') -and
+    $bootstrapBuilderSource.Contains('ValidateUnityOwnedPrefabDependencies();') -and
+    $bootstrapBuilderSource.Contains('IsLegacyCocosAssetPath(dependency)') -and
+    $bootstrapBuilderSource.Contains('typeName == "UiPrefabIdentity" || typeName == "CocosTimelinePlayer"')
+) "BootstrapSceneBuilder no longer persists Unity UI References or validates Unity-owned Prefab boundaries."
 Assert-ToolchainTest (
     $bootstrapBuilderSource.Contains('NormalizeBootstrapSceneYaml();') -and
     $bootstrapBuilderSource.Contains("line.TrimEnd(' ', '\t')") -and
@@ -1772,7 +3253,10 @@ Assert-ToolchainTest (
     $bootstrapBuilderSource.Contains('new PrefabSpec(HeroListPrefab, false, HeroFramePrefab)') -and
     $bootstrapBuilderSource.Contains('new PrefabSpec(HeroDetailPrefab, false, HeroFramePrefab)') -and
     $bootstrapBuilderSource.Contains('UI provider must not eagerly instantiate OneLevelLayer child pages.') -and
-    $bootstrapBuilderSource.Contains('UI provider lazy OneLevelLayer child-page contract failed.') -and
+    $bootstrapBuilderSource.Contains('UI provider lazy Unity-owned Hero child-page contract failed.') -and
+    $bootstrapBuilderSource.Contains('provider.GetUnityOrCreate("yingxiongListLayer")') -and
+    $bootstrapBuilderSource.Contains('provider.GetUnityOrCreate("yingxiongInfoLayer")') -and
+    $bootstrapBuilderSource.Contains('provider.GetUnityOrCreate("yingxiongbeibao")') -and
     -not $resourcesUiAssetProviderSource.Contains('GetOrCreate(child.Key, view.GameObject.transform);')
 ) "ResourceFoundation can again eagerly instantiate active Hero pages when a shared OneLevelLayer consumer such as Bag opens."
 Assert-ToolchainTest (
@@ -1938,17 +3422,20 @@ Assert-ToolchainTest (
     $fengShenStoryFixtureSource.Contains('-UserId 705213 -RoleId 1000006 -EvidencePath $isolationEvidencePath') -and
     $fengShenStoryFixtureSource.Contains('if ($LASTEXITCODE -ne 0) { throw "FengShenStory isolation fixture action failed: $Action" }')
 ) "FengShenStory primary fixture lifecycle no longer snapshots, patches, restores and cleans its isolation account."
-$fengShenStoryRunnerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") `
+$fengShenStoryRunnerSource = $projectXAppAllSource
+$fengShenStoryPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/FengShenStoryPresenter.cs") `
     -Raw -Encoding UTF8
-$fengShenStoryPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/FengShenStoryPresenter.cs") `
+$fengShenStoryCoreSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.FengShenStory.cs") `
     -Raw -Encoding UTF8
-$worldBattlePlaybackSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs") `
+$worldBattlePlaybackSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/WorldBattlePlaybackPresenter.cs") `
     -Raw -Encoding UTF8
-$worldVisualCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/WorldVisualCatalog.cs") `
+$worldBattleReplaySource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.WorldReplay.cs") `
     -Raw -Encoding UTF8
-$fengShenStoryStoreSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Data/FengShenStoryStore.cs") `
+$worldVisualCatalogSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Data/WorldVisualCatalog.cs") `
     -Raw -Encoding UTF8
-$fengShenStoryControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/FengShenStoryController.lua.txt") `
+$fengShenStoryStoreSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Data/FengShenStoryStore.cs") `
+    -Raw -Encoding UTF8
+$fengShenStoryControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Resources/Lua/Gameplay/FengShenStoryController.lua.txt") `
     -Raw -Encoding UTF8
 $guanQiaServerSource = Get-Content -LiteralPath (Join-Path $root "server/src/user_guanqia.cpp") `
     -Raw -Encoding UTF8
@@ -1961,26 +3448,56 @@ $fengShenStorySqliteFixtureSource = Get-Content -LiteralPath (Join-Path $PSScrip
     -Raw -Encoding UTF8
 $cocosItemCellSource = Get-Content -LiteralPath `
     (Join-Path $root "client/ProjectX/src/View/Global/ItemCellUI.lua") -Raw -Encoding UTF8
-$xunBaoControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Gameplay/XunBaoController.lua.txt") -Raw -Encoding UTF8
-$bagControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Bag/BagController.lua.txt") -Raw -Encoding UTF8
-$bootstrapLuaSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt") -Raw -Encoding UTF8
-$xunBaoPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/XunBaoPresenter.cs") -Raw -Encoding UTF8
-$xunBaoOverlaySource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/XunBaoOverlayPresenter.cs") -Raw -Encoding UTF8
-$xunBaoToastSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/ToastPresenter.cs") -Raw -Encoding UTF8
-$cocosTimelineSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/Migration/CocosTimelinePlayer.cs") -Raw -Encoding UTF8
+$xunBaoControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Resources/Lua/Gameplay/XunBaoController.lua.txt") -Raw -Encoding UTF8
+$bagControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Resources/Lua/Bag/BagController.lua.txt") -Raw -Encoding UTF8
+$bootstrapLuaSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Resources/Lua/Bootstrap.txt") -Raw -Encoding UTF8
+$xunBaoPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/XunBaoPresenter.cs") -Raw -Encoding UTF8
+$xunBaoAnimatorPlayerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/XunBaoAnimationPlayer.cs") -Raw -Encoding UTF8
+$xunBaoMainBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/XunBaoNativePrefabBuilder.cs") -Raw -Encoding UTF8
+$xunBaoPopupBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/XunBaoPopupNativePrefabBuilder.cs") -Raw -Encoding UTF8
+$xunBaoResultBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/XunBaoResultNativePrefabBuilder.cs") -Raw -Encoding UTF8
+$xunBaoAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.XunBao.cs") -Raw -Encoding UTF8
+$xunBaoOverlaySource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/XunBaoOverlayPresenter.cs") -Raw -Encoding UTF8
+$xunBaoNativeAnimationValidatorSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/XunBaoNativeAnimationAssetValidator.cs") -Raw -Encoding UTF8
+$xunBaoComposeAllBindingsSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/XunBaoComposeAllViewBindings.cs") -Raw -Encoding UTF8
+$xunBaoComposeAllBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/XunBaoComposeAllNativePrefabBuilder.cs") -Raw -Encoding UTF8
+$xunBaoToastSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/ToastPresenter.cs") -Raw -Encoding UTF8
+$cocosTimelineSource = Get-Content -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/UI/Migration/CocosTimelinePlayer.cs") -Raw -Encoding UTF8
 $serverUtilityHeaderSource = Get-Content -LiteralPath (Join-Path $root "server/src/utility.h") -Raw -Encoding UTF8
 $serverUtilitySource = Get-Content -LiteralPath (Join-Path $root "server/src/utility.cpp") -Raw -Encoding UTF8
 $csbDumpSource = Get-Content -LiteralPath (Join-Path $root "tools/ui_migration/native/csb_dump.cpp") -Raw -Encoding UTF8
-$projectXAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+$projectXAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
 $xunBaoFixtureSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-XunBaoSqliteFixture.py") -Raw -Encoding UTF8
 $xunBaoItemSource = Get-Content -LiteralPath (Join-Path $root "server/config/json/item.json") -Raw -Encoding UTF8
-$xunBaoUnityItemSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/item.json") -Raw -Encoding UTF8
+$xunBaoUnityItemSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Resources/ProjectXData/Configs/item.json") -Raw -Encoding UTF8
 $xunBaoLootingSource = Get-Content -LiteralPath (Join-Path $root "server/config/json/fabao_looting.json") -Raw -Encoding UTF8
 $xunBaoManifest = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/unityclient-modules.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $xunBaoModule = @($xunBaoManifest.modules | Where-Object { $_.key -eq "XunBao" })[0]
 $xunBaoEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "XunBao" })[0]
 $xunBaoFixtureProfiles = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/validation-fixtures.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $xunBaoFixtureProfile = @($xunBaoFixtureProfiles.profiles | Where-Object { $_.key -eq "reversible-xunbao-sqlite-fixed-account" })[0]
+Assert-ToolchainTest (
+    $xunBaoAppSource.Contains('services.UiAssets.GetUnityOrCreate("XunbaoLayer")') -and
+    -not $xunBaoAppSource.Contains('FindBySource("wanfa/XunbaoLayer")') -and
+    $xunBaoPresenterSource.Contains('UnityUiView view') -and
+    -not $xunBaoPresenterSource.Contains('CocosTimelinePlayer') -and
+    $xunBaoPresenterSource.Contains('animationPlayer.Play(QualityPanelName(definition.Quality) + "Compose")') -and
+    $xunBaoAnimatorPlayerSource.Contains('animator.Play(state, 0, 0f);') -and
+    $xunBaoMainBuilderSource.Contains('XunBaoNativeAnimationAssetValidator.ValidateMain()') -and
+    -not $xunBaoMainBuilderSource.Contains('Assets/ProjectX/res/') -and
+    -not $xunBaoMainBuilderSource.Contains('DrawNativeAnimationClipMigrator') -and
+    $xunBaoResultBuilderSource.Contains('XunBaoNativeAnimationAssetValidator.ValidateResult()') -and
+    -not $xunBaoResultBuilderSource.Contains('SourcePrefab') -and
+    -not $xunBaoResultBuilderSource.Contains('DrawNativeAnimationClipMigrator') -and
+    $xunBaoNativeAnimationValidatorSource.Contains('ValidateClipAgainstPrefab') -and
+    $xunBaoNativeAnimationValidatorSource.Contains('AnimationUtility.GetCurveBindings') -and
+    $xunBaoNativeAnimationValidatorSource.Contains('Unity-authored XunBao AnimationClip') -and
+    $xunBaoNativeAnimationValidatorSource.Contains('XunBaoResultViewBindings') -and
+    -not (Test-Path -LiteralPath $drawNativeAnimationParityValidatorPath) -and
+    @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) | Where-Object { $_.name -eq 'XunbaoLayer' }).Count -eq 0 -and
+    $uiPrefabCatalogSource.Contains('source: Unity/XunBao/XunbaoLayer') -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Prefabs/XunBao/XunbaoLayer.prefab')
+) "XunBao main UI or Open/Compose animation generation still depends on Cocos runtime/import manifests."
 Assert-ToolchainTest (
     $xunBaoControllerSource.Contains('Bridge:BeginXunBaoRewardUpdate()') -and
     $xunBaoControllerSource.Contains('Bridge:BeginXunBaoRewardBatch()') -and
@@ -1991,8 +3508,8 @@ Assert-ToolchainTest (
     $xunBaoPresenterSource.Contains('if (bag.GetTotalQuantityByItemId(fragmentId) >= required) return;') -and
     $xunBaoPresenterSource.Contains('RenderFragmentCounts()') -and
     $xunBaoPresenterSource.Contains('CanComposeSelected()') -and
-    $projectXAppSource.Contains('xunBaoResultPresenter.Show(pendingXunBaoRewardBatches.ToArray()') -and
-    $projectXAppSource.Contains('OpenXunBaoSearchTokenBag')
+    $projectXAppAllSource.Contains('xunBaoResultPresenter.Show(pendingXunBaoRewardBatches.ToArray()') -and
+    $projectXAppAllSource.Contains('OpenXunBaoSearchTokenBag')
 ) "XunBao no longer blocks zero-count requests, renders authoritative fragments, opens result rewards, or routes the search token boundary."
 Assert-ToolchainTest (
     -not $xunBaoPresenterSource.Contains('BindActionWithHitTarget') -and
@@ -2007,19 +3524,19 @@ Assert-ToolchainTest (
     $xunBaoPresenterSource.Contains('BindAction(root, "Xunbao/Btn_3"') -and
     $xunBaoPresenterSource.Contains('PlayComposeFeedback()') -and
     $xunBaoPresenterSource.Contains('PlayOpenFeedback()') -and
-    $projectXAppSource.Contains('ShowXunBaoSearchConfirmation') -and
-    $projectXAppSource.Contains('ShowToast("背包中没有搜宝令（道具 402）"') -and
-    $projectXAppSource.Contains('pendingBagSelectionItemId = 402;') -and
-    $projectXAppSource.Contains('InvokeLuaOrFail(onXunBaoSearchTokenBagRequested, "XunBao.SearchTokenPackageSnapshot");') -and
-    $projectXAppSource.Contains('if (pendingBagSelectionItemId > 0)') -and
-    $projectXAppSource.Contains('while ((!IsShopOpen || services.ProtocolRegistry.PendingCount != 0)') -and
-    $projectXAppSource.Contains('XunBao gold add shop boundary did not settle') -and
-    $projectXAppSource.Contains('services.ProtocolRegistry.PendingCount > 0') -and
-    $projectXAppSource.Contains('else if (popped && services.UiStack.Current == gameplayView)') -and
-    $projectXAppSource.Contains('gameplayContentView?.SetVisible(true);') -and
-    $projectXAppSource.Contains('if (IsBagOpen)') -and
-    $projectXAppSource.Contains('bagFlowPresenter?.CloseAll();') -and
-    $projectXAppSource.Contains('bagFrameView?.SetVisible(false);') -and
+    $projectXAppAllSource.Contains('ShowXunBaoSearchConfirmation') -and
+    $projectXAppAllSource.Contains('ShowToast("背包中没有搜宝令（道具 402）"') -and
+    $projectXAppAllSource.Contains('pendingBagSelectionItemId = 402;') -and
+    $projectXAppAllSource.Contains('InvokeLuaOrFail(onXunBaoSearchTokenBagRequested, "XunBao.SearchTokenPackageSnapshot");') -and
+    $projectXAppAllSource.Contains('if (pendingBagSelectionItemId > 0)') -and
+    $projectXAppAllSource.Contains('while ((!IsShopOpen || services.ProtocolRegistry.PendingCount != 0)') -and
+    $projectXAppAllSource.Contains('XunBao gold add shop boundary did not settle') -and
+    $projectXAppAllSource.Contains('services.ProtocolRegistry.PendingCount > 0') -and
+    $projectXAppAllSource.Contains('else if (popped && services.UiStack.Current == gameplayView)') -and
+    $projectXAppAllSource.Contains('gameplayContentView?.SetVisible(true);') -and
+    $projectXAppAllSource.Contains('if (IsBagOpen)') -and
+    $projectXAppAllSource.Contains('bagFlowPresenter?.CloseAll();') -and
+    $projectXAppAllSource.Contains('bagView?.SetVisible(false);') -and
     $bagControllerSource.Contains('function M.requestXunBaoTokenSnapshot()') -and
     $bagControllerSource.Contains('M.xunBaoTokenRequested = true') -and
     $bagControllerSource.Contains('if M.xunBaoTokenRequested then') -and
@@ -2046,12 +3563,21 @@ Assert-ToolchainTest (
     $csbDumpSource.Contains('result.numbers["ColorType"] = value->colorType();') -and
     $xunBaoOverlaySource.Contains('ShowTaskBoundary()') -and
     $xunBaoOverlaySource.Contains('public sealed class XunBaoComposeAllPresenter') -and
-    $xunBaoOverlaySource.Contains('timeline.Play(0, timeline.Duration, false);') -and
-    $xunBaoOverlaySource.Contains('public bool IsAnimationPlaying => timeline?.IsPlaying == true;') -and
-    $xunBaoOverlaySource.Contains('Image closeGraphic = panel.GetComponent<Image>() ?? panel.AddComponent<Image>();') -and
-    $xunBaoOverlaySource.Contains('closeGraphic.color = Color.clear;') -and
-    $xunBaoOverlaySource.Contains('closeGraphic.raycastTarget = true;') -and
-    $xunBaoOverlaySource.Contains('closeButton.targetGraphic = closeGraphic;') -and
+    $xunBaoOverlaySource.Contains('animator.Play(AnimationState, 0, 0f);') -and
+    $xunBaoOverlaySource.Contains('public bool IsAnimationPlaying => animator != null') -and
+    $xunBaoOverlaySource.Contains('GetComponent<XunBaoComposeAllViewBindings>()') -and
+    $xunBaoOverlaySource.Contains('view.BindClickNode(bindings.PanelDismissButton.gameObject, Hide') -and
+    $xunBaoComposeAllBindingsSource.Contains('public sealed class XunBaoComposeAllViewBindings') -and
+    $xunBaoNativeAnimationValidatorSource.Contains('Assets/Prefabs/XunBao/saodang.prefab') -and
+    $xunBaoComposeAllBuilderSource.Contains('XunBaoNativeAnimationAssetValidator.ValidateComposeAll()') -and
+    -not $xunBaoComposeAllBuilderSource.Contains('SourcePrefab') -and
+    -not $xunBaoComposeAllBuilderSource.Contains('DrawNativeAnimationClipMigrator') -and
+    $xunBaoNativeAnimationValidatorSource.Contains('SaoDangComposeAll.anim') -and
+    $projectXAppAllSource.Contains('unityclient/Assets/Prefabs/XunBao/saodang.prefab') -and
+    -not (Test-Path -LiteralPath $drawNativeAnimationParityValidatorPath) -and
+    @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) | Where-Object { $_.name -eq 'saodang' }).Count -eq 0 -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Prefabs/XunBao/saodang.prefab') -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Animations/') -and
     $xunBaoOverlaySource.Contains('listContent = EnsureVerticalLayout(tableView.gameObject);') -and
     $xunBaoOverlaySource.Contains('Instantiate(rowTemplate, listContent, false)') -and
     $xunBaoOverlaySource.Contains('scroll.content = content;') -and
@@ -2073,30 +3599,41 @@ Assert-ToolchainTest (
     $serverUtilitySource.Contains('return MakeStringColor(cfg->name, 4);') -and
     -not $serverUtilitySource.Contains('return MakeStringColor(cfg->name.c_str(), 4).c_str();') -and
     $xunBaoOverlaySource.Contains('public bool IsSequenceComplete') -and
-    $projectXAppSource.Contains('services.UiRouter.FindBySource("common/saodang")') -and
-    $projectXAppSource.Contains('xunBaoComposeAllPresenter.Show(') -and
-    $projectXAppSource.Contains('xunBaoComposeAllPresenter.IsAnimationPlaying') -and
-    $projectXAppSource.Contains('!string.Equals(xunBaoPopupPresenter.ComposeAttributeText, "攻击+400", StringComparison.Ordinal)') -and
-    $projectXAppSource.Contains('!xunBaoPopupPresenter.ComposeAttributeFits') -and
-    $projectXAppSource.Contains('!composeToast.Contains("<color=#FFDA0E>")') -and
-    -not $projectXAppSource.Contains('services.Rewards.Replace("一键合成奖励"') -and
-    -not $projectXAppSource.Contains('foreach (string id in controls) MarkValidationControl(id)') -and
-    $projectXAppSource.Contains('each control was marked only after its own state/raycast/protocol/result assertion')
-) "XunBao real controls regressed to transparent runtime hit targets or lost visible zero-count/timeline feedback."
+    $projectXAppAllSource.Contains('services.UiAssets.GetUnityOrCreate("saodang")') -and
+    -not $projectXAppAllSource.Contains('services.UiRouter.FindBySource("common/saodang")') -and
+    $projectXAppAllSource.Contains('xunBaoComposeAllPresenter.Show(') -and
+    $projectXAppAllSource.Contains('xunBaoComposeAllPresenter.IsAnimationPlaying') -and
+    $projectXAppAllSource.Contains('!string.Equals(xunBaoPopupPresenter.ComposeAttributeText, "攻击+400", StringComparison.Ordinal)') -and
+    $projectXAppAllSource.Contains('!xunBaoPopupPresenter.ComposeAttributeFits') -and
+    $projectXAppAllSource.Contains('!composeToast.Contains("<color=#FFDA0E>")') -and
+    -not $projectXAppAllSource.Contains('services.Rewards.Replace("一键合成奖励"') -and
+    -not $projectXAppAllSource.Contains('foreach (string id in controls) MarkValidationControl(id)') -and
+    $projectXAppAllSource.Contains('each control was marked only after its own state/raycast/protocol/result assertion')
+) "XunBao real controls regressed to transparent runtime hit targets or lost visible zero-count/timeline feedback, or its retired shared Cocos Prefab regained migration components."
 Assert-ToolchainTest (
-    $xunBaoOverlaySource.Contains('InstallTopRightClose(closeTemplate)') -and
-    $xunBaoOverlaySource.Contains('control.name = "RuntimeXunBaoResultClose";') -and
-    $xunBaoOverlaySource.Contains('button.onClick.AddListener(Hide);') -and
+    $xunBaoOverlaySource.Contains('runtimeCloseControl = bindings.CloseButton.gameObject;') -and
+    $xunBaoOverlaySource.Contains('closeButton = view.BindClickNode(runtimeCloseControl, Hide, nodePath: "Layer/Souxun/Popup/RuntimeXunBaoResultClose");') -and
+    $xunBaoOverlaySource.Contains('public Button TaskCloseControl => Require("Layer/Rewards/Popup/Btn_close").GetComponent<Button>();') -and
     $xunBaoOverlaySource.Contains('GameObject iconObject = new GameObject("Icon"') -and
-    $xunBaoOverlaySource.Contains('HeroUI/common_quality_{Mathf.Clamp(reward.Quality, 1, 7):00}') -and
-    $xunBaoOverlaySource.Contains('HeroUI/common_quality_{Mathf.Clamp(reward.quality, 1, 7):00}') -and
+    $xunBaoOverlaySource.Contains('Art/Hero/common_quality_{Mathf.Clamp(reward.Quality, 1, 7):00}') -and
+    $xunBaoOverlaySource.Contains('Art/Hero/common_quality_{Mathf.Clamp(reward.quality, 1, 7):00}') -and
     $xunBaoOverlaySource.Contains('frame.enabled = frame.sprite != null;') -and
     $xunBaoOverlaySource.Contains('iconRect.anchorMin = new Vector2(0.08f, 0.08f);') -and
     $xunBaoOverlaySource.Contains('EnsureHorizontalLayout(rewardList.gameObject);') -and
     $xunBaoOverlaySource.Contains('LayoutRebuilder.ForceRebuildLayoutImmediate(rewardRect);') -and
-    $projectXAppSource.Contains('services.UiRouter.FindBySource("wanfa/Xunbao_popupLayer")') -and
-    $projectXAppSource.Contains('Binding.Find("Layer/Rewards/Popup/Btn_close")')
-) "XunBao visual regression: task rewards, result item frames, or the top-right result close contract is missing."
+    $xunBaoOverlaySource.Contains('XunBaoPopupPresenter(UnityUiView view') -and
+    $xunBaoOverlaySource.Contains('XunBaoOverlayNodeIds.Get(view, path)') -and
+    -not $xunBaoOverlaySource.Contains('Get(CocosUiView view') -and
+    $xunBaoPopupBuilderSource.Contains('XunBaoNativeAnimationAssetValidator.ValidatePopup()') -and
+    -not $xunBaoPopupBuilderSource.Contains('SourcePrefab') -and
+    -not $xunBaoPopupBuilderSource.Contains('DrawNativeAnimationClipMigrator') -and
+    $projectXAppAllSource.Contains('services.UiAssets.GetUnityOrCreate("Xunbao_popupLayer")') -and
+    -not $projectXAppAllSource.Contains('services.UiRouter.FindBySource("wanfa/Xunbao_popupLayer")') -and
+    @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) | Where-Object { $_.name -eq 'Xunbao_popupLayer' }).Count -eq 0 -and
+    $uiPrefabCatalogSource.Contains('source: Unity/XunBao/Xunbao_popupLayer') -and
+    $bootstrapSceneBuilderSource.Contains('Assets/Prefabs/XunBao/Xunbao_popupLayer.prefab') -and
+    $projectXAppAllSource.Contains('InvokeEventSystemRaycastClick(xunBaoPopupPresenter.TaskCloseControl)')
+) "XunBao popup regression: task/search-confirm UI or animation still depends on Cocos identity, loading, or import manifests."
 Assert-ToolchainTest (
     $xunBaoFixtureSource.Contains('TUTORIAL_BIT = 629') -and
     $xunBaoFixtureSource.Contains('SEARCH_COUNT = 20') -and
@@ -2105,6 +3642,8 @@ Assert-ToolchainTest (
     $xunBaoFixtureSource.Contains('FORMAL_HECHENG_JSON') -and
     $xunBaoFixtureSource.Contains('expected_targets = set(range(1002, 1015))') -and
     $xunBaoFixtureSource.Contains('args.action == "AssertMutated"') -and
+    $xunBaoFixtureSource.Contains('for suffix in ("-wal", "-shm"):') -and
+    $xunBaoFixtureSource.Contains('XunBao SQLite sidecars remain after cleanup') -and
     $xunBaoItemSource.Contains('{"id":402,"name":"寻宝令"') -and
     $xunBaoItemSource.Contains('"sub_value":[[60029,5]]') -and
     $xunBaoUnityItemSource.Contains('{"id":402,"name":"寻宝令"') -and
@@ -2112,7 +3651,7 @@ Assert-ToolchainTest (
     $xunBaoLootingSource.Contains('{"id":1,"item":4701,"ratio":40}') -and
     [bool]$xunBaoModule.mutatesServer -and
     @($xunBaoModule.configs) -contains 'server/config/json/fabao_looting.json' -and
-    @($xunBaoModule.prefabs) -contains 'unityclient/Assets/ProjectX/res/csd/Prefabs/common/saodang.prefab' -and
+    @($xunBaoModule.prefabs) -contains 'unityclient/Assets/Prefabs/XunBao/saodang.prefab' -and
     [bool]$xunBaoFixtureProfile.mutatesServer -and
     [string]$xunBaoFixtureProfile.cleanup -eq 'snapshot-relogin-restore-cleanup-assert'
 ) "XunBao lost its formal item/looting data or reversible SQLite mutation contract."
@@ -2128,14 +3667,14 @@ Assert-ToolchainTest (
     }).Count -eq 7 -and
     @($xunBaoEvidenceContract.g5.cocosBaselineInputs) -contains 'client/ProjectX/src/View/Common/SaoDangUI.lua' -and
     @($xunBaoEvidenceContract.g5.cocosBaselineInputs) -contains 'client/ProjectX/res/csd/common/saodang.csb' -and
-    $projectXAppSource.Contains('WriteXunBaoResourceMap(path)') -and
+    $projectXAppAllSource.Contains('WriteXunBaoResourceMap(path)') -and
     $g5PreflightSource.Contains('G5 UI resource map is missing')
 ) "XunBao G5 no longer freezes all seven source states with adjacent UI resource maps."
 Assert-ToolchainTest (
     -not $fengShenStoryRunnerSource.Contains('foreach (string control in allControls) MarkValidationControl(control);') -and
-    $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.InvokeRewardIcon(0)') -and
-    $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.InvokeClosedBox()') -and
-    $fengShenStoryRunnerSource.Contains('fengShenStoryPresenter.InvokeOpenedBox()') -and
+    $projectXAppAllSource.Contains('fengShenStoryPresenter.InvokeRewardIcon(0)') -and
+    $projectXAppAllSource.Contains('fengShenStoryPresenter.InvokeClosedBox()') -and
+    $projectXAppAllSource.Contains('fengShenStoryPresenter.InvokeOpenedBox()') -and
     $fengShenStoryPresenterSource.Contains('public bool InvokeSourceIcon()')
 ) "FengShenStory validation regressed to synthetic control marking or direct modal calls instead of actual bound controls."
 Assert-ToolchainTest (
@@ -2144,7 +3683,7 @@ Assert-ToolchainTest (
     $fengShenStoryPresenterSource.Contains('RewardPicture(reward.Type)') -and
     -not $fengShenStoryPresenterSource.Contains('RewardPicture(reward.Id)') -and
     $fengShenStoryPresenterSource.Contains('new GameObject("RuntimeFengShenItemCell"') -and
-    $fengShenStoryPresenterSource.Contains('HeroUI/common_quality_') -and
+    $fengShenStoryPresenterSource.Contains('Art/Hero/common_quality_') -and
     $cocosItemCellSource.Contains('numLabel:setString(tostring(self.m_pUserDefine.num))') -and
     $fengShenStoryPresenterSource.Contains('RenderItemCell(itemHost, picture, amountValue, visualQuality, false)') -and
     $fengShenStoryPresenterSource.Contains('amount?.text != reward.Amount.ToString()') -and
@@ -2194,11 +3733,11 @@ Assert-ToolchainTest (
     $fengShenStoryRunnerSource.Contains('MarkValidationControl("BFSB-09-RETURN-REWARD-CONFIRM")')
 ) "BattleFengShenStory op26 reward mapping, Cocos RewardGetUI presentation, or real confirmation lifecycle regressed."
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('suppressFengShenSettlementForSkippedPlayback') -and
-    $projectXAppSource.Contains('&& worldBattlePlaybackPresenter.SkipRequested') -and
-    $projectXAppSource.Contains('FengShenStory authoritative result queued until natural playback completes') -and
-    $projectXAppSource.Contains('battle-fengshen-lifecycle-split') -and
-    $projectXAppSource.Contains('natural completion -> authoritative settlement; explicit skip -> direct parent return without settlement')
+    $projectXAppAllSource.Contains('fengShenBattleRuntime.SuppressSettlementForSkippedPlayback') -and
+    $projectXAppAllSource.Contains('&& worldBattlePlaybackPresenter.SkipRequested') -and
+    $projectXAppAllSource.Contains('FengShenStory authoritative result queued until natural playback completes') -and
+    $projectXAppAllSource.Contains('battle-fengshen-lifecycle-split') -and
+    $projectXAppAllSource.Contains('natural completion -> authoritative settlement; explicit skip -> direct parent return without settlement')
 ) "BattleFengShenStory natural-completion settlement and explicit-skip direct-return branches regressed."
 $battleFengShenFixtureSource = Get-Content -LiteralPath `
     (Join-Path $root "tools/unity-migration/Invoke-FengShenStorySqliteFixture.py") -Raw -Encoding UTF8
@@ -2220,15 +3759,19 @@ Assert-ToolchainTest (
     $worldBattlePlaybackSource.Contains('150f / 255f') -and
     $worldBattlePlaybackSource.Contains('1f - Mathf.GammaToLinearSpace(1f - 150f / 255f)') -and
     $worldBattlePlaybackSource.Contains('Mathf.InverseLerp(.9f, 1.1f') -and
-    $worldBattlePlaybackSource.Contains('ResolvePetQualityEffectResource(unit.Type, unit.Quality)') -and
-    $worldBattlePlaybackSource.Contains('"res2/animation/battle/quality3"') -and
+    $worldBattlePlaybackSource.Contains('ResolvePetQualityEffectSprite(unit.Type, unit.Quality)') -and
+    $worldBattlePlaybackSource.Contains('Animations/World/BattleEffects/Quality/quality') -and
     $worldBattlePlaybackSource.Contains('UpdateRoundDisplay(Mathf.Max(1, store.CurrentTurn));') -and
     $worldBattlePlaybackSource.Contains('startShade.transform.SetAsLastSibling();') -and
     $worldBattlePlaybackSource.Contains('startEffect.transform.SetAsLastSibling();') -and
-    $projectXAppSource.Contains('worldBattlePlaybackPresenter.SetBattleStartElapsed(battleStartElapsed);')
+    $worldBattlePlaybackSource.Contains('Animations/World/BattleStart/zhandoukaishi') -and
+    $worldBattlePlaybackSource.Contains('CreateBattleStartFrames()') -and
+    $worldBattlePlaybackSource.Contains('Mathf.FloorToInt(animationElapsed * 6f)') -and
+    -not $worldBattlePlaybackSource.Contains('startEffect.LoadLegacy("res2/fx/zhandoukaishi")') -and
+    $worldBattleReplaySource.Contains('worldBattlePlaybackPresenter.SetBattleStartElapsed(battleStartElapsed);')
 ) "Battle start presentation no longer matches the current Cocos 150-alpha shade, 0.9/0.2 timing, or effect-over-shade layering."
 Assert-ToolchainTest (
-    $fengShenStoryPresenterSource.Contains('GameObject rewardLayer = rewardView.Binding.Find("Layer")') -and
+    $fengShenStoryPresenterSource.Contains('GameObject rewardLayer = FindViewNode(rewardView, "Layer")') -and
     $fengShenStoryPresenterSource.Contains('1f - Mathf.GammaToLinearSpace(1f - 150f / 255f)') -and
     $fengShenStoryPresenterSource.Contains('rewardDimmer.raycastTarget = true;') -and
     $fengShenStoryPresenterSource.Contains('int visualQuality = picture == 3005 ? 3 : quality;') -and
@@ -2236,16 +3779,16 @@ Assert-ToolchainTest (
 ) "BattleFengShenStory return reward no longer preserves the current Cocos modal dimmer and blocked-background lifecycle."
 Assert-ToolchainTest (
     $fengShenStoryPresenterSource.Contains('private bool EnsureLevelView()') -and
-    $fengShenStoryPresenterSource.Contains('CocosUiView current = resolveLevelView();') -and
+    $fengShenStoryPresenterSource.Contains('UnityUiView current = resolveLevelView();') -and
     $fengShenStoryPresenterSource.Contains('BindLevelView(current);') -and
     $fengShenStoryPresenterSource.Contains('public bool IsLevelPopupVisible => levelView?.GameObject?.activeSelf == true;') -and
-    $projectXAppSource.Contains('() => services.UiRouter.FindBySource("fengshenliezhuan/fengshenliezhuanlevel")')
+    $projectXAppSource.Contains('() => services.UiRouter.FindByKey(UiPrefabKey.FengShenStoryLevel)')
 ) "FengShenStory real stage clicks no longer recover a rebuilt level view after repeated Editor Play or scene-object refresh."
 Assert-ToolchainTest (
     $fengShenStoryPresenterSource.Contains('formationButton = Bind(levelRoot, "Popup/Btn_buzhen", OnFormationClicked);') -and
     $fengShenStoryPresenterSource.Contains('SetVisible(node.Find("Image_4"), isCurrent);') -and
     $fengShenStoryPresenterSource.Contains('public int RenderedCurrentStageMarkerCount => renderedCurrentStageMarkerCount;') -and
-    $projectXAppSource.Contains('battle-fengshen-stage-markers') -and
+    $fengShenStoryCoreSource.Contains('battle-fengshen-stage-markers') -and
     [regex]::IsMatch($fengShenStoryPresenterSource,
         'private void OnFightClicked\(\)[\s\S]*?store.BeginChallenge\(\);\s*challenge\(\);[\s\S]*?CloseLevelPopup\(\);\s*\}') -and
     [regex]::IsMatch($fengShenStoryPresenterSource,
@@ -2259,6 +3802,39 @@ Assert-ToolchainTest (
     [regex]::IsMatch($fixedAccountRunnerSource,
         'if \(\$dataBackend -eq "sqlite"\)[\s\S]*?Get-Process kapai[\s\S]*?Wait-FixedRuntimeRelease[\s\S]*?Invoke-FixedAdapter "AssertSetup"')
 ) "SQLite fixed-account post-validation assertion can run while kapai.exe still owns the persistent database."
+Assert-ToolchainTest (
+    $fixedAccountRunnerSource.Contains('[switch]$AllowUnityEditorForDataPreflight') -and
+    [regex]::IsMatch($fixedAccountRunnerSource,
+        'if \(\$AllowUnityEditorForDataPreflight -and -not \$DataPreflightOnly\)[\s\S]*?requires the one interactive Unity Editor for this exact project') -and
+    $fixedAccountRunnerSource.Contains('Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcessMetadata') -and
+    [regex]::IsMatch($fixedAccountRunnerSource,
+        '\$runningRuntimeProcesses = @\(Get-Process kapai,ProjectX[\s\S]*?\$runningUnityProcesses = @\(Get-Process Unity[\s\S]*?\$runningRuntimeProcesses\.Count -gt 0')
+) "The idle Unity Editor override must be restricted to a single interactive project-matching DataPreflightOnly run while kapai.exe and ProjectX.exe stay stopped."
+$worldFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-WorldCocosFixture.ps1") `
+    -Raw -Encoding UTF8
+$xunBaoFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-XunBaoSqliteFixture.ps1") `
+    -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $fixedAccountRunnerSource.Contains('if ($AllowUnityEditorForDataPreflight) { $adapterArguments += "-AllowUnityEditorForDataPreflight" }') -and
+    $worldFixtureSource.Contains('[switch]$AllowUnityEditorForDataPreflight') -and
+    $worldFixtureSource.Contains('Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcessMetadata') -and
+    [regex]::IsMatch($worldFixtureSource,
+        'if \(\$AllowUnityEditorForDataPreflight -and \$Action -notin @\("Setup", "SetupChapterUnlock", "SetupAchievementUnlock", "AssertSetup", "AssertRuntimeSetup", "Restore", "AssertRestored", "AssertReloginHash", "Cleanup", "AssertCleanup"\)\)[\s\S]*?requires the one interactive Unity Editor for this exact project') -and
+    [regex]::IsMatch($worldFixtureSource,
+        '\$runningRuntime = @\(Get-Process kapai, ProjectX[\s\S]*?\$runningUnity = @\(Get-Process Unity[\s\S]*?\$runningRuntime\.Count -gt 0')
+) "World SQLite DataPreflightOnly must pass the narrowly scoped idle-editor exception through its fixture adapter while runtime clients stay blocked."
+Assert-ToolchainTest (
+    $xunBaoFixtureSource.Contains('Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcessMetadata') -and
+    $commonSource.Contains('function Get-UnityMigrationInteractiveUnityEditors') -and
+    $commonSource.Contains("-adb2") -and
+    $commonSource.Contains('AssetImportWorker')
+) "Login, World and XunBao preflight must ignore Unity batch AssetImportWorker children when validating one interactive Editor."
+Assert-ToolchainTest (
+    [regex]::IsMatch($fixedAccountRunnerSource,
+        'function Wait-FixedRuntimeRelease\(\[switch\]\$AllowUnityEditor\)[\s\S]*?if \(-not \$AllowUnityEditor\)[\s\S]*?Get-Process Unity') -and
+    [regex]::IsMatch($fixedAccountRunnerSource,
+        'Invoke-FixedAdapter "Restore"\s*Invoke-FixedAdapter "AssertRestored"\s*if \(\$Module -eq "World"\)[\s\S]*?Invoke-FixedAdapter "AssertReloginHash"\s*\}\s*Invoke-FixedAdapter "Cleanup"')
+) "World DataPreflightOnly must verify restored state after login before fixture cleanup while the validated Editor remains open."
 $heroEquipFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-HeroEquipFixture.ps1") `
     -Raw -Encoding UTF8
 $heroEquipSqliteFixtureSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot "Invoke-HeroEquipSqliteFixture.py") `
@@ -2315,7 +3891,40 @@ Assert-ToolchainTest (
     $heroCultivationSqliteFixtureSource.Contains('FABAO_MATERIAL_TEMPLATES = (615, 616, 617)') -and
     $heroCultivationSqliteFixtureSource.Contains('material chooser has 12 records without creating missing definitions')
 ) "HeroCultivation SQLite fixture cannot recover a partial reserved equipment or FaBao set left by a prior module."
-$heroPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroPresenter.cs") -Raw -Encoding UTF8
+$heroPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/HeroPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $heroPresenterSource.Contains('UnityNativeHeroPreviewAnimation') -and
+    -not $heroPresenterSource.Contains('ImodAnimationPlayer') -and
+    -not $heroPresenterSource.Contains('CreateAnimModel') -and
+    -not $heroPresenterSource.Contains('PlayStand(') -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/UnityNativeHeroAnimationBaker.cs")) -and
+    -not (Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/UnityNativeHeroAnimationValidator.cs") -Raw -Encoding UTF8).Contains('ImodAnimationData') -and
+    (Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/UnityNativeHeroPreviewAnimation.cs") -Raw -Encoding UTF8).Contains('LoadAction(picture, "_zd_show", 0)')
+) "Hero detail model regressed to the Cocos Imod runtime instead of Unity-native Animator assets."
+$drawPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/DrawPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $drawPresenterSource.Contains('UnityNativeHeroPreviewAnimation') -and
+    -not $drawPresenterSource.Contains('ImodAnimationPlayer') -and
+    -not $drawPresenterSource.Contains('LoadLegacy(')
+) "Draw hero result or detail preview regressed to the legacy Imod animation runtime."
+$heroRebirthPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/HeroRebirthPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $heroRebirthPresenterSource.Contains('UnityNativeHeroPreviewAnimation') -and
+    -not $heroRebirthPresenterSource.Contains('ImodAnimationPlayer') -and
+    -not $heroRebirthPresenterSource.Contains('LoadLegacy(') -and
+    (Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/UnityNativeHeroPreviewAnimation.cs") -Raw -Encoding UTF8).Contains('public bool IsLoaded =>')
+) "Hero rebirth preview regressed to the legacy Imod animation runtime."
+$fengShenStoryPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/FengShenStoryPresenter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $fengShenStoryPresenterSource.Contains('UnityNativeHeroPreviewAnimation') -and
+    -not $fengShenStoryPresenterSource.Contains('ImodAnimationPlayer') -and
+    -not $fengShenStoryPresenterSource.Contains('LoadLegacy(')
+) "FengShenStory enemy preview regressed to the legacy Imod animation runtime."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('UnityNativeHeroPreviewAnimation') -and
+    -not $projectXAppSource.Contains('ImodAnimationPlayer') -and
+    -not $projectXAppSource.Contains('LoadLegacy(')
+) "Hero cultivation preview regressed to the legacy Imod animation runtime."
 Assert-ToolchainTest (
     $heroEquipSqliteFixtureSource.Contains('args.action in ("Setup", "SetupG5Visual")') -and
     $heroEquipSqliteFixtureSource.Contains('assert_visual_setup') -and
@@ -2336,7 +3945,7 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('heroEquipmentPresenter.ShowCultivationTab(3)') -and
     $projectXAppSource.Contains('toastPresenter?.Clear()') -and
     $projectXAppSource.Contains('Layer/Popup/itemlayer_1/times') -and
-    $projectXAppSource.Contains('GameplayIcons/ui_main_icon_xuezhan') -and
+    $projectXAppSource.Contains('Art/Icons/Gameplay/ui_main_icon_xuezhan') -and
     $heroPresenterSource.Contains('(value.Slot == slot || value.Slot + 4 == slot)') -and
     $bootstrapRunnerSource.Contains('bool heroEquipmentG5VisualValidation') -and
     $bootstrapRunnerSource.Contains('checkingHeroEquipment ? heroEquipmentG5VisualValidation ? !app.IsHeroOpen : !app.IsHeroEquipmentOpen')
@@ -2371,14 +3980,14 @@ Assert-ToolchainTest (
     [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalUserId -eq 7200057 -and
     [uint32]$fengShenStoryEvidenceContract.fixedAccount.terminalRoleId -eq 1000003 -and
     @($fengShenStoryEvidenceContract.fixedAccount.extraFlags) -contains '-projectXFengShenStoryIsolationUserId=705213' -and
-    $projectXAppSource.Contains('primaryUserId != 7200057 || primaryRoleId != 1000003 || isolationUserId != 705213')
+    $fengShenStoryCoreSource.Contains('primaryUserId != 7200057 || primaryRoleId != 1000003 || isolationUserId != 705213')
 ) "FengShenStory evidence contract no longer expects the restored primary terminal identity while retaining the isolation-account run flag."
 
 $startServerSource = Get-Content -LiteralPath (Join-Path $root "tools/local/Start-Server.ps1") -Raw -Encoding UTF8
 $staminaFixtureSource = Get-Content -LiteralPath (Join-Path $root "tools/unity-migration/Invoke-StaminaClaimCocosFixture.ps1") -Raw -Encoding UTF8
-$staminaRunnerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
-$staminaControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/StaminaClaim/StaminaClaimController.lua.txt") -Raw -Encoding UTF8
-$staminaFrameSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/ProjectX/src/UI/WelfareActivityFramePresenter.cs") -Raw -Encoding UTF8
+$staminaRunnerSource = $projectXAppAllSource
+$staminaControllerSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Resources/Lua/StaminaClaim/StaminaClaimController.lua.txt") -Raw -Encoding UTF8
+$staminaFrameSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/WelfareActivityFramePresenter.cs") -Raw -Encoding UTF8
 $serverPackDealSource = Get-Content -LiteralPath (Join-Path $root "server/src/pack_deal.cpp") -Raw -Encoding UTF8
 $staminaEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "StaminaClaim" })[0]
 Assert-ToolchainTest (
@@ -2490,32 +4099,34 @@ $mailEvidenceContract = @($allEvidenceContracts.modules |
 $mailSqliteFixtureSource = Get-Content -LiteralPath `
     (Join-Path $root "tools/unity-migration/Invoke-MailSqliteFixture.ps1") -Raw -Encoding UTF8
 $mailPresenterSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/MailPresenter.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/UI/MailPresenter.cs") -Raw -Encoding UTF8
+$mailUiSource = Get-Content -LiteralPath `
+    (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.MailUi.cs") -Raw -Encoding UTF8
 $shopPresenterSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/ShopPresenter.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/UI/ShopPresenter.cs") -Raw -Encoding UTF8
 $taskPresenterSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/TaskPresenter.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/UI/TaskPresenter.cs") -Raw -Encoding UTF8
 $welfarePresenterSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/WelfarePresenter.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/UI/WelfarePresenter.cs") -Raw -Encoding UTF8
 $itemQualityVisualSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/ItemQualityVisual.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/UI/ItemQualityVisual.cs") -Raw -Encoding UTF8
 $mailControllerSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Mail/MailController.lua.txt") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/Resources/Lua/Mail/MailController.lua.txt") -Raw -Encoding UTF8
 $bagFlowPresenterSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/UI/BagFlowPresenter.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/UI/BagFlowPresenter.cs") -Raw -Encoding UTF8
 $shopCatalogSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/Data/ShopCatalog.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/Data/ShopCatalog.cs") -Raw -Encoding UTF8
 $projectXAppSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
 $functionRouteCatalogSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/src/Core/FunctionRouteCatalog.cs") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/src/Data/FunctionRouteCatalog.cs") -Raw -Encoding UTF8
 $functionRouteConfig = @(Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/function-routes.json") -Raw -Encoding UTF8 |
+    (Join-Path $root "unityclient/Assets/Resources/ProjectXData/Configs/function-routes.json") -Raw -Encoding UTF8 |
     ConvertFrom-Json)
 $bagControllerSource = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Bag/BagController.lua.txt") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/Resources/Lua/Bag/BagController.lua.txt") -Raw -Encoding UTF8
 $dailyTaskConfig = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXData/Tasks/daily_tasks.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+    (Join-Path $root "unityclient/Assets/Resources/ProjectXData/Tasks/daily_tasks.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $configuredTaskJumpIds = @($dailyTaskConfig.items |
     Where-Object { [int]$_.type -eq 2 -and [int]$_.jump -gt 0 } |
     ForEach-Object { [int]$_.jump } | Sort-Object -Unique)
@@ -2541,18 +4152,19 @@ Assert-ToolchainTest (
     }).Count -eq 0
 ) "Steam-excluded Task jump ids are no longer explicitly blocked by the shared route catalog."
 Assert-ToolchainTest (
-    $functionRouteCatalogSource.Contains('private const string ResourcePath = "Configs/function-routes";') -and
+    $functionRouteCatalogSource.Contains('private const string ResourcePath = "ProjectXData/Configs/function-routes";') -and
     $functionRouteCatalogSource.Contains('JsonConvert.DeserializeObject<RouteRow[]>')
 ) "FunctionRouteCatalog no longer loads the data-driven function-routes config."
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('private static bool CanOpenBagSource(int functionId) => FunctionRouteCatalog.CanOpen(functionId);') -and
-    $projectXAppSource.Contains('return item.Jump == 0 || FunctionRouteCatalog.CanOpen(item.Jump);') -and
-    $projectXAppSource.Contains('HandleConfiguredFunctionRoute(item.Jump, "Task");') -and
-    $projectXAppSource.Contains('HandleConfiguredFunctionRoute(functionId, "Bag source");')
+    $projectXAppAllSource.Contains('private static bool CanOpenBagSource(int functionId) => FunctionRouteCatalog.CanOpen(functionId);') -and
+    $projectXAppAllSource.Contains('return item.Jump == 0 || FunctionRouteCatalog.CanOpen(item.Jump);') -and
+    $projectXAppAllSource.Contains('HandleConfiguredFunctionRoute(item.Jump, "Task");') -and
+    $projectXAppAllSource.Contains('HandleConfiguredFunctionRoute(functionId, "Bag source");')
 ) "Task and Bag source navigation no longer share FunctionRouteCatalog policy and dispatch."
 Assert-ToolchainTest (
     $projectXAppSource -match '(?s)private void BeginConfiguredCultivationRoute\(HeroEquipmentKind kind, int mode\).{0,700}CloseBagForItemJump\(\);.{0,300}heroEquipmentOpenPending = true;' -and
-    $bagControllerSource.Contains('M.drawHeaderRequested or M.equipmentSnapshotCallback ~= nil')
+    $bagControllerSource.Contains('local headerOnly = M.happyWheelKeyRequested or M.drawHeaderRequested or M.xunBaoHeaderRequested') -and
+    $bagControllerSource.Contains('or M.equipmentSnapshotCallback ~= nil')
 ) "Configured cultivation routes no longer isolate the equipment /8 snapshot from ordinary Bag navigation."
 Assert-ToolchainTest (
     $taskPresenterSource.Contains('Image hitArea = panel.gameObject.AddComponent<Image>();') -and
@@ -2562,10 +4174,13 @@ Assert-ToolchainTest (
 ) "Task activity boxes without a Prefab Graphic no longer receive a runtime raycast hit area."
 Assert-ToolchainTest (
     $taskPresenterSource.Contains('SetActivityBoxClaimableEffect(panel, box.State == 1);') -and
-    $taskPresenterSource.Contains('player.LoadLegacy("res2/animation/effect_tuitu_1")') -and
-    $taskPresenterSource.Contains('player.SetVisualScale(0.8f);') -and
-    $taskPresenterSource.Contains('player.Play(0, true);')
-) "Claimable Task activity boxes no longer reproduce the Cocos receivable effect_tuitu_1 loop."
+    $taskPresenterSource.Contains('Animations/Task/Effects/TaskClaimableEffect') -and
+    $taskPresenterSource.Contains('RuntimeClaimableEffect') -and
+    $taskPresenterSource.Contains('effect?.gameObject.SetActive(false);') -and
+    -not $taskPresenterSource.Contains('ImodAnimationPlayer') -and
+    -not $taskPresenterSource.Contains('effect_tuitu_1') -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/Effects/Task/Effects/TaskClaimableEffect.prefab') -PathType Leaf)
+) "Claimable Task activity boxes regressed from Unity-native animation assets to the Cocos Imod chain."
 Assert-ToolchainTest (
     [string]$mailEvidenceContract.fixedAccount.dataBackend -eq 'sqlite' -and
     [string]$mailEvidenceContract.fixedAccount.sqlitePath -eq
@@ -2585,10 +4200,10 @@ Assert-ToolchainTest (
     $bagFlowPresenterSource.Contains('itemCatalog.TryGetItemPresentation(displayItemId') -and
     $shopCatalogSource.Contains('public bool TryGetItemPresentation') -and
     $shopCatalogSource.Contains('Match sourceMatch = Regex.Match(entry') -and
-    $projectXAppSource.Contains('Login system broadcasts are transient overlays, not part of the Mail state.')
+    $projectXAppAllSource.Contains('Login system broadcasts are transient overlays, not part of the Mail state.')
 ) "Mail current-frame parity no longer freezes six visible attachment cells, Cocos item detail text, and stable toast-free captures."
 Assert-ToolchainTest (
-    $itemQualityVisualSource.Contains('HeroUI/common_quality_{Mathf.Clamp(quality, 1, 7):00}') -and
+    $itemQualityVisualSource.Contains('Art/Hero/common_quality_{Mathf.Clamp(quality, 1, 7):00}') -and
     $itemQualityVisualSource.Contains('rect.anchorMin = new Vector2(0.08f, 0.08f);') -and
     $itemQualityVisualSource.Contains('rect.anchorMax = new Vector2(0.92f, 0.92f);') -and
     $mailPresenterSource.Contains('ItemQualityVisual.ApplyFrame(cell.GetComponent<Image>(), item.Quality, resources);') -and
@@ -2613,8 +4228,25 @@ Assert-ToolchainTest (
     $mailPresenterSource.Contains('public void SuppressNextAutomaticRead() => suppressNextAutomaticRead = true;') -and
     $mailPresenterSource.Contains('SelectInternal(found ? selectedId : items[0].Id, allowAutomaticRead);') -and
     $mailPresenterSource.Contains('if (allowAutomaticRead && !item.IsRead && !item.HasAttachments) read(id);') -and
-    $projectXAppSource.Contains('if (services.Mails.HasHistory) mailPresenter?.SuppressNextAutomaticRead();')
+    $projectXAppAllSource.Contains('if (services.Mails.HasHistory) mailPresenter?.SuppressNextAutomaticRead();')
 ) "Mail delete-all can race the automatic /128 op=4 read response and leave the selected read mail in the list."
+Assert-ToolchainTest (
+    $projectXAppSource.Contains('private UnityUiView mailView;') -and
+    $mailUiSource.Contains('services.UiAssets.GetUnityOrCreate("MailLayer")') -and
+    $mailPresenterSource.Contains('public MailPresenter(UnityUiView view, UnityUiView frameView') -and
+    -not $mailPresenterSource.Contains('CocosUiView') -and
+    -not $mailPresenterSource.Contains('GetSerializedNodeByActionTag') -and
+    [regex]::IsMatch($uiPrefabCatalogSource,
+        '(?m)^  - key: MailLayer\r?\n    source: Unity/MailLayer\r?$') -and
+    @($uiImportManifest.documents | Where-Object { [string]$_.name -eq "MailLayer" }).Count -eq 0 -and
+    $bootstrapSceneBuilderSource.Contains('private const string MailPrefab = "Assets/Prefabs/Mail/MailLayer.prefab";')
+) "Mail runtime, Catalog, or importer route regressed to Cocos-owned UI assets or ActionTag lookup."
+Assert-ToolchainTest (
+    $mailSqliteFixtureSource.Contains('[switch]$AllowUnityEditorForDataPreflight') -and
+    $mailSqliteFixtureSource.Contains('Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcesses') -and
+    $mailSqliteFixtureSource.Contains('Stop Unity.exe before Mail SQLite fixture') -and
+    $mailSqliteFixtureSource.Contains('$commandLine.IndexOf($normalizedDatabasePath')
+) "Mail data-preflight adapter no longer safely permits only the active project Editor without allowing fixture-database lock conflicts."
 Assert-ToolchainTest (
     $serverPackDealSource.Contains('const uint32 fixtureBaseTime = (uint32)(GetSysTime() / 86400 * 86400 + 43200);') -and
     $serverPackDealSource.Contains('fixtureBaseTime - index') -and
@@ -2705,13 +4337,13 @@ Assert-ToolchainTest (
 $youLiScenario = Get-UnityMigrationScenario -Root $root -ModuleKey "YouLi"
 $youLiSourceContracts = @($youLiScenario.sourceContracts)
 $youLiLuaContract = @($youLiSourceContracts | Where-Object {
-    [string]$_.path -eq 'unityclient/Assets/ProjectX/Resources/Lua/Gameplay/YouLiController.lua.txt'
+    [string]$_.path -eq 'unityclient/Assets/Resources/Lua/Gameplay/YouLiController.lua.txt'
 })[0]
 $youLiAppContract = @($youLiSourceContracts | Where-Object {
-    [string]$_.path -eq 'unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs'
+    [string]$_.path -eq 'unityclient/Assets/src/Core/ProjectXApp.cs'
 })[0]
 $youLiPresenterContract = @($youLiSourceContracts | Where-Object {
-    [string]$_.path -eq 'unityclient/Assets/ProjectX/src/UI/YouLiPresenter.cs'
+    [string]$_.path -eq 'unityclient/Assets/src/UI/YouLiPresenter.cs'
 })[0]
 Assert-ToolchainTest (
     @($youLiLuaContract.contains) -contains 'function M.startBatch' -and
@@ -2764,13 +4396,13 @@ Assert-ToolchainTest (
 ) "SQLite/MySQL report comparison no longer gates XunBao runtime and restart semantic equality."
 
 $localServerSupervisorSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/src/Core/LocalServerSupervisor.cs") -Raw -Encoding UTF8
+    "unityclient/Assets/src/Core/LocalServerSupervisor.cs") -Raw -Encoding UTF8
 $projectXAppSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
+    "unityclient/Assets/src/Core/ProjectXApp.cs") -Raw -Encoding UTF8
 $localServerProbeSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/src/Editor/LocalServerSupervisorProbe.cs") -Raw -Encoding UTF8
+    "unityclient/Assets/src/Editor/LocalServerSupervisorProbe.cs") -Raw -Encoding UTF8
 $editorServerBuildGuardSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/src/Editor/EditorLocalServerBuildGuard.cs") -Raw -Encoding UTF8
+    "unityclient/Assets/src/Editor/EditorLocalServerBuildGuard.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $localServerSupervisorSource.Contains('Application.streamingAssetsPath, "ProjectXServer"') -and
     $localServerSupervisorSource.Contains('Application.persistentDataPath, "LocalServer"') -and
@@ -2778,18 +4410,14 @@ Assert-ToolchainTest (
     $localServerSupervisorSource.Contains('return !Application.isEditor || !Application.isBatchMode;') -and
     $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, ".local", "server-build", "server-win", "Debug")') -and
     $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "unityserver", "config")') -and
-    $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "server", "sql", "sqlite", "001_initial_schema.sql")')
+    $localServerSupervisorSource.Contains('Path.Combine(repositoryRoot, "unityserver", "sql", "sqlite", "001_initial_schema.sql")')
 ) "S6 supervisor no longer isolates immutable packaged assets from the writable player database or the external-server validation path."
-$localServerPreparationIndex = $projectXAppSource.IndexOf(
-    'StartCoroutine(PrepareLocalServerThenInitialize(launchOptions))',
-    [StringComparison]::Ordinal)
-$gameServicesConstructionIndex = $projectXAppSource.IndexOf(
-    'services = new GameServices(this, launchOptions, canvas.transform);',
-    [StringComparison]::Ordinal)
 Assert-ToolchainTest (
-    $localServerPreparationIndex -ge 0 -and
-    $gameServicesConstructionIndex -ge 0 -and
-    $localServerPreparationIndex -lt $gameServicesConstructionIndex
+    [regex]::IsMatch($projectXAppStartupSource,
+        'if \(LocalServerSupervisor\.ShouldRun\(launchOptions\)\)\s*\{\s*StartCoroutine\(PrepareLocalServerThenInitialize\(launchOptions\)\);\s*return;') -and
+    [regex]::IsMatch($projectXAppStartupSource,
+        'private IEnumerator PrepareLocalServerThenInitialize\(AppLaunchOptions launchOptions\)[\s\S]*?while \(!localServerSupervisor\.IsTerminal\)[\s\S]*?if \(!localServerSupervisor\.IsReady\)[\s\S]*?InitializeApplication\(launchOptions\);') -and
+    $projectXAppStartupSource.Contains('services = new GameServices(this, launchOptions, canvas.transform);')
 ) "S6 local-server preparation no longer occurs before GameServices construction and network initialization."
 Assert-ToolchainTest (
     $localServerSupervisorSource.Contains('端口 {port} 已被其他程序占用') -and
@@ -2822,7 +4450,7 @@ Assert-ToolchainTest (
     $serverBuildSource.Contains('Test-Path (Join-Path $sharedCandidate "scripts\buildsystems\vcpkg.cmake")')
 ) "Detached worktree server builds no longer discover the primary checkout's shared vcpkg dependency cache."
 $steamBuildSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/src/Editor/SteamWindowsBuild.cs") -Raw -Encoding UTF8
+    "unityclient/Assets/src/Editor/SteamWindowsBuild.cs") -Raw -Encoding UTF8
 $serverMainSource = Get-Content -LiteralPath (Join-Path $root "server/src/main.cpp") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $serverMainSource.Contains('const char *listenIp = localTest ? "127.0.0.1" : NULL;') -and
@@ -2868,8 +4496,8 @@ Assert-ToolchainTest (
     ([regex]::Matches($serverPackDealSource, 'RepairLocalRoleNullFields\(pDb, roleId\)').Count -ge 2)
 ) "S8 local role creation no longer normalizes nullable role_info fields for both the default account and explicit role creation paths."
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('autoInvoke || HasCommandLineFlag("-projectXS8StartupAcceptance")') -and
-    $projectXAppSource.Contains('StartCoroutine(InvokeButtonNextFrame(button))')
+    $projectXAppAllSource.Contains('autoInvoke || HasCommandLineFlag("-projectXS8StartupAcceptance")') -and
+    $projectXAppAllSource.Contains('StartCoroutine(InvokeButtonNextFrame(button))')
 ) "S8 packaged startup acceptance no longer invokes the same bound enter-game Button used by a normal player."
 
 $manifestForWorkflow = (Import-UnityMigrationManifest -Root $root).Value
@@ -2883,26 +4511,26 @@ Assert-ToolchainTest (
 $heroEquipMatrix = (Import-UnityMigrationJson -Root $root `
     -Path "docs/unityclient/matrices/HERO_EQUIPMENT_CONTROLS.json").Value
 $heroEquipmentPresenterSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
+    "unityclient/Assets/src/UI/HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
 $heroEquipmentCultivatePrefabSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/res/csd/Prefabs/zhuangbeiyangcheng/zhuangbeiyangcheng.prefab") -Raw -Encoding UTF8
+    "unityclient/Assets/Prefabs/Hero/Equipment/zhuangbeiyangcheng.prefab") -Raw -Encoding UTF8
 $heroEquipmentControllerSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/Resources/Lua/Hero/EquipmentController.lua.txt") -Raw -Encoding UTF8
+    "unityclient/Assets/Resources/Lua/Hero/EquipmentController.lua.txt") -Raw -Encoding UTF8
 $heroEquipmentHeroControllerSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt") -Raw -Encoding UTF8
+    "unityclient/Assets/Resources/Lua/Hero/HeroController.lua.txt") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $heroEquipmentControllerSource.Contains('Bridge:HasCommandLineFlag("-projectXHeroEquipG5VisualValidation")') -and
     $heroEquipmentControllerSource.Contains('elseif M.openPending then') -and
     $heroEquipmentControllerSource.Contains('Bridge:ShowHeroEquipment(M.openKind)')
 ) "HeroEquip G5 visual list refresh no longer resolves openPending into the equipment surface."
 $heroEquipmentBootstrapSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/Resources/Lua/Bootstrap.txt") -Raw -Encoding UTF8
+    "unityclient/Assets/Resources/Lua/Bootstrap.txt") -Raw -Encoding UTF8
 $heroEquipmentCatalogSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/src/Data/EquipmentCatalog.cs") -Raw -Encoding UTF8
+    "unityclient/Assets/src/Data/EquipmentCatalog.cs") -Raw -Encoding UTF8
 $virtualListSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/src/UI/VirtualList.cs") -Raw -Encoding UTF8
+    "unityclient/Assets/src/UI/VirtualList.cs") -Raw -Encoding UTF8
 $toastPresenterSource = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/ProjectX/src/UI/ToastPresenter.cs") -Raw -Encoding UTF8
+    "unityclient/Assets/src/UI/ToastPresenter.cs") -Raw -Encoding UTF8
 $heroEquipmentServerSource = Get-Content -LiteralPath (Join-Path $root `
     "server/src/pet_equip_manage.cpp") -Raw -Encoding UTF8
 $heroEquipModuleSource = Get-Content -LiteralPath (Join-Path $root `
@@ -2959,11 +4587,19 @@ Assert-ToolchainTest (
     -not $heroEquipmentPresenterSource.Contains('ShowCultivationEffect(effectIndex, currentLevel > 0);')
 ) "HeroEquip early-play regression: cultivation page rendering once again starts success effects."
 Assert-ToolchainTest (
+    $heroEquipmentPresenterSource.Contains('public bool CultivationEffectsReady => cultivationEffects.Count == 9') -and
+    $heroEquipmentPresenterSource.Contains('Animations/HeroEquipment/EquipmentCultivation_{index}') -and
+    $heroEquipmentPresenterSource.Contains('RuntimeUnityNativeCultivationEffect') -and
+    -not $heroEquipmentPresenterSource.Contains('ImodAnimationPlayer') -and
+    -not $heroEquipmentPresenterSource.Contains('LoadLegacy(') -and
+    -not $heroEquipmentPresenterSource.Contains('res2/animation/effect_zhuangbeiyangcheng_')
+) "HeroEquip cultivation effect route regressed to the Cocos-derived Imod animation runtime."
+Assert-ToolchainTest (
     $heroEquipmentPresenterSource.Contains('public bool IsCultivationSubviewExclusive(int mode)') -and
     $heroEquipmentPresenterSource.Contains('private void SetEquipmentCultivationSubview(int mode)') -and
     $heroEquipmentPresenterSource.Contains('active.Count(value => value) == 1 && active[mode]') -and
-    $projectXAppSource.Contains('SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeijuexing"') -and
-    $projectXAppSource.Contains('SetExclusiveVisibleBySource("zhuangbeiyangcheng/zhuangbeishenzhu"') -and
+    $projectXAppSource.Contains('SetExclusiveVisibleByKey("HeroEquipmentAwaken"') -and
+    $projectXAppSource.Contains('SetExclusiveVisibleByKey("HeroEquipmentDivine"') -and
     $projectXAppSource.Contains('cultivate tab left multiple subviews active')
 ) "HeroEquip regression: cultivation tabs no longer enforce one active equipment subview across duplicate source instances."
 Assert-ToolchainTest (
@@ -2983,10 +4619,10 @@ $fragmentOpenSource = if ($fragmentOpenStart -ge 0 -and $fragmentOpenEnd -gt $fr
     $projectXAppSource.Substring($fragmentOpenStart, $fragmentOpenEnd - $fragmentOpenStart)
 } else { "" }
 Assert-ToolchainTest (
-    $fragmentOpenSource.IndexOf('heroFrameView.GameObject.transform.SetAsLastSibling();', [StringComparison]::Ordinal) -ge 0 -and
-    $fragmentOpenSource.IndexOf('heroFrameView.GameObject.transform.SetAsLastSibling();', [StringComparison]::Ordinal) -lt
+    $fragmentOpenSource.IndexOf('oneLevelFrameView.GameObject.transform.SetAsLastSibling();', [StringComparison]::Ordinal) -ge 0 -and
+    $fragmentOpenSource.IndexOf('oneLevelFrameView.GameObject.transform.SetAsLastSibling();', [StringComparison]::Ordinal) -lt
         $fragmentOpenSource.IndexOf('heroEquipmentFragmentView.GameObject.transform.SetAsLastSibling();', [StringComparison]::Ordinal)
-) "HeroEquip early-play regression: the equipment fragment view can be covered by the outer hero frame."
+) "HeroEquip early-play regression: the equipment fragment view must be raised above the OneLevel hero frame."
 Assert-ToolchainTest (
     $projectXAppSource.Contains('RenderHeroEquipmentFragmentRows(binding, fragments);') -and
     $projectXAppSource.Contains('new VirtualList<BagItemRecord[]>(viewport.gameObject') -and
@@ -3023,16 +4659,16 @@ $heroEquipmentHelpSource = if ($heroEquipmentHelpStart -ge 0 -and $heroEquipment
 } else { "" }
 Assert-ToolchainTest (
     $heroEquipmentHelpSource.Contains('Layer/Panel_12/Title/TitleName/Button_1') -and
-    $heroEquipmentHelpSource.Contains('heroFrameView.BindClick(helpPath') -and
+    $heroEquipmentHelpSource.Contains('oneLevelFrameView.BindClick(helpPath') -and
     -not $heroEquipmentHelpSource.Contains('HeroEquipmentHelpButton') -and
     -not $heroEquipmentHelpSource.Contains('new GameObject(')
 ) "HeroEquip regression: help no longer binds the Prefab-authored OneLevelLayer title button."
 $heroEquipSourceTargetControl = @($heroEquipMatrix.controls |
     Where-Object { [string]$_.id -eq 'HE-78-SOURCE-DYNAMIC-TARGET' }) | Select-Object -First 1
-$enterGameplayStart = $projectXAppSource.IndexOf('public void EnterGameplay(int functionId)', [StringComparison]::Ordinal)
-$enterGameplayEnd = $projectXAppSource.IndexOf('private static string GameplayRouteOwner', $enterGameplayStart, [StringComparison]::Ordinal)
+$enterGameplayStart = $projectXAppAllSource.IndexOf('public void EnterGameplay(int functionId)', [StringComparison]::Ordinal)
+$enterGameplayEnd = $projectXAppAllSource.IndexOf('private static string GameplayRouteOwner', $enterGameplayStart, [StringComparison]::Ordinal)
 $enterGameplaySource = if ($enterGameplayStart -ge 0 -and $enterGameplayEnd -gt $enterGameplayStart) {
-    $projectXAppSource.Substring($enterGameplayStart, $enterGameplayEnd - $enterGameplayStart)
+    $projectXAppAllSource.Substring($enterGameplayStart, $enterGameplayEnd - $enterGameplayStart)
 } else { "" }
 Assert-ToolchainTest (
     $projectXAppSource.Contains('HandleConfiguredFunctionRoute(17, "HeroEquipment.Source");') -and
@@ -3055,11 +4691,12 @@ Assert-ToolchainTest (
     $heroEquipmentCatalogSource.Contains('[JsonProperty("attr_shenzhu")]') -and
     $heroEquipmentPresenterSource.Contains('BindCultivationAttributes(') -and
     $heroEquipmentPresenterSource.Contains('public bool AreCultivationAttributesBound(int mode)') -and
-    $heroEquipmentPresenterSource.Contains('player.gameObject.SetActive(false);') -and
+    $heroEquipmentPresenterSource.Contains('private void HideCultivationEffects()') -and
+    $heroEquipmentPresenterSource.Contains('effect.Host.SetActive(false);') -and
     $heroEquipmentPresenterSource.Contains('SetStrengthAllVisible(false);') -and
     $heroEquipmentPresenterSource.Contains('private bool CanOpenCultivation(') -and
     $toastPresenterSource.Contains('root.transform.SetAsLastSibling();') -and
-    $projectXAppSource.Contains('MaintainHeroEquipmentCultivationState();') -and
+    $projectXAppAllSource.Contains('MaintainHeroEquipmentCultivationState();') -and
     $projectXAppSource.Contains('refine toast changed parent or sibling order during its visible lifetime') -and
     $projectXAppSource.Contains('awaken toast changed parent or sibling order during its visible lifetime') -and
     $projectXAppSource.Contains('shenzhu toast changed parent or sibling order during its visible lifetime')
@@ -3087,15 +4724,15 @@ Assert-ToolchainTest (
 ) "HeroEquip scheme-A control denominator no longer reproduces 86 current controls/states."
 
 $heroCultivationPresenterSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroCultivationPresenter.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/UI/HeroCultivationPresenter.cs") -Raw -Encoding UTF8
 $imodAnimationPlayerSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/Animation/ImodAnimationPlayer.cs") -Raw -Encoding UTF8
+    Join-Path $root "docs/unityclient/history/legacy-animation-resources/retired-20261008/RuntimeImod/ImodAnimationPlayer.cs") -Raw -Encoding UTF8
 $heroControllerSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Hero/HeroController.lua.txt") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/Resources/Lua/Hero/HeroController.lua.txt") -Raw -Encoding UTF8
 $heroLoginSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/Login/LoginView.lua.txt") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/Resources/Lua/Login/LoginView.lua.txt") -Raw -Encoding UTF8
 $appLaunchOptionsSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/Core/AppLaunchOptions.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/Foundation/AppLaunchOptions.cs") -Raw -Encoding UTF8
 $heroCultivationEvidenceContract = @($allEvidenceContracts.modules |
     Where-Object { $_.module -eq "HeroCultivation" })[0]
 Assert-ToolchainTest (
@@ -3127,7 +4764,7 @@ Assert-ToolchainTest (
     $appLaunchOptionsSource.Contains('HeroCultivationG3Validation => HasFlag("-projectXHeroCultivationG3Validation")') -and
     $heroLoginSource.Contains('Bridge:HasCommandLineFlag("-projectXHeroCultivationG3Validation")') -and
     $heroControllerSource.Contains('Bridge:RunHeroCultivationG3Validation()') -and
-    $projectXAppSource.Contains('CompleteHeroCultivationG3Validation();')
+    $projectXAppAllSource.Contains('CompleteHeroCultivationG3Validation();')
 ) "HeroCultivation G3 flag is no longer wired from login through formation and authoritative package/8 completion."
   Assert-ToolchainTest (
       $heroCultivationPresenterSource.Contains('ValidateEarlyPlayRuntime(out string detail)') -and
@@ -3136,7 +4773,7 @@ Assert-ToolchainTest (
     $heroCultivationPresenterSource.Contains('tabs=5/5')
   ) "HeroCultivation early-play regression: material, placeholder or five-tab runtime assertions were removed."
   $heroPresenterSource = Get-Content -LiteralPath (
-      Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroPresenter.cs") -Raw -Encoding UTF8
+      Join-Path $root "unityclient/Assets/src/UI/HeroPresenter.cs") -Raw -Encoding UTF8
   Assert-ToolchainTest (
       $heroControllerSource.Contains('FormationModel:GetCombatHero(M.targetPosition) == M.mutationHero') -and
       $heroControllerSource.Contains('FormationModel:SelectHero(M.mutationHero)') -and
@@ -3147,12 +4784,12 @@ Assert-ToolchainTest (
   Assert-ToolchainTest (
       $heroControllerSource.Contains('Bridge:SyncHeroSelection(FormationModel:GetSelectedHeroId())') -and
       $heroControllerSource.Contains('Interactive formation snapshot target mismatch: hero=') -and
-      $projectXAppSource.Contains('bool preserveFormationPopup = !explicitEntry') -and
-      $projectXAppSource.Contains('formationPopupView.GameObject.transform.SetAsLastSibling();') -and
-      $projectXAppSource.Contains('Formation popup synchronized: heroes=')
+      $projectXAppAllSource.Contains('bool preserveFormationPopup = !explicitEntry') -and
+      $projectXAppAllSource.Contains('formationPopupView.ShowPopup();') -and
+      $projectXAppAllSource.Contains('Formation popup synchronized: heroes=')
   ) "Hero early-play regression: replacement post-render authority sync or formation-popup preservation was removed."
   $heroEquipmentPresenterSource = Get-Content -LiteralPath (
-      Join-Path $root "unityclient/Assets/ProjectX/src/UI/HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
+      Join-Path $root "unityclient/Assets/src/UI/HeroEquipmentPresenter.cs") -Raw -Encoding UTF8
   Assert-ToolchainTest (
       $heroEquipmentPresenterSource.Contains('else ShowChange(item, false);') -and
       $heroEquipmentPresenterSource.Contains('changeHasCurrentEquipped && item.Uid == changeCurrent.Uid ? "已穿戴" : "穿戴"') -and
@@ -3166,7 +4803,7 @@ Assert-ToolchainTest (
   ) "HeroEquipment cultivation selector regression: changing equipment no longer preserves the active cultivation tab."
   Assert-ToolchainTest (
       $heroEquipmentPresenterSource.Contains(
-          'Image divineItemQualityFrame = divineView.Binding.Find(divineItemPath + "_bg")?.GetComponent<Image>();') -and
+          'Image divineItemQualityFrame = HeroEquipmentNodeIds.Get(divineView, divineItemPath + "_bg")?.GetComponent<Image>();') -and
       $heroEquipmentPresenterSource.Contains(
           'if (showDivineMaterial) ApplyQualityFrame(divineItemQualityFrame, divineItem.Quality);') -and
       $heroEquipmentPresenterSource.Contains(
@@ -3251,25 +4888,25 @@ Assert-ToolchainTest (
 ) "HeroEquip cultivation refresh can reparent or cover the success toast after an authoritative write."
 
 $worldOutcomeSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/UI/WorldOutcomePresenter.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/UI/WorldOutcomePresenter.cs") -Raw -Encoding UTF8
 $gameErrorPresenterSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/UI/GameErrorPresenter.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/UI/GameErrorPresenter.cs") -Raw -Encoding UTF8
 $worldReplaySource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/Data/WorldBattleReplayStore.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/Data/WorldBattleReplayStore.cs") -Raw -Encoding UTF8
+$worldReplayRouteSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.WorldReplay.cs") -Raw -Encoding UTF8
 $worldPlaybackSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/UI/WorldBattlePlaybackPresenter.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/UI/WorldBattlePlaybackPresenter.cs") -Raw -Encoding UTF8
 $battlePresentationCatalogSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/Data/BattlePresentationCatalog.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/Data/BattlePresentationCatalog.cs") -Raw -Encoding UTF8
 $battleAudioFiles = @(Get-ChildItem -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXAudio/battle") -File -Filter '*.mp3')
+    Join-Path $root "unityclient/Assets/Art/Audio/battle") -File -Filter '*.mp3')
 $battleBuffIconFiles = @(Get-ChildItem -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXBattle/BuffTips") -File -Filter '*.png')
+    Join-Path $root "unityclient/Assets/Art/Battle/BuffTips") -File -Filter '*.png')
 $battleSkillNameFiles = @(Get-ChildItem -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/Resources/ProjectXBattle/SkillName") -File -Filter '*.png')
-$worldPresenterSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/UI/WorldPresenter.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/Art/Battle/SkillName") -File -Filter '*.png')
 $formationPopupSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/UI/FormationPopupPresenter.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/UI/FormationPopupPresenter.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $formationPopupSource.Contains('GameObject hitObject = row.Find("bg_Formation")?.gameObject ?? row.gameObject;') -and
     $formationPopupSource.Contains('hitObject.GetComponent<Button>() ?? hitObject.AddComponent<Button>();') -and
@@ -3280,24 +4917,52 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('InvokeEventSystemRaycastClick(formationItem)') -and
     $projectXAppSource.Contains('// newly opened item before that boundary either.')
 ) "Hero formation-list regression: full-row raycast surface or real EventSystem selection coverage was removed."
+$formationHubSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.HeroHub.cs") -Raw -Encoding UTF8
+$formationCatalogSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/Prefabs/Catalog/Catalog.asset") -Raw -Encoding UTF8
+$formationNativePrefab = Join-Path $root "unityclient/Assets/Prefabs/Hero/shenjiangzhenxingLayer.prefab"
+Assert-ToolchainTest (
+    $formationPopupSource.Contains('private readonly UnityUiView view;') -and
+    $formationPopupSource.Contains('view.FindNode(path)') -and
+    $formationPopupSource.Contains('model.LoadFormationStand(hero.Picture)') -and
+    -not $formationPopupSource.Contains('ImodAnimationPlayer') -and
+    -not $formationPopupSource.Contains('LoadLegacy(') -and
+    -not $formationPopupSource.Contains('GetSerializedNodeByActionTag') -and
+    -not $formationPopupSource.Contains('SerializedNodeTags') -and
+    (Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/UnityNativeHeroPreviewAnimation.cs") -Raw -Encoding UTF8).Contains('LoadFormationStand') -and
+    (Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/UnityNativeHeroAnimationValidator.cs") -Raw -Encoding UTF8).Contains('ValidateHeroFormationNativeAssetsForMcp') -and
+    $projectXAppSource.Contains('services.UiRouter.FindByKey("shenjiangzhenxingLayer")') -and
+    $formationHubSource.Contains('services.UiRouter.FindByKey("shenjiangzhenxingLayer")') -and
+    $formationCatalogSource.Contains('source: Unity/Hero/shenjiangzhenxingLayer') -and
+    (Test-Path -LiteralPath $formationNativePrefab)
+) "Hero formation route must use its Unity-owned Prefab and Transform paths instead of Cocos Identity/ActionTags."
 $worldControllerSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/Resources/Lua/World/WorldController.lua.txt") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/Resources/Lua/World/WorldController.lua.txt") -Raw -Encoding UTF8
 $worldValidationSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/Core/ProjectXApp.WorldValidation.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.WorldValidation.cs") -Raw -Encoding UTF8
+$worldUiRouteSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.WorldUi.cs") -Raw -Encoding UTF8
+$worldNavigationSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.Navigation.cs") -Raw -Encoding UTF8
+$worldStateSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.World.cs") -Raw -Encoding UTF8
+$heroHubRouteSource = Get-Content -LiteralPath (
+    Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.HeroHub.cs") -Raw -Encoding UTF8
 $worldStoreSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/Data/WorldStore.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/Data/WorldStore.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
     $worldValidationSource.Contains('services.Options.WorldBattleValidation && worldChainMode') -and
     $worldValidationSource.Contains('worldPresenter.RenderedCount != services.World.ChapterCount') -and
-    $worldValidationSource.Contains('RuntimeInputDispatcher.Dispatch(') -and
+    $worldValidationSource.Contains('RuntimeValidationInput.Dispatch(') -and
     $worldValidationSource.Contains('"bg/Button_1", "WORLD-14-CHALLENGE", "click"') -and
     $worldValidationSource.Contains('worldChainNextStageId > 0') -and
     $worldValidationSource.Contains('float chainHardDeadline = Time.realtimeSinceStartup + 720f;')
 ) "World chain validation must preserve the visible chapter selector and enter battle through its real Challenge button."
 Assert-ToolchainTest (
-    $worldReplaySource.Contains('if (worldChainMode)') -and
-    $worldReplaySource.Contains('worldPresenter.ShowChapterPage();') -and
-    $worldValidationSource.Contains('worldChainMode && worldPresenter.ChapterListVisible')
+    $worldReplayRouteSource.Contains('if (worldChainMode)') -and
+    $worldReplayRouteSource.Contains('worldPresenter.ShowChapterPage();') -and
+    [regex]::IsMatch($worldValidationSource, 'worldChainMode\s*\?\s*worldPresenter\.ChapterListVisible')
 ) "World chain replay return must restore the chapter-selection surface instead of the hidden stage map."
 $worldFixtureSource = Get-Content -LiteralPath (
     Join-Path $root "tools/unity-migration/Invoke-WorldCocosFixture.ps1") -Raw -Encoding UTF8
@@ -3319,22 +4984,20 @@ $worldUtilitySource = Get-Content -LiteralPath (
 $worldServerConfigSource = Get-Content -LiteralPath (
     Join-Path $root "server/config/config") -Raw -Encoding UTF8
 $legacyMessageSource = Get-Content -LiteralPath (
-    Join-Path $root "unityclient/Assets/ProjectX/src/Network/LegacyTcpMessage.cs") -Raw -Encoding UTF8
+    Join-Path $root "unityclient/Assets/src/Network/LegacyTcpMessage.cs") -Raw -Encoding UTF8
 $worldEvidenceContract = @($evidenceContracts.modules | Where-Object { $_.module -eq "World" })[0]
 $worldControlMatrix = Get-Content -LiteralPath (
     Join-Path $root "docs/unityclient/matrices/WORLD_CONTROLS.json") -Raw -Encoding UTF8 | ConvertFrom-Json
-$worldValidationStart = $projectXAppSource.IndexOf('private IEnumerator CaptureWorldMap()', [StringComparison]::Ordinal)
-$worldValidationEnd = $projectXAppSource.IndexOf('private IEnumerator CaptureWorldBattleResult', [StringComparison]::Ordinal)
-$worldValidationInteractionSource = if ($worldValidationStart -ge 0 -and $worldValidationEnd -gt $worldValidationStart) {
-    $projectXAppSource.Substring($worldValidationStart, $worldValidationEnd - $worldValidationStart)
-} else { '' }
+$worldValidationInteractionSource = $worldValidationSource
 Assert-ToolchainTest (
     $worldPlaybackSource.Contains('Vector3.Lerp(moveStart, moveEnd, phase)') -and
     -not $worldPlaybackSource.Contains('Vector3.Lerp(moveStart, moveEnd, Mathf.SmoothStep') -and
     $worldPlaybackSource.Contains('if (model.MoveSeconds > 0f) return model.MoveSeconds;') -and
-    $worldPlaybackSource.Contains('ResolveLegacyAnimationDuration(') -and
-    $worldPlaybackSource.Contains('ImodAnimationResources.TryLoadPrepared(path') -and
-    $worldPlaybackSource.Contains('ImodAnimationData data = assets.Data;') -and
+    $worldPlaybackSource.Contains('ResolveNativeAnimationDuration(') -and
+    $worldPlaybackSource.Contains('UnityNativeBattleModelAnimation.TryGetActionDuration(') -and
+    $worldPlaybackSource.Contains('unit.Model.LoadAnimation(animationPath, actionIndex)') -and
+    -not $worldPlaybackSource.Contains('ResolveLegacyAnimationDuration(') -and
+    -not $worldPlaybackSource.Contains('ImodAnimationResources') -and
     $worldPlaybackSource.Contains('unit.Model.SetSpeedScale(1f / Mathf.Max(1f, PlaybackSpeed));') -and
     $worldPlaybackSource.Contains('timelineEnd = Mathf.Max(timelineEnd, cursor + duration)') -and
     $worldPlaybackSource.Contains('timelineEnd + .1f') -and
@@ -3403,8 +5066,18 @@ Assert-ToolchainTest (
     $worldSqliteFixtureSource.Contains('remove_sidecars(args.backup)')
 ) "World fixed-account fixture regressed from the persistentDataPath SQLite snapshot/restore/zero-residue contract."
 Assert-ToolchainTest (
+    $worldSqliteFixtureSource.Contains('if not snapshot.get("restored") or not snapshot.get("postLoginHashVerified"):') -and
+    $worldSqliteFixtureSource.Contains('if actual_state["hash"] != snapshot["stableHash"]:') -and
+    $worldSqliteFixtureSource.Contains('PRAGMA wal_checkpoint(TRUNCATE)') -and
+    $worldSqliteFixtureSource.Contains('"SELECT role0 FROM user_info1 WHERE id=?"') -and
+    $worldSqliteFixtureSource.Contains('int(isolation_user[0]) == ISOLATION_ROLE_ID') -and
+    $worldSqliteFixtureSource.Contains('remove_sidecars(args.database)') -and
+    $worldSqliteFixtureSource.Contains('cleanupIsolationIdentityAbsent') -and
+    $worldSqliteFixtureSource.Contains('isolation_role is not None')
+) "World cleanup must honor the stable relogin oracle, remove temporary identities, and checkpoint SQLite sidecars without reusing the pre-login file hash."
+Assert-ToolchainTest (
     $worldOutcomeSource.Contains('Layer/Panel/victorypanel/win_bg/win3') -and
-    $worldOutcomeSource.Contains('LoadWorldSprite("WorldUI/battle_victory")')
+    $worldOutcomeSource.Contains('LoadWorldSprite("Art/World/battle_victory")')
 ) "World settlement no longer prefers the current Cocos three-star perfect-victory title with a fallback asset."
 Assert-ToolchainTest (
     $worldPresenterSource.Contains('Image icon = iconHost.Find("Icon")?.GetComponent<Image>();') -and
@@ -3415,31 +5088,33 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     $worldPresenterSource.Contains('RenderStagePlayer(mapVisual);') -and
     $worldPresenterSource.Contains('PositionStageCamera(mapVisual);') -and
-    $worldPresenterSource.Contains('player.Model == 4 ? "hero/H_0_fd" : "hero/K_0_fd"') -and
+    $worldPresenterSource.Contains('stagePlayerModel.Load(player.Model == 4, false, false)') -and
     $worldPresenterSource.Contains('map.RoleCoordinates[currentIndex] + new Vector2(0f, 33f)') -and
-    $worldPresenterSource.Contains('FindStageCameraY(-aimX, map.CameraCoordinates)') -and
+    $worldPresenterSource.Contains('ApplyStageCameraForPlayer(map.RoleCoordinates[currentIndex] + new Vector2(0f, 33f));') -and
     $worldPresenterSource.Contains('speech.gameObject.SetActive(currentStage)') -and
     $worldPresenterSource.Contains('"Layer/Panel_youxia/Button_zhuxianchengjiu", true') -and
     $worldPresenterSource.Contains('UpdateCanvasProxyRect(viewRect, targetRect, proxyRect);') -and
     $worldPresenterSource.Contains('button.transform.SetAsLastSibling();') -and
-    $projectXAppSource.Contains('AttachWorldAchievementToWorldRoot();') -and
-    $projectXAppSource.Contains('heroFrameView.GameObject.transform.SetAsLastSibling();') -and
-    $projectXAppSource.Contains('worldAchievementView.GameObject.transform.parent != worldView.GameObject.transform') -and
-    $projectXAppSource.Contains('worldAchievementAuthoritativeResponse = true;') -and
-    $projectXAppSource.Contains('World main-achievement close control did not receive a real EventSystem raycast click.') -and
-    $projectXAppSource.Contains('timeline.Play("animation1", false);') -and
-    $projectXAppSource.Contains('FitWorldAchievementToScreen();') -and
-    $projectXAppSource.Contains('RefreshWorldBoxButtonBindings();') -and
-    $projectXAppSource.Contains('button.interactable = true;') -and
-    $projectXAppSource.Contains('CreateWorldBoxRootProxy(target, proxyName, action);') -and
-    $projectXAppSource.Contains('new GameObject(proxyName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button))') -and
-    $projectXAppSource.Contains('image.canvasRenderer.cullTransparentMesh = false;') -and
-    $projectXAppSource.Contains('GraphicRegistry.RegisterRaycastGraphicForCanvas(canvas, image);') -and
-    $projectXAppSource.Contains('Button confirm = worldBoxClaimInteractionButton;') -and
-    $projectXAppSource.Contains('World normal-box player-facing confirmation button is unavailable.') -and
-    $projectXAppSource.Contains('World normal-box confirmation did not receive a real EventSystem raycast click.') -and
+    $worldUiRouteSource.Contains('AttachWorldAchievementToWorldRoot();') -and
+    $worldUiRouteSource.Contains('close.SetAsLastSibling();') -and
+    $worldValidationSource.Contains('worldAchievementView.GameObject.transform.parent != worldView.GameObject.transform') -and
+    $worldUiRouteSource.Contains('worldAchievementAuthoritativeResponse = true;') -and
+    $worldValidationSource.Contains('World main-achievement close control did not receive a real EventSystem raycast click.') -and
+    $worldUiRouteSource.Contains('animator.Play("WorldAchievement", 0, 0f);') -and
+    $worldUiRouteSource.Contains('FitWorldAchievementToScreen();') -and
+    $worldUiRouteSource.Contains('RefreshWorldBoxButtonBindings();') -and
+    $worldUiRouteSource.Contains('button.interactable = true;') -and
+    $worldUiRouteSource.Contains('CreateWorldBoxRootProxy(target, proxyName, action);') -and
+    $worldUiRouteSource.Contains('new GameObject(proxyName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button))') -and
+    $worldUiRouteSource.Contains('image.canvasRenderer.cullTransparentMesh = false;') -and
+    $worldUiRouteSource.Contains('GraphicRegistry.RegisterRaycastGraphicForCanvas(canvas, image);') -and
+    $worldValidationSource.Contains('Button confirm = worldBoxClaimInteractionButton;') -and
+    $worldValidationSource.Contains('World normal-box player-facing confirmation button is unavailable.') -and
+    $worldValidationSource.Contains('World normal-box confirmation did not receive a real EventSystem raycast click.') -and
     $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_1/duiwu", () => { openFormation(); Mark("WORLD-32-STAGE-FORMATION"); }, false, true);') -and
     $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_1/btn_zhenrong", () => { openHeroFormation(false); Mark("WORLD-33-STAGE-LINEUP"); }, false, true);') -and
+    $worldPresenterSource.Contains('Find(mapView, "Layer/Panel_1/duiwu")') -and
+    $worldPresenterSource.Contains('formationControl.transform.SetSiblingIndex(firstStarBox.transform.GetSiblingIndex());') -and
     $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", () => { openAchievement(); Mark("WORLD-25-MAIN-ACHIEVEMENT"); }, false, true);') -and
     $worldPresenterSource.Contains('Bind(mapView, "Layer/Panel_youxia/Button_youlisanjie", () => { openYouLi(); Mark("WORLD-34-YOULI-ENTRY"); }, false, true);') -and
     $worldPresenterSource.Contains('if (staleProxy != null) staleProxy.gameObject.SetActive(false);') -and
@@ -3447,20 +5122,20 @@ Assert-ToolchainTest (
     $worldPresenterSource.Contains('proxyRect.offsetMin = Vector2.zero;') -and
     $worldPresenterSource.Contains('proxyRect.offsetMax = Vector2.zero;') -and
     $worldPresenterSource.Contains('"Layer/Panel_youxia/Button_youlisanjie", true') -and
-    $worldPresenterSource.Contains('"Layer/Panel_1/Button_paihangbang", false') -and
-    $projectXAppSource.Contains('InvokeLuaOrFail(onYouLiClicked, "World.YouLi")') -and
-    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(youLi)') -and
-    $projectXAppSource.Contains('services.YouLi.HasAuthoritativeResponse') -and
-    $projectXAppSource.Contains('MarkValidationControl("WORLD-34-YOULI-ENTRY")') -and
+    $worldPresenterSource.Contains('SetActive(mapView, "Layer/Panel_1/Button_paihangbang", normal);') -and
+    $worldUiRouteSource.Contains('InvokeLuaOrFail(onYouLiClicked, "World.YouLi")') -and
+    $worldValidationSource.Contains('InvokeEventSystemRaycastClick(youLi)') -and
+    $worldValidationSource.Contains('services.YouLi.HasAuthoritativeResponse') -and
+    $worldValidationSource.Contains('MarkValidationControl("WORLD-34-YOULI-ENTRY")') -and
     -not $projectXAppSource.Contains('MarkValidationControl("WORLD-27-RANK-ENTRY")') -and
     $worldPresenterSource.Contains('if (value >= 10000) return (value / 10000) + "万";') -and
     $playerControllerSource.Contains('elseif kind == 505 then Bridge:SetCurrency(PREMIUM, value)') -and
     $playerControllerSource.Contains('elseif kind == 506 then Bridge:SetCurrency(BOUND_PREMIUM, value)') -and
-    $projectXAppSource.Contains('services.Options.WorldBattleValidation && !services.Options.WorldG3Validation') -and
-    $projectXAppSource.Contains('services.Options.WorldBattleValidation && worldPresenter.ChapterListVisible') -and
-    $projectXAppSource.Contains('InvokeEventSystemRaycastClick(chapterNode)') -and
-    $projectXAppSource.Contains('&& !worldG4StarBoxValidated') -and
-    $projectXAppSource.Contains('&& !worldG4NormalBoxValidated')
+    $worldValidationSource.Contains('services.Options.WorldBattleValidation && !services.Options.WorldG3Validation') -and
+    $worldValidationSource.Contains('services.Options.WorldBattleValidation && worldPresenter.ChapterListVisible') -and
+    $worldValidationSource.Contains('InvokeEventSystemRaycastClick(chapterNode)') -and
+    $worldValidationSource.Contains('&& !worldG4StarBoxValidated') -and
+    $worldValidationSource.Contains('&& !worldG4NormalBoxValidated')
 ) "World settlement return or current DadituuiLayer achievement/YouLi/rank boundary regressed."
 Assert-ToolchainTest (
     $worldServerConfigSource.Contains('local_test_fight_seed=20260830') -and
@@ -3541,38 +5216,38 @@ Assert-ToolchainTest (
     $worldStoreSource.Contains('if (usedResets > 0 && stage.RemainingResets > 0) stage.RemainingResets--;')
 ) "World reset regressed from the Cocos detail-preserving attempt refresh lifecycle."
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('worldFormationReturnPending = true;') -and
-    $projectXAppSource.Contains('worldFormationReturnToDetail = returnToDetail;') -and
-    $projectXAppSource.IndexOf('if (worldFormationReturnPending && IsHeroOpen)', [StringComparison]::Ordinal) -lt
-        $projectXAppSource.IndexOf('if (IsWorldOpen)', [StringComparison]::Ordinal) -and
-    $projectXAppSource.Contains('bool restoreWorldFormation = worldFormationReturnPending && IsHeroOpen;') -and
-    $projectXAppSource.Contains('bool stackPopped = PopUiStackWithHudRefresh();') -and
-    $projectXAppSource.Contains('formationPopupView?.SetVisible(false);') -and
-    $projectXAppSource.Contains('if (restoreDetail) worldPresenter?.ShowSelectedStage();') -and
-    $projectXAppSource.Contains('else worldPresenter?.ShowStages();') -and
-    $projectXAppSource.Contains('World stage lineup close did not return cleanly to the stage map.') -and
+    $worldUiRouteSource.Contains('worldFormationReturnPending = true;') -and
+    $worldUiRouteSource.Contains('worldFormationReturnToDetail = returnToDetail;') -and
+    $worldNavigationSource.IndexOf('if (worldFormationReturnPending && IsHeroOpen)', [StringComparison]::Ordinal) -lt
+        $worldNavigationSource.IndexOf('if (IsWorldOpen)', [StringComparison]::Ordinal) -and
+    $worldNavigationSource.Contains('bool restoreWorldFormation = worldFormationReturnPending && IsHeroOpen;') -and
+    $worldNavigationSource.Contains('bool stackPopped = PopUiStackWithHudRefresh();') -and
+    $worldUiRouteSource.Contains('formationPopupView?.SetVisible(false);') -and
+    $worldUiRouteSource.Contains('if (restoreDetail) worldPresenter?.ShowSelectedStage();') -and
+    $worldUiRouteSource.Contains('else worldPresenter?.ShowStages();') -and
+    $worldValidationSource.Contains('World stage lineup close did not return cleanly to the stage map.') -and
     $formationPopupSource.Contains('new GameObject("RuntimeFormationClose"') -and
     $formationPopupSource.Contains('public void RefreshCloseInteraction()') -and
     $formationPopupSource.Contains('rect.localPosition = new Vector3(') -and
-    $projectXAppSource.Contains('formationPopupPresenter.CloseInteractionButton')
+    $worldValidationSource.Contains('formationPopupPresenter.CloseInteractionButton')
 ) "World formation return lost its detail-versus-stage-map origin contract."
 Assert-ToolchainTest (
-    $projectXAppSource.Contains('private bool worldFormationPopupRequestPending;') -and
-    $projectXAppSource.Contains('HandleWorldFormationPopupClick,') -and
-    $projectXAppSource.Contains('CallLua(onHeroClicked, "World.FormationPopup")') -and
-    $projectXAppSource.Contains('if (worldFormationPopupRequestPending)') -and
+    $worldStateSource.Contains('private bool worldFormationPopupRequestPending;') -and
+    $worldUiRouteSource.Contains('HandleWorldFormationPopupClick,') -and
+    $worldUiRouteSource.Contains('CallLua(onHeroClicked, "World.FormationPopup")') -and
+    $heroHubRouteSource.Contains('if (worldFormationPopupRequestPending)') -and
     $projectXAppSource.Contains('services.Formation.CombatHeroes.Any(heroId => heroId > 0)') -and
     $projectXAppSource.Contains('formationPopupPresenter.RenderedModelCount != expectedFormationModels') -and
-    $projectXAppSource.IndexOf('formationPopupView.SetVisible(true);', [StringComparison]::Ordinal) -lt
-        $projectXAppSource.IndexOf('formationPopupPresenter.Render();', [StringComparison]::Ordinal)
+    $heroHubRouteSource.IndexOf('formationPopupView.SetVisible(true);', [StringComparison]::Ordinal) -lt
+        $heroHubRouteSource.IndexOf('formationPopupPresenter.Render();', [StringComparison]::Ordinal)
 ) "World stage formation popup no longer guarantees authoritative heroes, Imod models, or active-surface playback."
 Assert-ToolchainTest (
     [regex]::IsMatch($worldPresenterSource,
-        'Bind\(mapView, "Layer/Title/CloseBtn", \(\) =>[\s\S]*?if \(showChapters\) close\(\);[\s\S]*?else ShowChapterList\(\);[\s\S]*?}, true\);') -and
+        'Bind\(mapView, "Layer/Title/CloseBtn", \(\) =>[\s\S]*?leaveCurrentChapter\?\.Invoke\(\);[\s\S]*?if \(showChapters\) close\(\);[\s\S]*?else ShowChapterList\(\);[\s\S]*?Mark\("WORLD-08-STAGE-CLOSE"\);') -and
     $worldPresenterSource.Contains('public bool ChapterListVisible => showChapters;') -and
-    $projectXAppSource.Contains('worldPresenter.FindInteractionButton("Layer/Title/CloseBtn")') -and
-    $projectXAppSource.Contains('World stage-map close did not return to WorldMapNewLayer:') -and
-    $projectXAppSource.Contains('WorldMapNewLayer close did not return to UImainLayer_new:') -and
+    $worldValidationSource.Contains('worldPresenter.FindInteractionButton("Layer/Title/CloseBtn")') -and
+    $worldValidationSource.Contains('World stage-map close did not return to WorldMapNewLayer:') -and
+    $worldValidationSource.Contains('WorldMapNewLayer close did not return to UImainLayer_new:') -and
     ([regex]::Matches($worldControllerSource,
         'local function request(?:World|Chapter)\([^\)]*\)[\s\S]*?M\.requestedStageId = 0').Count -eq 2) -and
     $worldControllerSource.Contains('A normal /320 op=2 response only opens kapaiguaiwuLayer.') -and
@@ -3588,8 +5263,14 @@ Assert-ToolchainTest (
     $worldPresenterSource.Contains('Image hitSurface = touch.GetComponent<Image>() ?? touch.gameObject.AddComponent<Image>();') -and
     $worldPresenterSource.Contains('button.targetGraphic = hitSurface;') -and
     -not $worldPresenterSource.Contains('new GameObject("Stage_" + stage.Id') -and
-    ([regex]::Matches($projectXAppSource, 'worldPresenter\.FindStageButton\(').Count -ge 2)
+    ([regex]::Matches($worldValidationSource, 'worldPresenter\.FindStageButton\(').Count -ge 2)
 ) "World stage clicks can drift to an adjacent node or allow a locked node to play without an op=8 settlement."
+# This settlement contract spans multiple ProjectXApp partials; inspect the full partial-class source set.
+$worldBattleAppSourceBeforeRouteAssertions = $projectXAppSource
+$projectXAppSource = @(Get-ChildItem -LiteralPath (Join-Path $root "unityclient/Assets/src/Core") `
+    -Filter "ProjectXApp*.cs" -File | ForEach-Object {
+        Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8
+    }) -join "`n"
 Assert-ToolchainTest (
     @($worldEvidenceContract.fixedAccount.g3ValidationFlags) -contains '-projectXWorldG3Validation' -and
     $appLaunchOptionsSource.Contains('public bool WorldG3Validation => HasFlag("-projectXWorldG3Validation");') -and
@@ -3614,18 +5295,16 @@ Assert-ToolchainTest (
     $worldOutcomeSource.Contains('new GameObject("RuntimeBattleResult_Dimmer", typeof(RectTransform),') -and
     $worldOutcomeSource.Contains('dimmer.transform.SetAsFirstSibling();') -and
     $worldOutcomeSource.Contains('washImage.color = new Color(0f, 0f, 0f, 0.58f);') -and
-    $projectXAppSource.Contains('if (!pendingWorldBattleResult) worldBattlePlaybackPresenter.Hide();') -and
-    $projectXAppSource.Contains('pendingWorldBattleResult = false;') -and
+    $projectXAppSource.Contains('if (battlePlaybackContext != BattlePlaybackContext.Monopoly && !runtime.PendingResult)') -and
+    $projectXAppSource.Contains('runtime.PendingResult = false;') -and
     $projectXAppSource.Contains('worldBattlePlaybackPresenter?.Hide();') -and
     $projectXAppSource.Contains('InvokeLuaOrFail(onWorldRefresh, "World.Continue");') -and
-    $worldOutcomeSource.Contains('new GameObject("VictoryTitleImod", typeof(RectTransform))') -and
+    $worldOutcomeSource.Contains('UnityAssetReference.LoadAsset<GameObject>(') -and
+    $worldOutcomeSource.Contains('"Animations/World/BattleOutcome/Effects/WorldVictoryTitleEffect"') -and
     $worldOutcomeSource.Contains('new Vector2(201.2585f, 283.952f)') -and
-    $worldOutcomeSource.Contains('LoadLegacy("res2/animation/effect_zhandoujiesuan_2")') -and
-    $worldOutcomeSource.Contains('foreach (Image part in titleEffect.GetComponentsInChildren<Image>(true))') -and
-    $worldOutcomeSource.Contains('part.raycastTarget = false;') -and
     $worldOutcomeSource.Contains('victoryTitleEffect.Restart(35f / 60f);') -and
-    $worldOutcomeSource.Contains('player.Completed += HandleCompleted;') -and
-    $worldOutcomeSource.Contains('if (action == 0) SetVisible(false);') -and
+    $worldOutcomeSource.Contains('BattleResultNativeOneShot') -and
+    -not $worldOutcomeSource.Contains('LoadLegacy("res2/animation/effect_zhandoujiesuan_2")') -and
     $worldOutcomeSource.Contains('VictoryTitleVariant = showStars ? Mathf.Clamp(stars, 1, 3) : 2;') -and
     $worldOutcomeSource.Contains('RewardRecord[] money = values.Where(IsCocosMoneyReward).Take(4).ToArray();') -and
     $worldOutcomeSource.Contains('case 60000: case 60001: case 60003: case 60014:') -and
@@ -3634,7 +5313,7 @@ Assert-ToolchainTest (
     $worldPlaybackSource.Contains("configured.Replace('·', ' ')") -and
     $projectXAppSource.Contains('RenderedMoneyRewardCount != 3') -and
     $projectXAppSource.Contains('yield return new WaitForSecondsRealtime(.65f);') -and
-    $projectXAppSource.Contains('victory Imod leaked past its 0.7-second non-looping lifecycle') -and
+    $projectXAppSource.Contains('victory title effect leaked past its 0.7-second non-looping lifecycle') -and
     $worldOutcomeSource.Contains('CreateBattleImage(layer.transform, "VictoryTitle"') -and
     $worldPlaybackSource.Contains('skipButton.gameObject.SetActive(true);') -and
     $worldPlaybackSource.Contains('if (store.CanSkip)') -and
@@ -3662,10 +5341,10 @@ Assert-ToolchainTest (
     $worldPlaybackSource.Contains('CreateText(rect, "NameLabel", new Vector2(.5f, .5f), new Vector2(200f, 30f), 20,') -and
     $worldPlaybackSource.Contains('view.NameLabel.rectTransform.anchoredPosition = new Vector2(0f, -20f);') -and
     -not $worldPlaybackSource.Contains('CreateText(rect, "NameLabel", new Vector2(.5f, .08f)') -and
-    $worldPlaybackSource.Contains('healthView.Binding.Find("Node/Quality_bg")') -and
+    $worldPlaybackSource.Contains('FindHealthNode(healthView, "Node/Quality_bg")') -and
     $worldPlaybackSource.Contains('bool showQuality = unit.Type == 2 && unit.Quality > 0;') -and
-    $worldPlaybackSource.Contains('Resources.Load<Sprite>(ResolveQualityScoreResource(unit.Quality))') -and
-    $worldPlaybackSource.Contains('if (quality <= 4) return "HeroUI/quality_score_A";') -and
+    $worldPlaybackSource.Contains('ProjectX.Foundation.ResourceLoader.Load<Sprite>(ResolveQualityScoreResource(unit.Quality))') -and
+    $worldPlaybackSource.Contains('if (quality <= 4) return "Art/Hero/quality_score_A";') -and
     $worldPlaybackSource.Contains('BringHealthNodeToFront(unit);') -and
     $worldPlaybackSource.Contains('view.HealthRoot = healthRoot;') -and
     $worldPlaybackSource.Contains('Transform healthRoot = unit?.HealthRoot;') -and
@@ -3710,11 +5389,14 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('services.Options.WorldG3Validation') -and
     -not $projectXAppSource.Contains('continueButton.onClick.Invoke();')
 ) "World regression: settlement interactions or authoritative /38 statistics validation drifted."
+$projectXAppSource = $worldBattleAppSourceBeforeRouteAssertions
+$worldPlaybackAppSourceBeforeLifecycleAssertions = $projectXAppSource
+$projectXAppSource = $projectXAppAllSource
 Assert-ToolchainTest (
     $legacyMessageSource.Contains('public LegacyNestedPacket ReadNestedPacket()') -and
-    $worldReplaySource.Contains('public void Load(LegacyTcpMessage message, byte expectedOperation = 5)') -and
+    $worldReplaySource.Contains('public void Load(IProtocolMessageReader message, byte expectedOperation = 5)') -and
     $worldReplaySource.Contains('operation != expectedOperation') -and
-    $projectXAppSource.Contains('services.WorldBattleReplay.Load(message, 5);') -and
+    $projectXAppSource.Contains('replay.Load(new LegacyTcpMessage(payload), 5);') -and
     $worldReplaySource.Contains('packet.Command == 21') -and
     $worldReplaySource.Contains('packet.Command == 22') -and
     $worldReplaySource.Contains('packet.Command == 23') -and
@@ -3734,8 +5416,8 @@ Assert-ToolchainTest (
     $worldOutcomeSource.Contains('Instantiate(sourceClose.gameObject, layer, true)') -and
     $worldOutcomeSource.Contains('runtimeClose.SetAsLastSibling()') -and
     $worldOutcomeSource.Contains('statisticsCloseInteractionButton = runtimeClose.GetComponent<Button>()') -and
-    $projectXAppSource.Contains('services.UiRouter.FindBySource("shop/shop_bg")') -and
-    $projectXAppSource.Contains('Binding.Find("Layer/shopBg")') -and
+    $projectXAppSource.Contains('services.UiRouter.FindByKey("WorldBattleStatisticsFrame")') -and
+    $projectXAppSource.Contains('statisticsFrameView?.FindNode("Layer/shopBg")') -and
     $projectXAppSource.Contains('[EventSystemRaycast] rejected: inactive') -and
     $projectXAppSource.Contains('services.WorldBattleReplay.StatisticsCount != services.WorldBattleReplay.Units.Count') -and
     $projectXAppSource.Contains('World authoritative result queued until /38 playback completes') -and
@@ -3746,7 +5428,8 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('MarkValidationControl("WORLD-31-BATTLE-TO-SETTLEMENT")') -and
     $worldPlaybackSource.Contains('presentationCatalog.ResolveAction(action?.SkillId ?? 0, action?.FirstActionType ?? 0)') -and
     $worldPlaybackSource.Contains('PlayConfiguredClip(scheduled)') -and
-    $worldPlaybackSource.Contains('player.LoadLegacy(path)') -and
+    $worldPlaybackSource.Contains('GameObject value = AcquireSkillEffect(path, effect.Id, out UnityNativeBattleEffectPlayer player);') -and
+    -not $worldPlaybackSource.Contains('player.LoadLegacy(path)') -and
     $worldPlaybackSource.Contains('if (!impactApplied) ApplyImpact();') -and
     $worldPlaybackSource.Contains('if (!SetUnitDeathState(target, record.Dead)) PlayUnitAnimation(target, "bj", false);') -and
     $worldPlaybackSource.Contains('RestoreUnitPose(unit);') -and
@@ -3759,12 +5442,25 @@ Assert-ToolchainTest (
     $worldPlaybackSource.Contains('CocosSpeedLabels = { 1, 2, 3, 5, 10, 15 }') -and
     $worldPlaybackSource.Contains('CocosPlaybackFactors = { 1f, 2f, 3f, 3.5f, 4f, 4.5f }') -and
     $worldPlaybackSource.Contains('ConfigureImportedFightLayer();') -and
+    $worldPlaybackSource.Contains('private readonly UnityUiView importedView;') -and
+    $worldPlaybackSource.Contains('IUiAssetProvider uiAssets') -and
+    $worldPlaybackSource.Contains('uiAssets.InstantiateUnity("BattleHpNode", parent)') -and
+    -not $worldPlaybackSource.Contains('CocosUiView') -and
+    -not $worldPlaybackSource.Contains('UiPrefabLoader.Load("BattleHpNode"') -and
     $worldPlaybackSource.Contains('Layer/FightUI/Position') -and
     $projectXAppSource.Contains('Transform overlayParent = worldView.GameObject.transform.parent ?? worldView.GameObject.transform;') -and
-    $projectXAppSource.Contains('?? UiPrefabLoader.Load("BattleFightLayer", overlayParent);') -and
+    $projectXAppAllSource.Contains('?? services.UiAssets.InstantiateUnity("BattleFightLayer", overlayParent);') -and
+    $projectXAppAllSource.Contains('services?.UiAssets?.Release(worldBattlePlaybackView);') -and
     $bootstrapBuilderSource.Contains('new PrefabSpec(BattleFightLayerPrefab, false)') -and
     $bootstrapBuilderSource.Contains('if (prefabPath == BattleFightLayerPrefab) return "BattleFightLayer";') -and
-    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/UiPrefabs/BattleFightLayer.asset')).Contains('guid: d34c6ecec304c9d45840094f7f5ac2bc') -and
+    $bootstrapBuilderSource.Contains('private const string BattleFightLayerPrefab = "Assets/Prefabs/Battle/BattleFightLayer.prefab";') -and
+    $bootstrapBuilderSource.Contains('private const string BattleHpNodePrefab = "Assets/Prefabs/Battle/BattleHpNode.prefab";') -and
+    $bootstrapBuilderSource.Contains('new PrefabSpec(BattleHpNodePrefab, false)') -and
+    $bootstrapBuilderSource.Contains('Assets/UnityOwned/WorldBattle/') -and
+    $battleFightPrefabGuid -and $battleFightReferenceSource.Contains("guid: $battleFightPrefabGuid") -and
+    $battleHpPrefabGuid -and $battleHpReferenceSource.Contains("guid: $battleHpPrefabGuid") -and
+    -not $battleFightPrefabSource.Contains('guid: 1acd4692cebe3e74e956ef3d8bca1229') -and
+    -not $battleHpPrefabSource.Contains('guid: 1acd4692cebe3e74e956ef3d8bca1229') -and
     $worldPlaybackSource.Contains('foreach (WorldBattleTargetRecord record in activeAction.Targets)') -and
     $worldReplaySource.Contains('IReadOnlyList<WorldBattleTargetRecord> Targets') -and
     $worldReplaySource.Contains('IReadOnlyList<WorldBattleUnitRecord> SummonedUnits') -and
@@ -3796,12 +5492,14 @@ Assert-ToolchainTest (
     $worldPlaybackSource.Contains('ScheduleCameraShake(model.ShakeId, scheduled);') -and
     $worldPlaybackSource.Contains('ScheduleCameraShake(effect.ShakeId, scheduled);') -and
     $worldPlaybackSource.Contains('public bool IsCameraShaking { get; private set; }') -and
-    $worldPlaybackSource.Contains('Resources.Load<AudioClip>("ProjectXAudio/battle/" + soundFile)') -and
+    $worldPlaybackSource.Contains('ProjectX.Foundation.ResourceLoader.Load<AudioClip>("ProjectXAudio/battle/" + soundFile)') -and
     $worldPlaybackSource.Contains('if (battleAudio == null) battleAudio = root.AddComponent<AudioSource>();') -and
     $worldPlaybackSource.Contains('battleAudio.PlayOneShot(clip);') -and
     $worldPlaybackSource.Contains('RefreshBuffs(target, record.BuffIds);') -and
-    $worldPlaybackSource.Contains('Resources.Load<Sprite>("ProjectXBattle/BuffTips/" + buff.ResourceName)') -and
-    $worldPlaybackSource.Contains('player.LoadLegacy("res2/Skill/" + buff.ResourceName)') -and
+    $worldPlaybackSource.Contains('ProjectX.Foundation.ResourceLoader.Load<Sprite>("Art/Battle/BuffTips/" + buff.ResourceName)') -and
+    $worldPlaybackSource.Contains('UnityNativeBattleEffectCatalog.TryResolveAnimatedBuff(buff.Id, out string buffPath)') -and
+    $worldPlaybackSource.Contains('!player.LoadAnimation(buffPath)') -and
+    -not $worldPlaybackSource.Contains('player.LoadLegacy("res2/Skill/" + buff.ResourceName)') -and
     $worldPlaybackSource.Contains('Vector3 hitPoint = ResolveHitPoint(unit, buff.Hit + 1);') -and
     $worldPlaybackSource.Contains('unit.HitDefinition?.HpBarPosition') -and
     $worldPlaybackSource.Contains('ShowCombatMarker(retaliator, "injurytext")') -and
@@ -3838,6 +5536,9 @@ Assert-ToolchainTest (
     $worldReplaySource.Contains('SourceHpChanged') -and
     $worldReplaySource.Contains('SkillId')
 ) "World regression: the authoritative /38 playback or current Cocos replay-return lifecycle drifted."
+$projectXAppSource = $worldPlaybackAppSourceBeforeLifecycleAssertions
+$worldPlaybackAppSourceBeforeTerminalAssertions = $projectXAppSource
+$projectXAppSource = $projectXAppAllSource
 Assert-ToolchainTest (
     $worldPlaybackSource.Contains('bool dead = protocolDead || unit.CurrentHp == 0;') -and
     $worldPlaybackSource.Contains('if (!preserveDamage || activeSource.IsDead) HideDamage(activeSource);') -and
@@ -3845,10 +5546,11 @@ Assert-ToolchainTest (
     $worldPlaybackSource.Contains('if (unit.IsDead || unit.CurrentHp == 0) HideDamage(unit);') -and
     $worldPlaybackSource.Contains('if (unit.HealthRoot != null) unit.HealthRoot.gameObject.SetActive(false);') -and
     $worldPlaybackSource.Contains('loop && unit.Model.IsPlaying && unit.Model.CurrentAction == actionIndex') -and
-    $worldPlaybackSource.Contains('string.Equals(source, legacyPath + ".ani", StringComparison.OrdinalIgnoreCase)') -and
+    $worldPlaybackSource.Contains('player.MatchesAnimation(legacyPath)') -and
     [regex]::IsMatch($projectXAppSource,
         'WaitForSecondsRealtime\(\.18f\s*/ Mathf\.Max\(1f, worldBattlePlaybackPresenter\.PlaybackSpeed\)\)')
 ) "World battle terminal-state regression: zero-HP death, floating damage cleanup, or scaled inter-action pacing was removed."
+$projectXAppSource = $worldPlaybackAppSourceBeforeTerminalAssertions
 Assert-ToolchainTest (
     $battlePresentationCatalogSource.Contains('LDataConstMgr:GetBTAction/GetBTModelAct/GetBTSkAct/GetBTHurtAct') -and
     $battlePresentationCatalogSource.Contains('actionType == 3 && skillId <= uint.MaxValue - 100000') -and
@@ -3863,16 +5565,16 @@ Assert-ToolchainTest (
     $worldPlaybackSource.Contains('formation.Positions.Contains(localPosition)') -and
     $worldPlaybackSource.Contains('original <= 9 ? store.Group1FormationId : store.Group2FormationId') -and
     $worldPlaybackSource.Contains('public int ActiveFormationMarkerCount') -and
-    $projectXAppSource.Contains('worldBattlePlaybackPresenter.ActiveFormationMarkerCount != services.WorldBattleReplay.Units.Count') -and
+    $projectXAppAllSource.Contains('worldBattlePlaybackPresenter.ActiveFormationMarkerCount != services.FengShenBattleReplay.Units.Count') -and
     $worldReplaySource.Contains('public float ScaleRatio { get; set; } = 1f;') -and
     $worldReplaySource.Contains('message.ReadUInt() / 100f') -and
     $worldReplaySource.Contains('Group1FormationId = message.ReadUShort();') -and
     $worldReplaySource.Contains('Group2FormationId = message.ReadUShort();') -and
     $worldReplaySource.Contains('CurrentTurn = message.ReadUShort();') -and
-    $worldPlaybackSource.Contains('UiPrefabLoader.Load("BattleHpNode", parent)') -and
-    $worldPlaybackSource.Contains('healthView.Binding.Find("Node/Minus")') -and
-    $worldPlaybackSource.Contains('healthView.Binding.Find("Node/Plus")') -and
-    $worldPlaybackSource.Contains('Resources.Load<Texture2D>("ProjectXBattle/Hud/ui_pk_num")') -and
+    $worldPlaybackSource.Contains('uiAssets.InstantiateUnity("BattleHpNode", parent)') -and
+    $worldPlaybackSource.Contains('FindHealthNode(healthView, "Node/Minus")') -and
+    $worldPlaybackSource.Contains('FindHealthNode(healthView, "Node/Plus")') -and
+    $worldPlaybackSource.Contains('ProjectX.Foundation.ResourceLoader.Load<Texture2D>("Art/Battle/Hud/ui_pk_num")') -and
     $worldPlaybackSource.Contains('new Rect(index * 29f, 0f, 29f, 30f)') -and
     $worldPlaybackSource.Contains('BuildBattleNumber(unit.NumberRoot, digits,') -and
     $worldPlaybackSource.Contains('unit.NumberCritical') -and
@@ -3884,13 +5586,15 @@ Assert-ToolchainTest (
     -not $worldPlaybackSource.Contains('CreateText(rect, "Damage"') -and
     $worldPlaybackSource.Contains('presentationCatalog.ResolveUnitHit(unit.Type') -and
     $worldPlaybackSource.Contains('ResolveHitPoint(attachedUnit, effect.HitPoint)') -and
-    $bootstrapBuilderSource.Contains('new PrefabSpec("Assets/ProjectX/res/csd/Prefabs/HPNode.prefab", false)') -and
-    $bootstrapBuilderSource.Contains('return "BattleHpNode";') -and
-    $bootstrapBuilderSource.Contains('"ConfigData", "hit_monster.dat"') -and
-    $bootstrapBuilderSource.Contains('"ConfigData", "zhenfa_config_dat.lua"') -and
-    $bootstrapBuilderSource.Contains('"ImageNum", "num_lan.png"') -and
-    $bootstrapBuilderSource.Contains('"ImageNum", "ui_pk_num.png"') -and
-    $bootstrapBuilderSource.Contains('$"zhenfa_{formation}.png"') -and
+    $bootstrapBuilderSource.Contains('new PrefabSpec(BattleHpNodePrefab, false)') -and
+    $bootstrapBuilderSource.Contains('if (prefabPath == BattleHpNodePrefab) return "BattleHpNode";') -and
+    $bootstrapBuilderSource.Contains('Path.Combine(unityClientDataRoot, "Battle", "hit_monster.dat.bytes")') -and
+    $bootstrapBuilderSource.Contains('Path.Combine(unityClientDataRoot, "Battle", "zhenfa_config_dat.txt")') -and
+    $bootstrapBuilderSource.Contains('"Assets/Resources/ProjectXData/Battle/hit_monster.dat.bytes"') -and
+    $bootstrapBuilderSource.Contains('"Assets/Resources/ProjectXData/Battle/zhenfa_config_dat.txt"') -and
+    $bootstrapBuilderSource.Contains('RequireUnityResource("Assets/Art/Battle/Hud/num_lan.png")') -and
+    $bootstrapBuilderSource.Contains('RequireUnityResource("Assets/Art/Battle/Hud/ui_pk_num.png")') -and
+    $bootstrapBuilderSource.Contains('$"Assets/Art/Hero/formation_{formation}.png"') -and
     $worldPlaybackSource.Contains('CreateRoundAtlas(roundLabel.transform);') -and
     $worldPlaybackSource.Contains('UpdateRoundDisplay(Mathf.Max(1, store.CurrentTurn));') -and
     $worldPlaybackSource.Contains('SetFormationIcon("Layer/FightUI/btn_Formation_Enemy/Image", store.Group2FormationId);') -and
@@ -3903,14 +5607,14 @@ Assert-ToolchainTest (
     @($battleAudioFiles | Where-Object { $_.Length -le 1024 }).Count -eq 0 -and
     $battleBuffIconFiles.Count -eq 56 -and
     $battleSkillNameFiles.Count -eq 8 -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXBattle/SkillName/skill_0.png')).Hash.ToLowerInvariant() -eq '0e232540ab573df9a2e641c0ac5b9511fbf7c41422242b1a0e9d4bca94ea8021' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/skill_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'f36abb669b33aebcd8da55184648bfc2129e34b36214095319d13633c0bf7612' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/skill_attack_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'ec065fb2f070a57735b11fff44a72b4cd2d6cc19fc4ba6f4cfb442eb0a6ac325' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/skill_effect_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'aab57c44cafdaef99a6ee10e8b64ccab0b619a5276de91b46989869e9ee9465a' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/skill_behit_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'abefd49b70812b95a1fe3304530b0472ed503def4feee2d09eb016a92d2a3583' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/hit_monster.dat.bytes')).Hash.ToLowerInvariant() -eq '79ce0eaf3b8efef4e8b2fa36421f34f7291672343fd91fb6a469309bee71fecc' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Battle/zhenfa_config_dat.txt')).Hash.ToLowerInvariant() -eq '9d86d4a4df2ee54d538052f6e5de4a58ebb5a5c8b1f6dbb7185b65e1fb236949' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXBattle/Hud/num_lan.png')).Hash.ToLowerInvariant() -eq 'ac67a9df960289479ccf49e06f73ec252ff84d451f8178717dea540da5072d87'
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Art/Battle/SkillName/skill_0.png')).Hash.ToLowerInvariant() -eq '0e232540ab573df9a2e641c0ac5b9511fbf7c41422242b1a0e9d4bca94ea8021' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/skill_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'f36abb669b33aebcd8da55184648bfc2129e34b36214095319d13633c0bf7612' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/skill_attack_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'ec065fb2f070a57735b11fff44a72b4cd2d6cc19fc4ba6f4cfb442eb0a6ac325' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/skill_effect_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'aab57c44cafdaef99a6ee10e8b64ccab0b619a5276de91b46989869e9ee9465a' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/skill_behit_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'abefd49b70812b95a1fe3304530b0472ed503def4feee2d09eb016a92d2a3583' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/hit_monster.dat.bytes')).Hash.ToLowerInvariant() -eq '79ce0eaf3b8efef4e8b2fa36421f34f7291672343fd91fb6a469309bee71fecc' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/zhenfa_config_dat.txt')).Hash.ToLowerInvariant() -eq '9d86d4a4df2ee54d538052f6e5de4a58ebb5a5c8b1f6dbb7185b65e1fb236949' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Art/Battle/Hud/num_lan.png')).Hash.ToLowerInvariant() -eq 'ac67a9df960289479ccf49e06f73ec252ff84d451f8178717dea540da5072d87'
 ) "Shared battle presentation config parser or hydrated Cocos resource hashes drifted."
 Assert-ToolchainTest (
     $worldPresenterSource.Contains('float backdropWidth = mapVisual != null ? mapVisual.Size.x * (750f / 1080f) : 0f;') -and
@@ -3919,8 +5623,8 @@ Assert-ToolchainTest (
     $worldPresenterSource.Contains('titleBackground.raycastTarget = false')
 ) "World stage-map ScrollRect regressed to stage-button width and can no longer pan across the Cocos map backdrop."
 Assert-ToolchainTest (
-    $projectXAppSource.IndexOf('if (!services.Options.WorldBattleValidation)', [StringComparison]::Ordinal) -lt
-    $projectXAppSource.IndexOf('if (GetLocalUserId() == 1 || !IsWorldOpen', [StringComparison]::Ordinal)
+    $projectXAppAllSource.IndexOf('if (!services.Options.WorldBattleValidation)', [StringComparison]::Ordinal) -lt
+    $projectXAppAllSource.IndexOf('if (GetLocalUserId() == 1 || !IsWorldOpen', [StringComparison]::Ordinal)
 ) "World regression: ordinary userId=1 Play is still routed through fixed-account G4 validation and opens a final-state error after settlement closes."
 Assert-ToolchainTest (
     $projectXAppSource.Contains('worldStageView?.GameObject.activeSelf == true') -and
@@ -3928,11 +5632,11 @@ Assert-ToolchainTest (
     $projectXAppSource.Contains('worldDetailView?.GameObject.activeSelf == true')
 ) "World open-state regression: an active chapter, stage, or detail surface is no longer recognized after UiStack ownership changes."
 Assert-ToolchainTest (
-    [regex]::IsMatch($projectXAppSource,
+    [regex]::IsMatch($projectXAppAllSource,
         'HandleDisconnected\(string reason\)[\s\S]*?worldView\?\.SetVisible\(false\);\s*worldStageView\?\.SetVisible\(false\);\s*worldMapView\?\.SetVisible\(false\);')
 ) "World disconnect cleanup leaves the imported stage surface active and reports the module as still open."
 Assert-ToolchainTest (
-    [regex]::IsMatch($projectXAppSource,
+    [regex]::IsMatch($projectXAppAllSource,
         'HandleBack\(\)[\s\S]*?if \(IsWorldOpen\)[\s\S]*?worldStageView\?\.SetVisible\(false\);[\s\S]*?worldMapView\?\.SetVisible\(false\);[\s\S]*?worldView\?\.SetVisible\(false\);[\s\S]*?UiStack\.Pop\(\)')
 ) "World back-navigation regression: closing the module leaves reparented chapter/stage surfaces active after the root UiStack pop."
 Assert-ToolchainTest (
@@ -3954,15 +5658,15 @@ Assert-ToolchainTest (
     $heroBookControllerSource.Contains('send(2, heroId)') -and
     $heroBookControllerSource.Contains('Bridge:BeginHeroBookSnapshot(level, score, nextStart, nextEnd, heroCount)') -and
     $heroBookControllerSource.Contains('Bridge:BeginHeroBookUpgrade(heroId, star, addedScore, bookLevel)') -and
-    $projectXAppSource.Contains('InvokeLuaOrFail(onHeroBookOpened, "HeroBook.Open")') -and
-    $projectXAppSource.Contains('InvokeLuaOrFail(onHeroBookUpgrade, "HeroBook.Upgrade", id)')
+    $projectXAppAllSource.Contains('InvokeLuaOrFail(onHeroBookOpened, "HeroBook.Open")') -and
+    $projectXAppAllSource.Contains('InvokeLuaOrFail(onHeroBookUpgrade, "HeroBook.Upgrade", id)')
 ) "HeroBook regressed from the authoritative /322 snapshot and upgrade path."
 Assert-ToolchainTest (
-    [regex]::IsMatch($projectXAppSource,
+    [regex]::IsMatch($projectXAppAllSource,
         'EndFormationUpdate\(\)[\s\S]*?bool preserveHeroBook = !explicitEntry[\s\S]*?heroBookView\?\.GameObject\.activeSelf == true;[\s\S]*?if \(preserveHeroBook\)[\s\S]*?HeroBook hero state synchronized without navigation[\s\S]*?return;[\s\S]*?EnsureHeroPresenter\(\);')
 ) "HeroBook activation can again be replaced by the remembered Hero Bag entry while unsolicited hero/formation packets arrive before /322."
 Assert-ToolchainTest (
-    [regex]::IsMatch($projectXAppSource,
+    [regex]::IsMatch($projectXAppAllSource,
         'EndFormationUpdate\(\)[\s\S]*?bool preserveHeroEquipmentSubpage = !explicitEntry[\s\S]*?IsHeroEquipmentSubpageVisible;[\s\S]*?if \(preserveHeroEquipmentSubpage\)[\s\S]*?BindHeroEquipmentCultivationPortrait\(\);[\s\S]*?Hero equipment state synchronized without navigation[\s\S]*?return;[\s\S]*?if \(preserveHeroBook\)')
 ) "HeroEquipment cultivation can again be hidden or keep a blank hero portrait when an unsolicited formation refresh arrives."
 Assert-ToolchainTest (
@@ -3972,9 +5676,9 @@ Assert-ToolchainTest (
     $heroBookPresenterSource.Contains('definitions.AddRange(catalog.Heroes') -and
     $heroBookPresenterSource.Contains('resources.LoadHeroBodyPortrait(definition.Picture)') -and
     $heroBookPresenterSource.Contains('portrait.sprite = resources.LoadHeroPortrait(definition.Picture)') -and
-    $heroBookPresenterSource.Contains('HeroUI/common_quality_{Mathf.Clamp(definition.Quality, 1, 7):00}') -and
-    $resourceServiceSource.Contains('Sprite sprite = LoadSprite($"MonsterBust/{picture}", false);') -and
-    $resourceServiceSource.Contains('return LoadSprite("MonsterBust/1", false) ?? LoadSprite("MonsterBust/head_defult");') -and
+    $heroBookPresenterSource.Contains('Art/Hero/common_quality_{Mathf.Clamp(definition.Quality, 1, 7):00}') -and
+    $resourceServiceSource.Contains('Sprite sprite = LoadSprite($"Art/Portraits/Monsters/{picture}", false);') -and
+    $resourceServiceSource.Contains('return LoadSprite("Art/Portraits/Monsters/1", false) ?? LoadSprite("Art/Portraits/Monsters/head_defult");') -and
     $heroBookPresenterSource.Contains('bag.GetTotalQuantityByItemId(cost.ItemId)') -and
     $heroBookPresenterSource.Contains('new GameObject("RuntimeHeroBookContent", typeof(RectTransform)') -and
     $heroBookPresenterSource.Contains('for (int index = 0; index < definitions.Count; index++)') -and
@@ -3986,37 +5690,40 @@ Assert-ToolchainTest (
 Assert-ToolchainTest (
     $uiPrefabCatalogSource.Contains('key: HeroBookAchievements') -and
     $uiPrefabCatalogSource.Contains('key: HeroBookActivateResult') -and
-    $uiPrefabCatalogSource.Contains('source: cocosstudio/csd/shenjiangyangcheng/yingxiongtujianendLayer.csd') -and
+    $uiPrefabCatalogSource.Contains('source: Unity/HeroBookActivateResult') -and
     $uiPrefabCatalogSource.Contains('key: HeroBookAttributes') -and
     $uiPrefabCatalogSource.Contains('key: HeroBookLevelResult') -and
     $uiPrefabCatalogSource.Contains('key: HeroBookUpgrade') -and
     $uiPrefabCatalogSource.Contains('key: HeroBookUpgradeResult') -and
     $bootstrapSceneBuilderSource.Contains('return "HeroBookActivateResult";') -and
     $bootstrapSceneBuilderSource.Contains('return "HeroBookLevelResult";') -and
-    $heroBookActivatePrefabSource.Contains('m_Sprite: {fileID: 21300000, guid: a220cd2ea14d9e744b8fdfbec47de2e3, type: 3}') -and
-    [regex]::IsMatch($projectXAppSource,
+    $heroBookActivateButtonGuid.Length -eq 32 -and
+    $heroBookActivatePrefabSource.Contains("m_Sprite: {fileID: 21300000, guid: ${heroBookActivateButtonGuid}, type: 3}") -and
+    [regex]::IsMatch($projectXAppAllSource,
         'EndHeroBookUpgrade\(int heroId,[\s\S]*?EnsureHeroBookSurfaceForResult\(\);[\s\S]*?services\.HeroBook\.ApplyUpgrade') -and
-    [regex]::IsMatch($projectXAppSource,
+    [regex]::IsMatch($projectXAppAllSource,
         'EnsureHeroBookSurfaceForResult\(\)[\s\S]*?if \(heroBookView\.GameObject\.activeSelf && !hasConflictingSurface\) return;[\s\S]*?heroBagView\?\.SetVisible\(false\);[\s\S]*?heroBookView\.SetVisible\(true\);') -and
-    $heroBookCatalogSource.Contains('Resources.Load<TextAsset>("Configs/hero")') -and
+    $heroBookCatalogSource.Contains('ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/hero")') -and
+    $heroBookCatalogSource.Contains('ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/star")') -and
+    $heroBookCatalogSource.Contains('ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/handbook")') -and
     $heroBookCatalogSource.Contains('if (raw.id <= 0 || raw.pic <= 0) continue;') -and
     @($heroBookHeroConfig).Count -eq 49 -and
     @($heroBookHeroConfig | Where-Object { [int]$_.id -gt 0 }).Count -eq 48 -and
     [int]@($heroBookHeroConfig | Where-Object { [int]$_.id -eq 25 })[0].quality -eq 5 -and
-    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/hero.json')).TrimEnd() -ceq
+    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Configs/hero.json')).TrimEnd() -ceq
         (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'server/config/json/hero.json')).TrimEnd() -and
-    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/star.json')).TrimEnd() -ceq
+    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Configs/star.json')).TrimEnd() -ceq
         (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'server/config/json/star.json')).TrimEnd() -and
-    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX/Resources/ProjectXData/Configs/handbook.json')).TrimEnd() -ceq
+    (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Configs/handbook.json')).TrimEnd() -ceq
         (Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $root 'server/config/json/handbook.json')).TrimEnd()
 ) "HeroBook popup resources or authoritative star/handbook configuration drifted."
 Assert-ToolchainTest (
-    [regex]::IsMatch($projectXAppSource,
+    [regex]::IsMatch($projectXAppAllSource,
         'CaptureWorldBattleResult\(int rewardCount\)[\s\S]*?replayActionCount = services\.WorldBattleReplay\?\.Actions\.Count \?\? 0;[\s\S]*?playbackAllowance = Mathf\.Min\(180f, replayActionCount \* 4\.5f\);[\s\S]*?settlementDeadline = Time\.realtimeSinceStartup \+ 30f \+ playbackAllowance;[\s\S]*?while \(!worldOutcomePresenter\.IsBattleVisible')
 ) "World G4 runner again checks settlement before the authoritative /38 battle playback finishes."
 Assert-ToolchainTest (
-    [regex]::IsMatch($projectXAppSource,
-        'ShowWorldBattleResultNow\(int stars\)[\s\S]*?worldG4BattleReplayValidated[\s\S]*?StartCoroutine\(CaptureWorldBattleResult\(services\.Rewards\.Count\)\)')
+    [regex]::IsMatch($projectXAppAllSource,
+        'ShowWorldBattleResultNow\(int stars, BattlePlaybackContext context\)[\s\S]*?worldG4BattleReplayValidated[\s\S]*?StartCoroutine\(CaptureWorldBattleResult\(services\.Rewards\.Count\)\)')
 ) "World G4 cached replay no longer resumes the settlement continue validation after playback."
 Assert-ToolchainTest (
     $worldFixtureSource.Contains('"AssertReloginHash"') -and
@@ -4046,5 +5753,77 @@ Assert-ToolchainTest (
     $battleMeetMonsterSqliteFixtureSource.Contains('"residueCount": 0') -and
     $battleMeetMonsterSqliteFixtureSource.Contains('"AssertReloginHash": assert_relogin')
 ) "BattleMeetMonster fixture drifted from the current-source scene-2 SQLite-only snapshot/restore contract."
+
+$nativeMaintenanceManifest = Get-Content -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-ui-references/unity-res-20261008/csd/UnityMigration/unity-import-manifest.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$nativeProjectSettings = Get-Content -LiteralPath (Join-Path $root "unityclient/ProjectSettings/ProjectXUiMaintenance.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+$nativeUiValidatorSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/UnityNativeUiAssetValidator.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $nativeMaintenanceManifest.maintenanceMode -eq 'unity-native-only' -and
+    $nativeProjectSettings.maintenanceMode -eq 'unity-native-only' -and
+    @($nativeMaintenanceManifest.documents).Count -eq 0 -and
+    -not $projectXAppAllSource.Contains('CocosUiView') -and
+    -not $projectXAppAllSource.Contains('UiPrefabLoader') -and
+    -not $projectXAppAllSource.Contains('FindBySource(') -and
+    -not $gameServicesUiSource.Contains('DeferredCocosUiAssetProvider') -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/src/Animation')) -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXAnimation'))
+) "Native maintenance regressed to active Cocos UI loading, import rows, or Imod runtime sources."
+Assert-ToolchainTest (
+    $nativeUiValidatorSource.Contains('AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs", "Assets/UnityOwned" })') -and
+    $nativeUiValidatorSource.Contains('AssetDatabase.GetDependencies(path, true).Any(IsLegacyPath)') -and
+    $nativeUiValidatorSource.Contains('provider.InstantiateUnity(entry.Key, host.transform)') -and
+    $nativeUiValidatorSource.Contains('!provider.Release(view)') -and
+    $nativeUiValidatorSource.Contains('host.transform.childCount != 0') -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/Effects/Retained/Sign/SignClaimAnimation.prefab'))
+) "Native validation no longer checks every retained Prefab, its resources, or Catalog instance disposal."
+
+# Retired importer contracts above read immutable history; active Unity sources must stay native.
+$activeUnitySources = @(Get-ChildItem -LiteralPath (Join-Path $root 'unityclient/Assets/src') -Recurse -File |
+    Where-Object { $_.Extension -in @('.cs', '.asmdef') } |
+    ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 }) -join "`n"
+Assert-ToolchainTest (
+    -not $activeUnitySources.Contains('ProjectX.UI.Migration') -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/src/UI/Migration')) -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/src/Editor/CocosUiImporter.cs')) -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/src/Editor/CocosBindingCleaner.cs')) -and
+    -not ([regex]::IsMatch($activeUnitySources, 'class\s+(CocosUiBinding|CocosNodeMetadata|CocosNodeReference|CocosTimelinePlayer|UiPrefabIdentity)\b')) -and
+    $runtimeInputSource.Contains('return hierarchyTarget;') -and
+    -not $runtimeInputSource.Contains('RetiredMetadataAliases') -and
+    -not $runtimeCollectorSource.Contains('BuildSerializedNodeIdentityIndex') -and
+    -not $runtimeCollectorSource.Contains('CocosTimelinePlayer') -and
+    $runtimeCollectorSource.Contains('Animator animator = rect.GetComponent<Animator>();') -and
+    $runtimeCollectorSource.Contains('string semanticId = RuntimeInputDispatcher.FullPath(rect);') -and
+    $runtimeCollectorSource.Contains('GetCurrentAnimatorClipInfo(0)')
+) "Active Unity assemblies and validation must not regain retired Cocos runtime classes or identity fallbacks."
+
+$activeScenes = @(Get-ChildItem -LiteralPath (Join-Path $root 'unityclient/Assets') -Recurse -File -Filter '*.unity' |
+    ForEach-Object { $_.FullName.Substring((Join-Path $root 'unityclient').Length + 1).Replace('\', '/') } | Sort-Object)
+$sceneBuildSettings = Get-Content -LiteralPath (Join-Path $root 'unityclient/ProjectSettings/EditorBuildSettings.asset') -Raw -Encoding UTF8
+$sceneProjectSettings = Get-Content -LiteralPath (Join-Path $root 'unityclient/ProjectSettings/ProjectSettings.asset') -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $activeScenes.Count -eq 2 -and
+    $activeScenes -contains 'Assets/Scenes/Bootstrap.unity' -and
+    $activeScenes -contains 'Assets/Scenes/FirstPlayableLoop.unity' -and
+    ([regex]::Matches($sceneBuildSettings, '(?m)^  - enabled: 1\s*\r?\n    path: Assets/Scenes/Bootstrap\.unity\s*$').Count -eq 1) -and
+    ([regex]::Matches($sceneBuildSettings, '(?m)^  - enabled: 1\s*$').Count -eq 1) -and
+    $sceneProjectSettings.Contains('templateDefaultScene: Assets/Scenes/Bootstrap.unity') -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX')) -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Settings/Scenes')) -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Settings/Lit2DSceneTemplate.scenetemplate'))
+) "Unity scenes must retain Bootstrap and FirstPlayableLoop only, with Bootstrap as the sole enabled runtime scene."
+
+$flattenedRootNames = @('Animations', 'Art', 'Editor', 'Prefabs', 'Resources', 'Scenes', 'src', 'UnityOwned')
+$frozenNativePath = Resolve-UnityMigrationExistingPath -Root $root -Path 'unityclient/Assets/ProjectX/src/UI/UnityAssetReference.cs' -PathType Leaf
+$foundationResult = & (Join-Path $root 'tools/unity-migration/Test-ResourceFoundation.ps1') -RepositoryRoot $root | ConvertFrom-Json
+Assert-ToolchainTest (
+    @($flattenedRootNames | Where-Object { -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/$_") -PathType Container) }).Count -eq 0 -and
+    $nativeProjectSettings.prefabRoot -eq 'Assets/Prefabs' -and
+    $nativeProjectSettings.resourceRoot -eq 'Assets/Resources' -and
+    $nativeProjectSettings.resourceReferenceRoot -eq 'Assets/Resources/AssetReferences' -and
+    $frozenNativePath -eq (Join-Path $root 'unityclient/Assets/src/UI/UnityAssetReference.cs') -and
+    $foundationResult.status -eq 'Passed' -and
+    $foundationResult.dynamicReferenceAssets -gt 0 -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX.meta'))
+) "Flattened Assets must retain native directories, resource configuration, Catalog contracts, and read-only access to frozen path evidence."
 
 Write-Host "Unity migration toolchain tests passed: $passed"

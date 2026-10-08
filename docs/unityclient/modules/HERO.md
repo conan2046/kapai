@@ -82,7 +82,7 @@ Unity数据链固定为：
 | 详细属性 | `csd/shenjiangyangcheng/shenjiangxiangxishuxing.csb` | `.../shenjiangxiangxishuxing.prefab` | 属性文本、Mask关闭 |
 | 获取途径 | `csd/common/huoqutujing.csb` | `.../common/huoqutujing.prefab` | 装备/法宝空槽来源、返回 |
 
-- 神将模型必须继续使用 `CreateAnimModel + PlayStand(1)` 对应的 Imod/`ImodAnimationPlayer` 循环待机，禁止用头像替代。
+- Hero 详情页、Draw、Rebirth、Hero培养与封神列传敌人预览的 `btm{picture}_zd_show` 待机动画已共用 Unity 原生 Sprite/AnimationClip/Animator；布阵阵位使用独立 `btm{picture}_zd` 家族，现已迁出 Imod，两个资源族不要互相替代。资源见 `Resources/UnityNativeHeroModels`，维护源为 Unity Clip/Controller；原生校验器只检查 Unity 资产（P-0166–P-0171）。其他 Hero/Equipment 动画入口仍有 Imod 消费，按各自功能入口继续迁移并复用已迁资源。
 - 开放条件来自 `function_dat.lua` 的 1045-1048；阵法和升级配置来自 `zhenfa_config_dat.lua`、`zhenfa_level_dat.lua`。
 - 16项逐控件实现、成功/失败和重连验证设计只维护在 `../matrices/HERO_CONTROLS.json` 的 `g2Design`，本文不复制第二份实时表。
 
@@ -96,9 +96,9 @@ Unity数据链固定为：
 
 ## Unity代码现状
 
-- `HeroPresenter`：已占用/空/锁定阵位选择、空位上阵、养成、强化大师、替换、6个装备/法宝槽、详细属性、详情渲染与Imod展示。
+- `HeroPresenter`：已占用/空/锁定阵位选择、空位上阵、养成、强化大师、替换、6个装备/法宝槽、详细属性与详情模型 Unity 原生动画展示。
 - `ProjectXApp.EnsureHeroPresenter`：公共关闭和 `btn_buzhen`；子流程接入真实换将、养成、装备/法宝和详细属性 Prefab。
-- `FormationPopupPresenter`：五个战斗位Imod、六阵法列表、阵位网格、真实属性/克制/材料/铜钱，`/48 op=2/3`学习升级与切换，以及来源位→目标位的`/48 op=5`互换。
+- `FormationPopupPresenter`：五个 Unity Animator 战斗位、六阵法列表、阵位网格、真实属性/克制/材料/铜钱，`/48 op=2/3`学习升级与切换，以及来源位→目标位的`/48 op=5`互换。阵位动画由 `UnityNativeHeroPreviewAnimation.LoadFormationStand` 加载 `Action_1`；仅有 `Action_0` 的 picture 使用其唯一动作（P-0171）。
 - G3修复了空位选择在 `Render()` 内被首个神将覆盖的问题；空位选择态现在保留到 `Panel_new/addnew`。
 - G4主链：同账号 `7200057` 从当前主界面真实入口进入，逐项点击占用/空阵位、上阵、养成、强化大师、替换、6个装备/法宝槽、详细属性、布阵，阵位 `1→2→1` 后权威重拉恢复；结果见 `.local/unity-validation/hero-g4-main-user7200057.json`。
 - G4异常：等级1账号锁定阵位拒绝见 `.local/unity-validation/hero-locked.json`；非法 hero `65535` 被服务端拒绝且阵位未变见 `.local/unity-validation/hero-invalid.json`。

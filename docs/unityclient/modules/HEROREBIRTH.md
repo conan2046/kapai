@@ -29,7 +29,7 @@
 
 ## 实现边界
 
-- 旧Lua/服务端继续拥有协议、返还算法、成功/失败和持久状态；Unity只绑定现有Prefab、真实控件、Imod模型与权威结果。
+- 旧Lua/服务端继续拥有协议、返还算法、成功/失败和持久状态；Unity只绑定现有Prefab、真实控件、Unity原生神将预览与权威结果。神将模型 `btm{picture}_zd_show` 已复用 `Resources/UnityNativeHeroModels`（P-0168）。
 - 两条入口只允许创建一个重生实例；退出、切号和延迟回包必须清理选择、pending、监听与弹窗。
 - G3前补齐SQLite可逆Fixture、DataPreflight合同、batch场景、截图状态和源码锚点。
 - 不覆盖、不回退、不重新设计只读Prefab；仅允许在代码中补业务、导航、显隐与数据绑定。

@@ -1,12 +1,13 @@
 # 登录与创角
 
-> 当前结论：2026-08-01 已按新标准从 G0 重做并通过 G0-G6；21/21 控件、10/10 语义断言、17/17 双端原生视觉、精确恢复、切号隔离、零夹具残留和两次真实 BuildBatch 均通过。旧“complete/第一阶段完成”、旧截图和旧 Bootstrap Runner 结果未用于跳过门禁。
+> 当前结论：2026-08-01 的双端对照 G0-G6 是历史验收；W8 重新开启 Unity/Cocos 解耦与登录资源维护链验收，不能沿用旧 complete 作为当前收口。Unity 登录/运行时不连接 MySQL：固定账号与隔离账号均使用 SQLite（`7200057/1000003`、`1/1000001`）；Cocos 历史对照使用 `7200057/1000115` 与 `705213/1000006`，不能作为 Unity 数据源或验收后端。
 
 ## G0 冻结
 
 - 模块：P0 第一个模块“登录与创角”；后续依次为系统设置、主界面 HUD。
 - 分辨率：Windows 100% 缩放，原生客户区 `1334×750`。
-- 现有角色固定账号：`7200057 / 1000115`；终态切号隔离账号：`705213 / 1000006`。
+- Cocos 历史对照身份：`7200057 / 1000115`；终态切号隔离账号：`705213 / 1000006`。
+- Unity SQLite 批验身份：`7200057 / 1000003 (T00057)`；终态隔离账号：`1 / 1000001 (S8D01)`。批验数据库隔离在项目 `.local/unity-validation/login-sqlite/LocalServer/projectx.db`，新建时从校验过哈希的 Unity SQLite 种子生成，finally 清除；Steam 单机真实存档仍使用 Slot SQLite。不得把 Cocos MySQL 夹具作为 Unity 证据。
 - 无角色创角：标准 Runner 从 `7300000+` 分配隔离账号，执行 `snapshot → setup → assert → run → relogin → finally restore → cleanup assert`。
 - 控件矩阵：`docs/unityclient/matrices/LOGIN_CONTROLS.json`，21 个物理控件/控件族，`workflowPolicyVersion=1`。
 - 包含：Logo、Windows 预载、`LoginBgLayer`、`loginLayer`、`SeverListLayer`、`RoleCreateLayer`、`NoticeLayer`、`/1001、/1002、/1003、/1004、/88`、已有角色、无角色创角、合法/非法/重复名、选服、登录失败/超时/断线/重连、返回/重进/切号隔离。
@@ -58,11 +59,11 @@ client/ProjectX/src/View/MainUI.lua:257
   -> QueryMsgHeader
 client/ProjectX/src/NetWork/LuaNetSendMsg.lua:6629-6633
   -> /88
-client/ProjectX/src/NetWork/LuaNetRecvdMsg.lua:13136-13155
-  -> count>0: InitUI NoticeUI
-client/ProjectX/src/View/NoticeUI.lua:55-159,183-233
-  -> csd/NoticeLayer.csb
-  -> 动态标题列表、正文 ScrollView、公共 FirstClass 关闭回调
+  -> Unity ProtocolDispatcher command 88
+ProjectXApp.Notice.HandleGameNoticeResponse
+  -> C# 解码 count/title/text/id/opType
+  -> NoticePresenter + Unity-owned NoticeLayer Prefab
+  -> Unity 序列化关闭按钮与正文/列表绑定
 ```
 
 选服分支：`LoginUI:HandleSelectServer → ServerListUI.lua → SeverListLayer.csb`；左侧动态区服行调用 `LeftTableCellTouched/SelServerArea`，右侧动态服务器行首次选中、再次点击进入，独立 `Btn_Play` 也进入，`btn_Exit` 返回。
@@ -96,6 +97,8 @@ G1 取证必须针对模拟器副本关闭自动进入/自动创角，且不得�
 | `/1003 PRO_CREATE_ROLE` | `string name, byte sex, byte model, byte head, uint16 ad` | `byte success, uint32 roleId, string name, byte sex, byte model, byte head, uint32 createTime`；失败追加 `string error` | `CreateRole` |
 | `/1004 PRO_SELECT_ROLE` | `uint32 roleId` | `byte success` 后为完整角色权威快照；Unity 必须消费至 `Remaining=0` | `SelectRole` |
 | `/88 PRO_GONGGAO` | 无载荷 | `byte count`，每项 `string title,string text,byte id,byte opType`；无公告时服务端合法不回包 | `QueryGongGao` |
+
+Unity 当前在 `ProjectXApp.MainUi.ShowMainUi` 完成 Main 路由后发出 `/88`，由 `ProjectXApp.Notice.RequestGameNotice` 组包；Lua 只保留登录/角色协议，不再触发公告请求。C# 接收与展示见 `ProjectXApp.Startup.cs`、`ProjectXApp.Notice.cs`。
 
 注册路由：`server/src/pack_deal.cpp:152-155,262`。服务端实现：`UserLogin:629-902`、`RoleNameOption:990-1054`、`CreateRole:1116-1277`、`SelectRole:1279-1494`、`QueryGongGao:21312-21356`。
 
@@ -134,6 +137,8 @@ G1 取证必须针对模拟器副本关闭自动进入/自动创角，且不得�
 ## Unity 最终实现与边界
 
 当前 `StartupPresenter`、4 个登录 Prefab、`LoginPresenter`、Lua `LoginController/LoginProtocol/LoginView`、`NoticePresenter` 和标准批处理 Runner 已闭合 21 个冻结控件：服务器列表按 Cocos `SeverListLayer` 动态 Item 语义渲染；`/1001→/1003→/1004`、`/1002`、`/88` 均由真实回包驱动；已有角色、无角色创角、男女/随机名、非法/重复/合法名、连接失败、超时、在线断线、重连、返回、重进、切换账号和账号隔离均通过。
+
+登录背景与创角角色动画已使用 Unity 原生 Animator Controller、AnimationClip 和独立 Sprite 帧，资源位于 `Resources/UnityNativeLogin/Animations`。Cocos 源码仍保留原 `effect_chuangjue_1`、`Create_4`、`Create_5` ANI；Unity Imod 生成包与 Catalog 不再包含这三条旧路径，准备器保留 engine-neutral IR 并精确排除它们。
 
 保留边界：当前仓库缺独立正式登录服，生产渠道 SDK、正式维护公告与发布配置继续后置；系统设置和主界面 HUD 是独立 P0 模块，不在本模块实现；支付、活动、基金、福利、竞技和社交均未提前处理。
 

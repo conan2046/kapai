@@ -51,7 +51,7 @@ if ($weightTotal -ne 10000) { throw "HappyWheel reward weights must total 10000;
 $expectedCostItem = [int]$settings.cost_item_id
 foreach ($relativePath in @(
     'server\config\json\shop.json',
-    'unityclient\Assets\ProjectX\Resources\Configs\shop.json'
+    'unityclient\Assets\Resources\ProjectXData\Configs\shop.json'
 )) {
     $path = Join-Path $Root $relativePath
     $shopRows = @(Get-Content -Raw -Encoding UTF8 -LiteralPath $path | ConvertFrom-Json)
@@ -62,7 +62,7 @@ foreach ($relativePath in @(
 }
 foreach ($relativePath in @(
     'server\config\json\item.json',
-    'unityclient\Assets\ProjectX\Resources\Configs\item.json'
+    'unityclient\Assets\Resources\ProjectXData\Configs\item.json'
 )) {
     $path = Join-Path $Root $relativePath
     $itemRows = @(Get-Content -Raw -Encoding UTF8 -LiteralPath $path | ConvertFrom-Json)

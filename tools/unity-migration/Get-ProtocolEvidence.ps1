@@ -91,7 +91,7 @@ try {
         foreach ($line in Invoke-EvidenceSearch -Pattern $symbol -Paths @("client/ProjectX/src", "client/ProjectX/res") -Fixed) {
             if (-not $clientLines.Contains($line)) { $clientLines.Add($line) }
         }
-        foreach ($line in Invoke-EvidenceSearch -Pattern $symbol -Paths @("unityclient/Assets/ProjectX") -Fixed) {
+        foreach ($line in Invoke-EvidenceSearch -Pattern $symbol -Paths @("unityclient/Assets") -Fixed) {
             if (-not $unityLines.Contains($line)) { $unityLines.Add($line) }
         }
     }
@@ -112,7 +112,7 @@ try {
         }
     }
     if ($unityLines.Count -eq 0) {
-        foreach ($line in Invoke-EvidenceSearch -Pattern "\b$Protocol\b" -Paths @("unityclient/Assets/ProjectX")) {
+        foreach ($line in Invoke-EvidenceSearch -Pattern "\b$Protocol\b" -Paths @("unityclient/Assets")) {
             $unityLines.Add($line)
         }
     }

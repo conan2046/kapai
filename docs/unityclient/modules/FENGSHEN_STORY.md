@@ -14,7 +14,7 @@
 
 关卡弹窗：`FengShenStoryLevelUI` → `csd/fengshenliezhuan/fengshenliezhuanlevel.csb`。当前关显示挑战与布阵；已过关只显示通过；锁定关卡 `userObject=0`，点击只出原生提示。
 
-当前配置有 371 个 `MapType=4` 章节（4001-4371），每章 4 关；主页使用动态横向 TableView、12 个三态关卡模板、两个宝箱按钮和一次非循环 `animation0`。关卡敌人使用 `MonsterBig` Imod、`PlayStand(0)`、挂点缩放 0.8。
+当前配置有 371 个 `MapType=4` 章节（4001-4371），每章 4 关；主页使用动态横向 TableView、12 个三态关卡模板、两个宝箱按钮和一次非循环 `animation0`。关卡敌人待机已改用 Unity 原生 `btm{picture}_zd_show` Animator，保留挂点缩放 0.8；原生资源与 Hero/Draw 共用（P-0169）。其他战斗回放模型仍按战斗入口处理。
 
 ### 协议所有权
 

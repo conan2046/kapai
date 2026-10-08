@@ -38,6 +38,12 @@
       "requiredAction": "按 owned process 生命周期清理，并在门禁前核验 Unity、Cocos、kapai 和 Computer Use 运行时残留为零。"
     },
     {
+      "ruleId": "RC-UNITY-PLAYMODE-STATE",
+      "title": "Unity PlayMode 转场状态误判",
+      "rootCausePatterns": ["(?i)(is_changing|playmode_transition).*(stuck|stall|卡住)", "(?i)(stuck|stall|卡住).*(is_changing|playmode_transition)", "Unity.*PlayMode.*(状态|转场).*(误判|停滞)"],
+      "requiredAction": "不得仅凭 MCP is_changing 或 activity 标签判定 PlayMode 卡住；结合 EditorApplication.isPlaying、EnteredPlayMode 事件和 Bootstrap Runtime readiness 判断。"
+    },
+    {
       "ruleId": "RC-POWERSHELL-MATCHES",
       "title": "PowerShell 自动变量 Matches 名称碰撞",
       "rootCausePatterns": ["(?i)(PowerShell|pwsh).*\\$Matches", "(?i)automatic variable.*Matches", "自动变量.*Matches"],

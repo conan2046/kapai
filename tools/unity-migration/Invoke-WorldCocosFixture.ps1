@@ -1,19 +1,24 @@
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Setup", "SetupVisual", "AssertSetup", "AssertRuntimeSetup", "AssertPostValidation", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash", "SeedTestProgress")]
+    [ValidateSet("Setup", "SetupVisual", "SetupChapterUnlock", "SetupAchievementUnlock", "AssertSetup", "AssertRuntimeSetup", "AssertPostValidation", "Restore", "AssertRestored", "Cleanup", "AssertCleanup", "AssertReloginHash", "SeedTestProgress")]
     [string]$Action,
     [uint32]$UserId = 7200057,
     [uint32]$RoleId = 1000115,
     [string]$EvidencePath = ".local/ui-fidelity/World/cocos/g1-20260731-cua/world-fixed-fixture-snapshot.json",
-    [string]$DatabasePath = ""
+    [string]$DatabasePath = "",
+    [switch]$AllowUnityEditorForDataPreflight
 )
 
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot "UnityMigration.Common.ps1")
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
 $evidence = if ([IO.Path]::IsPathRooted($EvidencePath)) { $EvidencePath } else { Join-Path $root $EvidencePath }
 
 if ($DatabasePath) {
+    if ($AllowUnityEditorForDataPreflight -and $Action -notin @("Setup", "SetupChapterUnlock", "SetupAchievementUnlock", "AssertSetup", "AssertRuntimeSetup", "Restore", "AssertRestored", "AssertReloginHash", "Cleanup", "AssertCleanup")) {
+        throw "-AllowUnityEditorForDataPreflight is restricted to the World data-preflight fixture lifecycle."
+    }
     if (-not [IO.Path]::IsPathRooted($DatabasePath)) { $DatabasePath = Join-Path $root $DatabasePath }
     $DatabasePath = [IO.Path]::GetFullPath($DatabasePath)
     if (-not $DatabasePath.EndsWith("LocalServer\projectx.db", [StringComparison]::OrdinalIgnoreCase)) {
@@ -22,14 +27,38 @@ if ($DatabasePath) {
     if ($UserId -ne 7200057 -or $RoleId -ne 1000003) {
         throw "World SQLite fixture identity must remain 7200057/1000003."
     }
-    $running = @(Get-Process kapai, ProjectX, Unity -ErrorAction SilentlyContinue)
-    if ($running.Count -gt 0) { throw "Stop kapai.exe, ProjectX.exe and Unity.exe before World SQLite fixture $Action." }
+    $runningRuntime = @(Get-Process kapai, ProjectX -ErrorAction SilentlyContinue)
+    $runningUnity = @(Get-Process Unity -ErrorAction SilentlyContinue)
+    if ($AllowUnityEditorForDataPreflight) {
+        $unityProcessMetadata = @(Get-CimInstance Win32_Process -Filter "Name = 'Unity.exe'")
+        $interactiveUnityEditors = @(Get-UnityMigrationInteractiveUnityEditors -Processes $unityProcessMetadata)
+        $editorCommands = @($interactiveUnityEditors | ForEach-Object { [string]$_.CommandLine })
+        $projectPath = [IO.Path]::GetFullPath((Join-Path $root "unityclient"))
+        $quotedProjectPath = '-projectPath "' + $projectPath + '"'
+        $plainProjectPath = '-projectPath ' + $projectPath
+        if ($interactiveUnityEditors.Count -ne 1 -or $editorCommands.Count -ne 1 -or
+            ($editorCommands[0].IndexOf($quotedProjectPath, [StringComparison]::OrdinalIgnoreCase) -lt 0 -and
+             $editorCommands[0].IndexOf($plainProjectPath, [StringComparison]::OrdinalIgnoreCase) -lt 0) -or
+            $editorCommands[0] -match '(^|\s)-batchmode(\s|$)') {
+            throw "-AllowUnityEditorForDataPreflight requires the one interactive Unity Editor for this exact project."
+        }
+    }
+    if ($runningRuntime.Count -gt 0 -or ($runningUnity.Count -gt 0 -and -not $AllowUnityEditorForDataPreflight)) {
+        throw "Stop kapai.exe, ProjectX.exe and Unity.exe before World SQLite fixture $Action."
+    }
     $backup = Join-Path $root ".local\unity-validation\world-sqlite-fixture-backup.db"
     & python -X utf8 (Join-Path $PSScriptRoot "Invoke-WorldCocosFixture.py") `
         --action $Action --database $DatabasePath --backup $backup --evidence $evidence `
         --user-id $UserId --role-id $RoleId
     if ($LASTEXITCODE -ne 0) { throw "World SQLite fixture adapter failed: $Action" }
     return
+}
+
+if ($Action -eq "SetupChapterUnlock") {
+    throw "SetupChapterUnlock is SQLite-only and requires -DatabasePath Application.persistentDataPath/LocalServer/projectx.db."
+}
+if ($Action -eq "SetupAchievementUnlock") {
+    throw "SetupAchievementUnlock is SQLite-only and requires -DatabasePath Application.persistentDataPath/LocalServer/projectx.db."
 }
 
 $mysql = "C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe"
