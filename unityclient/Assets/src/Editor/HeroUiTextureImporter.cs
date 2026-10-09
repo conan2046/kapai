@@ -13,7 +13,7 @@ namespace ProjectX.Editor
 
         private void OnPreprocessTexture()
         {
-            if (!assetPath.StartsWith("Assets/Art/Hero/")) return;
+            if (!assetPath.StartsWith("Assets/Art/Icons/Hero/")) return;
             if (!(assetImporter is TextureImporter importer)) return;
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;

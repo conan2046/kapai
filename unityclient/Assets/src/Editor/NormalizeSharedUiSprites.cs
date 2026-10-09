@@ -37,7 +37,7 @@ namespace ProjectX.Editor
         {
             new Rule
             {
-                AssetPath = "Assets/Art/UI/Common/ui_common_hecheng_bg.png",
+                AssetPath = "Assets/Art/UI/ui_common/ui_common_hecheng_bg.png",
                 CanonicalName = "ui_common_hecheng_bg",
                 CanonicalBorder = new Vector4(15f, 15f, 14f, 14f),
                 VariantNames = new[]
@@ -50,14 +50,14 @@ namespace ProjectX.Editor
             },
             new Rule
             {
-                AssetPath = "Assets/Art/UI/Common/ui_common_icon_kuang_01.png",
+                AssetPath = "Assets/Art/UI/ui_common/ui_common_icon_kuang_01.png",
                 CanonicalName = "ui_common_icon_kuang_01",
                 CanonicalBorder = new Vector4(15f, 11f, 15f, 11f),
                 VariantNames = new[] { "ui_common_icon_kuang_01__L5_B5_R5_T5" },
             },
             new Rule
             {
-                AssetPath = "Assets/Art/UI/Common/ui_xunchong_xuankuang_01.png",
+                AssetPath = "Assets/Art/UI/ui_common/ui_xunchong_xuankuang_01.png",
                 CanonicalName = "ui_xunchong_xuankuang_01",
                 CanonicalBorder = new Vector4(15f, 11f, 15f, 11f),
                 VariantNames = new[]

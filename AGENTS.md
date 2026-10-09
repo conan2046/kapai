@@ -23,6 +23,21 @@
 ### Unity 资源维护目录
 
 - 图片、字体、音频统一由 `unityclient/Assets/Art/` 维护；公共字体和公共 UI 只保留一份语义等价资产，功能目录只放专属资源。
+- 整屏静态背景统一放在 `Assets/Art/Backgrounds/`，该目录不参加 SpriteAtlas 打包；同尺寸的动画帧或运行时切图保留原资源类别。移动时保留 GUID 和既有逻辑加载键。
+- `Assets/Art/UI/` 按原资源目录名（如 `ui_fuli`、`ui_juese`、`ui_common`）统一分类，不再按功能套娃复制目录。动画帧/动画整图放在 `Art/AnimationFrames/`，运行时切图通过图集配置中的 GUID 排除。
+- 公共 UI 的 `ui_common_new`、`ui_common_new2` 已归并到 `ui_common`，不再按这些历史后缀拆目录或图集。
+- 用户指定的 UI 归并：`ui_hecheng`/`ui_huishou` 进入 `ui_duanzao`；`ui_liaotian`/`ui_zudui` 进入 `ui_shejiao`；`ui_creat`/`ui_rolecreate`/`ui_severlist` 进入 `ui_login`；`ui_huobi_icon`/`ui_xitong` 进入 `ui_common`。不重新创建已归并的历史目录；既有逻辑加载键继续通过 GUID 解析。
+- `ui_fanpai`/`ui_chouchong` 已归并到 `ui_huodong`，翻牌和抽宠资源使用活动资源目录及图集，不重新拆分这两个历史目录。
+- `ui_main_icon` 已归并到 `ui_main`；`ui_paihangbang` 已归并到 `ui_jingji`。新资源使用目标目录，不重新建立旧目录；既有逻辑加载键保持不变。
+- `ui_shouchong` 已归并到 `ui_vip`，首充和 VIP UI 共用该资源目录及图集，保留原逻辑加载键。
+- `ui_zuoqi` 已归并到 `ui_common`，坐骑相关公共 UI 图形使用公共资源目录及图集，保留原逻辑加载键。
+- `ui_zhenfa_icon` 已退役：fight_shadow.png 为战斗底座，放入 UI/ui_zhandou；zhenfa_1.png 为阵法图标，放入 Icons/Hero。按实际用途归类，保留既有 GUID。
+- 登录背景 chuangjue2004（GUID 09b5a5a607f621a41abb5b785a53b431）和 denglujiemian3001 放入 UI/ui_bg，以 `standalone-background` GUID 规则永久排除图集。
+- 按用户 2026-10-09 决定，本次审计的 43 组 UI 变体统一使用原 PNG 的主 Sprite，仅保留原图中第一个主 Sprite；25 张同像素变体和 18 张不同像素变体均退役，额外九宫格/切片子资源不再保留。消费者必须重绑到主 Sprite 的既有 GUID/fileID，保留主 Sprite 的矩形、枢轴、边框和 PPU，并验证索引、Prefab 和图集。不再自动重建这些变体；其他有明确动画或切图用途的资源按其合同维护。
+- 图集的跨目录合并由 ProjectXSpriteAtlases.json 的 `groupMerges` 维护；货币、表情、称号、闯关、道具、灵气捐献、技能和玩法的指定小图集合并为 `UI_SharedIcons_Bilinear_sRGB`。源图目录和 GUID 不变，重建/验证必须使用同一映射，不能恢复八个独立小图集。
+- `Assets/Art/Portraits/Monsters/` 下名称以 `_tou` 结尾的怪物头像使用独立 `Portraits_Monsters_Heads` 图集，按过滤、色彩空间和 Mipmap 参数分组，不与怪物立绘共用图集；重建和验证必须沿用此分类。
+- `Assets/UnityOwned/` 已退役；WorldBattle复用Art共享资源，不得按功能重新复制公共图片或字体。重复判定须包括Importer和已使用Sprite子资源的切片、边框、枢轴、网格等合同。
+- 静态资源图集维护于 `Assets/Art/Atlases/`，使用SpriteAtlas V2和原生图集重建/验证菜单；GUID归属记录在ProjectSettings/ProjectXSpriteAtlases.json。源图/切片/九宫格为编辑源，图集关闭旋转和紧密裁切。动画整图、大背景和运行时切图不混入静态UI图集。
 - Clip/Controller 使用 `Assets/Animations/`；Prefab 使用 `Assets/Prefabs/`，UI Catalog/Reference 使用其下 `Catalog/`。
 - `Resources/` 仅保留 `AssetReferences/`、Lua 和正式数据。运行时通过 `UnityAssetReference`/`ResourceLoader` 加载；轻量索引由 `ProjectSettings/ProjectXAssetReferences.json` 的逻辑键和 GUID 维护，可用原生资源引用索引菜单重建。新增动态资源须登记键/GUID，不复制美术到 Resources；同名不同类型资源共用有类型索引。
 - 移动资产保留 `.meta`。合并资源须同时核对字节、导入参数、Sprite 切片/九宫格/子资源，并重绑 GUID/fileID。历史源和截图放在 Unity Assets 外；截图默认 `unityclient/Captures/Editor/`。

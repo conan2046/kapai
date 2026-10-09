@@ -11,7 +11,7 @@ namespace ProjectX.Editor
     {
         private const string AnimationRoot = "Assets/Animations/HeroModels/Monster";
 
-        [MenuItem("ProjectX/Animation/Validate Hero Detail Native Assets")]
+        [MenuItem("Tools/ProjectX/Animation/Validate Hero Detail Native Assets")]
         public static void ValidateHeroDetailNativeAssets()
         {
             Debug.Log(ValidateHeroDetailNativeAssetsForMcp());
@@ -54,7 +54,7 @@ namespace ProjectX.Editor
             return $"Validated {clips} Unity-native Hero detail controllers and {spriteKeys} Sprite keys. No Cocos source is read.";
         }
 
-        [MenuItem("ProjectX/Animation/Validate Hero Formation Native Assets")]
+        [MenuItem("Tools/ProjectX/Animation/Validate Hero Formation Native Assets")]
         public static void ValidateHeroFormationNativeAssets()
         {
             Debug.Log(ValidateHeroFormationNativeAssetsForMcp());
@@ -95,7 +95,7 @@ namespace ProjectX.Editor
                     ObjectReferenceKeyframe[] keys = AnimationUtility.GetObjectReferenceCurve(clip, spriteBinding);
                     if (keys == null || keys.Length == 0 || keys.Any(key => key.value == null
                         || !AssetDatabase.GetAssetPath(key.value).StartsWith(
-                            "Assets/Art/UI/HeroModels/Monster/", StringComparison.Ordinal)))
+                            "Assets/Art/AnimationFrames/HeroModels/Monster/", StringComparison.Ordinal)))
                         throw new InvalidOperationException($"Hero formation action has invalid Sprite references: {clip.name}");
                     EditorCurveBinding[] floatBindings = AnimationUtility.GetCurveBindings(clip);
                     if (!floatBindings.Any(binding => binding.path == "Visual" && binding.propertyName == "m_SizeDelta.x")

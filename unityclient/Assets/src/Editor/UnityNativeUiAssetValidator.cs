@@ -65,7 +65,7 @@ namespace ProjectX.Editor
         [MenuItem("Tools/ProjectX 界面/验证全部原生 Prefab")]
         public static void ValidateBatch()
         {
-            string[] paths = AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs", "Assets/UnityOwned" })
+            string[] paths = AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs" })
                 .Select(AssetDatabase.GUIDToAssetPath).OrderBy(path => path).ToArray();
             var failures = new List<string>();
             foreach (string path in paths)

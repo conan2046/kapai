@@ -61,7 +61,7 @@ $monopolyPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclien
 $monopolyAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.Monopoly.cs") -Raw -Encoding UTF8
 $monopolyDiceAnimationSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/UnityNativeMonopolyDiceAnimation.cs") -Raw -Encoding UTF8
 $monopolyNativeArtCount = @(Get-ChildItem -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/AssetReferences/Art/UI/Monopoly') -Filter '*.asset' -File).Count
-$monopolyNativeMapCount = @(Get-ChildItem -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/Monopoly/Maps') -Filter '*.jpg' -File).Count
+$monopolyNativeMapCount = @(Get-ChildItem -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/ui_chuangguan') -Filter 'UI_Scene_*.jpg' -File).Count
 $imodAnimationCatalogSource = Get-Content -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-animation-resources/retired-20261008/ProjectXAnimation/catalog.json") -Raw -Encoding UTF8
 $worldPresenterSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/UI/WorldPresenter.cs") -Raw -Encoding UTF8
 $fishAppSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Core/ProjectXApp.Fish.cs") -Raw -Encoding UTF8
@@ -70,7 +70,7 @@ $fishReferenceSource = Get-Content -LiteralPath (Join-Path $root "unityclient/As
 $bootstrapSceneBuilderSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/src/Editor/BootstrapSceneBuilder.cs") -Raw -Encoding UTF8
 $cocosUiImporterSource = Get-Content -LiteralPath (Join-Path $root "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/Editor/CocosUiImporter.cs") -Raw -Encoding UTF8
 $heroBookActivatePrefabSource = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Hero/Book/yingxiongtujianendLayer.prefab") -Raw -Encoding UTF8
-$heroBookActivateButtonMeta = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Art/UI/Hero/Book/Default/Button_Normal.png.meta") -Raw -Encoding UTF8
+$heroBookActivateButtonMeta = Get-Content -LiteralPath (Join-Path $root "unityclient/Assets/Art/UI/Default/Button_Normal.png.meta") -Raw -Encoding UTF8
 $heroBookActivateButtonGuid = [regex]::Match($heroBookActivateButtonMeta, '(?m)^guid: ([a-f0-9]{32})').Groups[1].Value
 $validationFixtures = (Import-UnityMigrationJson -Root $root `
     -Path "tools/unity-migration/validation-fixtures.json").Value
@@ -297,7 +297,7 @@ Assert-ToolchainTest (
     $monopolyImportEntries.Count -eq 0 -and
     $monopolyHistoricalSourcesArchived -and
     $monopolyHistoricalPrefabIdentityGone -and
-    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/Common'))
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/ui_common'))
 ) "Monopoly function 21 pages must load Unity-owned Prefabs/resources through UnityUiView and leave the Cocos importer chain."
 Write-Host "Unity-native Monopoly UI Prefab/provider regression passed."
 $worldChapterUnlockImportEntries = @(@($uiImportManifest.documents) + @($timelineImportManifest.documents) |
@@ -373,7 +373,7 @@ Assert-ToolchainTest (
     (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Prefabs/Catalog/PlayerLevelUpPopup.prefab')) -and
     (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/RoleLevelUp/PlayerLevelUpPopup.anim')) -and
     (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Animations/RoleLevelUp/PlayerLevelUpPopup.controller')) -and
-    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/RoleLevelUp/Icons/ui_bangpai_icon_youjian.png')) -and
+    (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/ui_bangpai/ui_bangpai_icon_youjian.png')) -and
     (($functionUnlockSourceJson | ConvertTo-Json -Depth 8 -Compress) -eq ($functionUnlockRuntimeJson | ConvertTo-Json -Depth 8 -Compress)) -and
     [string]$functionUnlockSourceJson[0].icon -eq 'ui_icon_jianghunshangdian' -and
     [string]$functionUnlockSourceJson[-1].icon -eq 'ui_bangpai_icon_youjian' -and
@@ -676,10 +676,10 @@ $drawLegacyComponentGuids = @(
     [regex]::Match((Get-Content -LiteralPath $metaPath -Raw -Encoding UTF8), '(?m)^guid:\s+([a-f0-9]{32})\s*$').Groups[1].Value
 }
 $drawResultArtFiles = @(Get-ChildItem -LiteralPath (Join-Path $root `
-    "unityclient/Assets/Art/UI/Draw") -Recurse -File |
+    "unityclient/Assets/Art/UI/ui_chouka") -Recurse -File |
     Where-Object { $_.Extension -ne ".meta" })
 $drawFurnaceFrameFiles = @(Get-ChildItem -LiteralPath (Join-Path $root `
-    "unityclient/Assets/Art/UI/Draw/FurnaceFrames") -File |
+    "unityclient/Assets/Art/AnimationFrames/Draw/FurnaceFrames") -File |
     Where-Object { $_.Extension -eq ".png" })
 Assert-ToolchainTest (
     $drawResultImportEntries.Count -eq 0 -and
@@ -1140,7 +1140,7 @@ Assert-ToolchainTest (
     $bootstrapSceneBuilderSource.Contains('normalized.StartsWith("Assets/ProjectX/res/csd/Prefabs/"') -and
     @('Assets/Art/', 'Assets/Animations/', 'Assets/Prefabs/', 'Assets/Resources/AssetReferences/' |
         Where-Object { -not $bootstrapSceneBuilderSource.Contains($_) }).Count -eq 0 -and
-    $bootstrapSceneBuilderSource.Contains('"Assets/UnityOwned/WorldBattle/"') -and
+    -not $bootstrapSceneBuilderSource.Contains('"Assets/UnityOwned/WorldBattle/"') -and
     $cocosUiImporterSource.Contains('EnsureManifestExcludesUnityOwnedPrefabs(manifest, ManifestPath);')
 ) "Cocos maintenance must remain inside legacy Prefab/resource paths and avoid Unity build settings."
 Write-Host "Cocos importer legacy-path boundary and Unity-owned asset write guards passed."
@@ -4902,9 +4902,10 @@ $battlePresentationCatalogSource = Get-Content -LiteralPath (
 $battleAudioFiles = @(Get-ChildItem -LiteralPath (
     Join-Path $root "unityclient/Assets/Art/Audio/battle") -File -Filter '*.mp3')
 $battleBuffIconFiles = @(Get-ChildItem -LiteralPath (
-    Join-Path $root "unityclient/Assets/Art/Battle/BuffTips") -File -Filter '*.png')
+    Join-Path $root "unityclient/Assets/Art/Icons/Battle/BuffTips") -File -Filter '*.png')
 $battleSkillNameFiles = @(Get-ChildItem -LiteralPath (
-    Join-Path $root "unityclient/Assets/Art/Battle/SkillName") -File -Filter '*.png')
+    Join-Path $root "unityclient/Assets/Art/UI/ui_zhandou") -File -Filter '*.png' |
+    Where-Object { $_.BaseName -in @('assimilate', 'beatbacktext', 'blocktext', 'combotext', 'crittext', 'dodgetext', 'injurytext', 'skill_0') })
 $formationPopupSource = Get-Content -LiteralPath (
     Join-Path $root "unityclient/Assets/src/UI/FormationPopupPresenter.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
@@ -5456,7 +5457,7 @@ Assert-ToolchainTest (
     $bootstrapBuilderSource.Contains('private const string BattleFightLayerPrefab = "Assets/Prefabs/Battle/BattleFightLayer.prefab";') -and
     $bootstrapBuilderSource.Contains('private const string BattleHpNodePrefab = "Assets/Prefabs/Battle/BattleHpNode.prefab";') -and
     $bootstrapBuilderSource.Contains('new PrefabSpec(BattleHpNodePrefab, false)') -and
-    $bootstrapBuilderSource.Contains('Assets/UnityOwned/WorldBattle/') -and
+    -not $bootstrapBuilderSource.Contains('Assets/UnityOwned/WorldBattle/') -and
     $battleFightPrefabGuid -and $battleFightReferenceSource.Contains("guid: $battleFightPrefabGuid") -and
     $battleHpPrefabGuid -and $battleHpReferenceSource.Contains("guid: $battleHpPrefabGuid") -and
     -not $battleFightPrefabSource.Contains('guid: 1acd4692cebe3e74e956ef3d8bca1229') -and
@@ -5592,9 +5593,9 @@ Assert-ToolchainTest (
     $bootstrapBuilderSource.Contains('Path.Combine(unityClientDataRoot, "Battle", "zhenfa_config_dat.txt")') -and
     $bootstrapBuilderSource.Contains('"Assets/Resources/ProjectXData/Battle/hit_monster.dat.bytes"') -and
     $bootstrapBuilderSource.Contains('"Assets/Resources/ProjectXData/Battle/zhenfa_config_dat.txt"') -and
-    $bootstrapBuilderSource.Contains('RequireUnityResource("Assets/Art/Battle/Hud/num_lan.png")') -and
-    $bootstrapBuilderSource.Contains('RequireUnityResource("Assets/Art/Battle/Hud/ui_pk_num.png")') -and
-    $bootstrapBuilderSource.Contains('$"Assets/Art/Hero/formation_{formation}.png"') -and
+    $bootstrapBuilderSource.Contains('RequireUnityResource("Assets/Art/UI/ImageNum/num_lan.png")') -and
+    $bootstrapBuilderSource.Contains('RequireUnityResource("Assets/Art/UI/ImageNum/ui_pk_num.png")') -and
+    $bootstrapBuilderSource.Contains('$"Assets/Art/Icons/Hero/formation_{formation}.png"') -and
     $worldPlaybackSource.Contains('CreateRoundAtlas(roundLabel.transform);') -and
     $worldPlaybackSource.Contains('UpdateRoundDisplay(Mathf.Max(1, store.CurrentTurn));') -and
     $worldPlaybackSource.Contains('SetFormationIcon("Layer/FightUI/btn_Formation_Enemy/Image", store.Group2FormationId);') -and
@@ -5607,14 +5608,14 @@ Assert-ToolchainTest (
     @($battleAudioFiles | Where-Object { $_.Length -le 1024 }).Count -eq 0 -and
     $battleBuffIconFiles.Count -eq 56 -and
     $battleSkillNameFiles.Count -eq 8 -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Art/Battle/SkillName/skill_0.png')).Hash.ToLowerInvariant() -eq '0e232540ab573df9a2e641c0ac5b9511fbf7c41422242b1a0e9d4bca94ea8021' -and
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/ui_zhandou/skill_0.png')).Hash.ToLowerInvariant() -eq '0e232540ab573df9a2e641c0ac5b9511fbf7c41422242b1a0e9d4bca94ea8021' -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/skill_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'f36abb669b33aebcd8da55184648bfc2129e34b36214095319d13633c0bf7612' -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/skill_attack_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'ec065fb2f070a57735b11fff44a72b4cd2d6cc19fc4ba6f4cfb442eb0a6ac325' -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/skill_effect_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'aab57c44cafdaef99a6ee10e8b64ccab0b619a5276de91b46989869e9ee9465a' -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/skill_behit_client.dat.bytes')).Hash.ToLowerInvariant() -eq 'abefd49b70812b95a1fe3304530b0472ed503def4feee2d09eb016a92d2a3583' -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/hit_monster.dat.bytes')).Hash.ToLowerInvariant() -eq '79ce0eaf3b8efef4e8b2fa36421f34f7291672343fd91fb6a469309bee71fecc' -and
     (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Battle/zhenfa_config_dat.txt')).Hash.ToLowerInvariant() -eq '9d86d4a4df2ee54d538052f6e5de4a58ebb5a5c8b1f6dbb7185b65e1fb236949' -and
-    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Art/Battle/Hud/num_lan.png')).Hash.ToLowerInvariant() -eq 'ac67a9df960289479ccf49e06f73ec252ff84d451f8178717dea540da5072d87'
+    (Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $root 'unityclient/Assets/Art/UI/ImageNum/num_lan.png')).Hash.ToLowerInvariant() -eq 'ac67a9df960289479ccf49e06f73ec252ff84d451f8178717dea540da5072d87'
 ) "Shared battle presentation config parser or hydrated Cocos resource hashes drifted."
 Assert-ToolchainTest (
     $worldPresenterSource.Contains('float backdropWidth = mapVisual != null ? mapVisual.Size.x * (750f / 1080f) : 0f;') -and
@@ -5769,7 +5770,7 @@ Assert-ToolchainTest (
     -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Resources/ProjectXAnimation'))
 ) "Native maintenance regressed to active Cocos UI loading, import rows, or Imod runtime sources."
 Assert-ToolchainTest (
-    $nativeUiValidatorSource.Contains('AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs", "Assets/UnityOwned" })') -and
+    $nativeUiValidatorSource.Contains('AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/Prefabs" })') -and
     $nativeUiValidatorSource.Contains('AssetDatabase.GetDependencies(path, true).Any(IsLegacyPath)') -and
     $nativeUiValidatorSource.Contains('provider.InstantiateUnity(entry.Key, host.transform)') -and
     $nativeUiValidatorSource.Contains('!provider.Release(view)') -and
@@ -5812,7 +5813,7 @@ Assert-ToolchainTest (
     -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/Settings/Lit2DSceneTemplate.scenetemplate'))
 ) "Unity scenes must retain Bootstrap and FirstPlayableLoop only, with Bootstrap as the sole enabled runtime scene."
 
-$flattenedRootNames = @('Animations', 'Art', 'Editor', 'Prefabs', 'Resources', 'Scenes', 'src', 'UnityOwned')
+$flattenedRootNames = @('Animations', 'Art', 'Editor', 'Prefabs', 'Resources', 'Scenes', 'src')
 $frozenNativePath = Resolve-UnityMigrationExistingPath -Root $root -Path 'unityclient/Assets/ProjectX/src/UI/UnityAssetReference.cs' -PathType Leaf
 $foundationResult = & (Join-Path $root 'tools/unity-migration/Test-ResourceFoundation.ps1') -RepositoryRoot $root | ConvertFrom-Json
 Assert-ToolchainTest (
@@ -5825,5 +5826,28 @@ Assert-ToolchainTest (
     $foundationResult.dynamicReferenceAssets -gt 0 -and
     -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX.meta'))
 ) "Flattened Assets must retain native directories, resource configuration, Catalog contracts, and read-only access to frozen path evidence."
+
+Assert-ToolchainTest (
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/UnityOwned')) -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/UnityOwned.meta')) -and
+    $battleFightPrefabSource.Contains('guid: 6fcdd8f2b3e9c1e43b69ce67b0691eb8') -and
+    $battleHpPrefabSource.Contains('guid: 6fcdd8f2b3e9c1e43b69ce67b0691eb8') -and
+    -not $bootstrapBuilderSource.Contains('"Assets/UnityOwned/WorldBattle/"')
+) "WorldBattle must use canonical Art resources and must not recreate the retired UnityOwned copies."
+
+$spriteAtlasPlan = Get-Content -LiteralPath (Join-Path $root 'unityclient/ProjectSettings/ProjectXSpriteAtlases.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$atlasTextureGuids = @($spriteAtlasPlan.atlases | ForEach-Object { $_.textureGuids })
+Assert-ToolchainTest (
+    $spriteAtlasPlan.atlasRoot -eq 'Assets/Art/Atlases' -and
+    $spriteAtlasPlan.maxTextureSize -eq 2048 -and
+    $spriteAtlasPlan.rotation -eq $false -and
+    $spriteAtlasPlan.tightPacking -eq $false -and
+    $spriteAtlasPlan.padding -eq 4 -and
+    @($spriteAtlasPlan.atlases).Count -gt 0 -and
+    @($spriteAtlasPlan.atlases | Where-Object { -not (Test-Path -LiteralPath (Join-Path $root "unityclient/$($_.path)")) }).Count -eq 0 -and
+    @($atlasTextureGuids | Sort-Object -Unique).Count -eq $atlasTextureGuids.Count -and
+    @($spriteAtlasPlan.excluded | Where-Object { $_.reason -eq 'existing-animation-sheet' }).Count -gt 0 -and
+    @($spriteAtlasPlan.excluded | Where-Object { $_.reason -eq 'raw-texture-and-runtime-slicing' }).Count -gt 0
+) "Native SpriteAtlas ownership must be unique, preserve rectangular UI packing, and exclude original animation and runtime-sliced textures."
 
 Write-Host "Unity migration toolchain tests passed: $passed"

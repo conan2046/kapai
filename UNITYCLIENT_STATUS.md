@@ -5,6 +5,10 @@
 
 ## 1. 当前焦点
 
+> 2026-10-09 资源整理收口：UnityOwned共享副本已退役；UI按原资源目录和用户指定分组合并，图标/动画帧/背景分类归位。25张同像素和18张不同像素变体PNG已删除，43张原图仅保留主Sprite，清理73个额外切片并重绑消费者。Assets/Art/Atlases最终为35个原生SpriteAtlas V2，覆盖1914张纹理，Pack Preview41页；其中76张怪物_tou头像独立为1024×1024单页图集。3910资源加载、137 UI预览生命周期、483工具链检查通过，Console错误0；未执行本批业务Play/DrawCall/最终视觉验收，无正式数据或数据库变更。证据：.local/unity-validation/publish-main-20261009/。
+
+> 2026-10-09 共享战斗资源续记：UnityOwned/WorldBattle的44份副本均与Art语义等价，2个战斗Prefab的177处引用已合并到共享Art；旧GUID消费者0，UnityOwned目录已删除，减少约17.5 MiB。仅修改PPtr，节点布局不变；编译/Console error0，398 Prefab、137 UI生命周期及482工具检查通过。业务Play未验，未提交/推送。证据：.local/unity-validation/unityowned-consolidation-20261009/report.md。
+
 > 2026-10-08 Assets 根目录续记：用户移除 ProjectX 父目录后，硬编码路径、构建场景、原生资源维护配置和工具已同步到 Assets 下8个目录；GUID/运行资源键/程序集名称保留。20057文件完整，398 Prefab、137 UI生命周期、3910资源加载通过，481工具链/27单测通过，Console error0。当前 Editor 为 Assets/Scenes/Bootstrap.unity、非Play。冻结门禁原字节保留，业务画面未验。详见 .local/unity-validation/assets-root-20261008/report.md；下方含ProjectX父目录的资料均为旧布局历史。
 
 > 2026-10-08 场景整理续记：Assets 仅保留 ProjectX/Scenes 下 Bootstrap（正式入口）和 FirstPlayableLoop（验证使用）。SampleScene、URP2DSceneTemplate、UIMigrationPreview 及 URP 场景模板整体移至工程外历史目录，原字节/.meta/GUID 保留；当前 Editor 为 Bootstrap、非 Play。编译后 Console error=0，最终工具链480项通过；业务验收未完成。证据：.local/unity-validation/scene-retirement-20261008/report.md。

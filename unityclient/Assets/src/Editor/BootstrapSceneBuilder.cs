@@ -277,7 +277,6 @@ namespace ProjectX.Editor
             "Assets/Animations/",
             "Assets/Prefabs/",
             "Assets/Resources/AssetReferences/",
-            "Assets/UnityOwned/WorldBattle/",
         };
 
         private static readonly PrefabSpec[] PrefabSpecs =
@@ -603,10 +602,10 @@ namespace ProjectX.Editor
             RequireUnityResource("Assets/Art/Icons/Gameplay/ui_icon_choukarukou.png");
             // Unity Resources is the Steam runtime source of truth. Existing
             // project assets must not be refreshed from the separate Cocos client.
-            RequireUnityResource("Assets/Art/World/worldmap.png");
-            RequireUnityResource("Assets/Art/World/battle_victory_bg.png");
-            RequireUnityResource("Assets/Art/World/battle_victory.png");
-            RequireUnityResource("Assets/Art/World/battle_scene_bg.jpg");
+            RequireUnityResource("Assets/Art/Backgrounds/worldmap.png");
+            RequireUnityResource("Assets/Art/UI/ui_zhandou/battle_victory_bg.png");
+            RequireUnityResource("Assets/Art/UI/ui_zhandou/battle_victory.png");
+            RequireUnityResource("Assets/Art/Backgrounds/battle_scene_bg.jpg");
             string unityClientDataRoot = Path.Combine(repositoryRoot, "unitydata", "export", "client", "source");
             CopyResourceIfChanged(
                 Path.Combine(unityClientDataRoot, "Battle", "hit_monster.dat.bytes"),
@@ -614,11 +613,11 @@ namespace ProjectX.Editor
             CopyResourceIfChanged(
                 Path.Combine(unityClientDataRoot, "Battle", "zhenfa_config_dat.txt"),
                 "Assets/Resources/ProjectXData/Battle/zhenfa_config_dat.txt");
-            RequireUnityResource("Assets/Art/Battle/Hud/num_lan.png");
-            RequireUnityResource("Assets/Art/Battle/Hud/ui_pk_num.png");
+            RequireUnityResource("Assets/Art/UI/ImageNum/num_lan.png");
+            RequireUnityResource("Assets/Art/UI/ImageNum/ui_pk_num.png");
             for (int formation = 1; formation <= 6; formation++)
             {
-                RequireUnityResource($"Assets/Art/Hero/formation_{formation}.png");
+                RequireUnityResource($"Assets/Art/Icons/Hero/formation_{formation}.png");
             }
             foreach (string configName in new[]
                      {
@@ -659,7 +658,7 @@ namespace ProjectX.Editor
                 ?? Enumerable.Empty<int>();
             foreach (int skillId in heroSkillIds)
             {
-                RequireUnityResource($"Assets/Art/Hero/skill_{skillId}.png");
+                RequireUnityResource($"Assets/Art/Icons/Hero/skill_{skillId}.png");
             }
             foreach (string configName in new[] { "fabao_qianghua", "fabao_jinglian", "master", "daily" })
             {
@@ -667,11 +666,11 @@ namespace ProjectX.Editor
                     Path.Combine(unityClientDataRoot, "Configs", configName + ".json"),
                     $"Assets/Resources/ProjectXData/Configs/{configName}.json");
             }
-            RequireUnityResource("Assets/Art/Hero/quality_score_A.png");
-            RequireUnityResource("Assets/Art/Hero/quality_score_S.png");
-            RequireUnityResource("Assets/Art/Hero/quality_score_SS.png");
-            RequireUnityResource("Assets/Art/Hero/quality_score_SSS.png");
-            RequireUnityResource("Assets/Art/Hero/quality_score_SSSS.png");
+            RequireUnityResource("Assets/Art/Icons/Hero/quality_score_A.png");
+            RequireUnityResource("Assets/Art/Icons/Hero/quality_score_S.png");
+            RequireUnityResource("Assets/Art/Icons/Hero/quality_score_SS.png");
+            RequireUnityResource("Assets/Art/Icons/Hero/quality_score_SSS.png");
+            RequireUnityResource("Assets/Art/Icons/Hero/quality_score_SSSS.png");
         }
 
         private static void CopyResourceIfChanged(string sourcePath, string destinationAssetPath)
