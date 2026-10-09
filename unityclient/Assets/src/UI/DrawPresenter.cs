@@ -804,8 +804,10 @@ namespace ProjectX.UI
             image.preserveAspect = true;
             Animator animator = effect.AddComponent<Animator>();
             animator.runtimeAnimatorController = controller;
-            animator.Play("FurnaceDraw", 0, 0f);
-            animator.Update(0f);
+            // Construction can happen while the Draw page is hidden.
+            AnimationClip firstClip = controller.animationClips.FirstOrDefault(clip => clip != null
+                && clip.name == "FurnaceDraw");
+            if (firstClip != null) firstClip.SampleAnimation(effect, 0f);
             effect.SetActive(false);
             return effect;
         }

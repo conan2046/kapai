@@ -500,7 +500,7 @@ namespace ProjectX.UI
                 speedStep = Mathf.Clamp(loadSpeedStep(), 0, CocosSpeedLabels.Length - 1);
             ApplySpeedStep(false);
             SkipRequested = false;
-            Debug.LogWarning($"[ProjectX][WorldBattle] Show reset skip context={store.FightType} canSkip={store.CanSkip} visible={visible}");
+            ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][WorldBattle] Show reset skip context={store.FightType} canSkip={store.CanSkip} visible={visible}");
             // Cocos keeps btn_jump visible whenever the account-level feature is
             // unlocked; the packet flag only controls whether this battle may be
             // skipped after the click. The World fixture is level 99, so hiding

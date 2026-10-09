@@ -10,6 +10,24 @@ namespace ProjectX.UI
     {
         private Animator animator;
         private Image visual;
+        private string currentStateName;
+        private bool pendingPlay;
+
+        private void OnEnable()
+        {
+            pendingPlay = !string.IsNullOrEmpty(currentStateName);
+            PlayPendingAction();
+        }
+
+        private void PlayPendingAction()
+        {
+            if (!pendingPlay || animator == null || !animator.isActiveAndEnabled
+                || animator.runtimeAnimatorController == null) return;
+            pendingPlay = false;
+            animator.Rebind();
+            animator.Play(currentStateName, 0, 0f);
+            animator.Update(0f);
+        }
 
         public bool IsLoaded => animator != null && animator.enabled
             && animator.runtimeAnimatorController != null && visual != null && visual.enabled
@@ -37,29 +55,34 @@ namespace ProjectX.UI
             if (controller == null) return false;
             string stateName = $"Action_{actionId}";
             string clipPrefix = $"btm{picture}{animationSuffix}";
-            if (!controller.animationClips.Any(clip => clip != null
+            AnimationClip actionClip = controller.animationClips.FirstOrDefault(clip => clip != null
                 && (clip.name == $"{clipPrefix}_Action_{actionId}"
-                    || (actionId == 0 && clip.name == clipPrefix))))
+                    || (actionId == 0 && clip.name == clipPrefix)));
+            if (actionClip == null)
             {
-                if (actionId == 1 && controller.animationClips.Any(clip => clip != null
-                    && clip.name == $"btm{picture}_{animationSuffix.TrimStart('_')}_Action_0"))
-                    stateName = "Action_0";
-                else
-                    return false;
+                if (actionId != 1) return false;
+                actionClip = controller.animationClips.FirstOrDefault(clip => clip != null
+                    && clip.name == $"btm{picture}_{animationSuffix.TrimStart('_')}_Action_0");
+                if (actionClip == null) return false;
+                stateName = "Action_0";
             }
             EnsureVisual();
             animator.runtimeAnimatorController = controller;
             animator.enabled = true;
             visual.enabled = true;
+            currentStateName = stateName;
+            pendingPlay = true;
+            // Hidden pages still need their first Sprite, but have no active state machine.
+            actionClip.SampleAnimation(gameObject, 0f);
             gameObject.SetActive(true);
-            animator.Rebind();
-            animator.Play(stateName, 0, 0f);
-            animator.Update(0f);
+            PlayPendingAction();
             return true;
         }
 
         public void Hide()
         {
+            currentStateName = null;
+            pendingPlay = false;
             if (animator != null) animator.enabled = false;
             if (visual != null) visual.enabled = false;
             gameObject.SetActive(false);

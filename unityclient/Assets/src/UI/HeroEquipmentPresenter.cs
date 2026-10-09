@@ -127,6 +127,8 @@ namespace ProjectX.UI
 
         public HeroEquipmentKind ActiveKind => activeKind;
         public int ActiveFormationPosition => formationPosition;
+        public int ActiveCultivationFormationPosition => selected.Kind == HeroEquipmentKind.Equipment
+            ? selected.FormationPosition : formationPosition;
         private readonly List<FaBaoRecord> selectedFaBaoMaterials = new List<FaBaoRecord>();
         private readonly bool cultivationOnly;
 
@@ -798,6 +800,7 @@ namespace ProjectX.UI
             HideCultivationEffects();
             activeCultivationMode = 0;
             selected = item;
+            if (item.FormationPosition > 0) formationPosition = item.FormationPosition;
             showCultivationFrame?.Invoke(0, item.Kind);
             int currentLevel = item.StrengthLevel;
             int nextLevel = Mathf.Min(currentLevel + 1, catalog.MaxStrengthLevel);
@@ -1025,6 +1028,10 @@ namespace ProjectX.UI
                 $"{bag.GetTotalQuantityByItemId(essenceItemId)}/{essence}");
             ApplyMaterialIcon(HeroEquipmentNodeIds.Get(faBaoRefineView,
                 "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Item")?.GetComponent<Image>(), essenceDefinition);
+            Image essenceFrame = HeroEquipmentNodeIds.Get(faBaoRefineView,
+                "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/ItemQualityFrame")?.GetComponent<Image>();
+            ApplyQualityFrame(essenceFrame, essenceDefinition?.Quality ?? 1);
+            if (essenceFrame != null) essenceFrame.enabled = essenceDefinition != null;
             SetBoundText(faBaoRefineView, "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/ConsumeBg/Value", gold.ToString());
             Button action = RequireButton(faBaoRefineView,
                 "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Btn_shenzhu");
@@ -1076,6 +1083,7 @@ namespace ProjectX.UI
             Transform template = listRoot?.Find("item_layer");
             if (template == null) return;
             ClearRuntimeCultivationTargets(listRoot);
+            listRoot.gameObject.SetActive(true);
 
             FaBaoRecord[] values = faBao.Items
                 .Where(value => value.FormationPosition == current.FormationPosition)
@@ -1153,7 +1161,8 @@ namespace ProjectX.UI
                 if (iconObject != null)
                 {
                     iconObject.SetActive(populated);
-                    if (populated) ApplyIcon(iconObject.GetComponent<Image>(), new DisplayRecord(selectedFaBaoMaterials[index]));
+                    if (populated) ApplyIcon(iconObject.GetComponent<Image>(),
+                        new DisplayRecord(selectedFaBaoMaterials[index]), preserveLayout: true);
                 }
                 if (addObject != null) addObject.SetActive(!populated);
                 Button button = EnsureClickable(slot.transform);
@@ -1679,17 +1688,24 @@ namespace ProjectX.UI
 
         private void BindStrengthTargets(DisplayRecord current)
         {
-            DisplayRecord[] targets = equipment.Items
-                .Select(value => new DisplayRecord(value))
-                .Where(value => value.FormationPosition == formationPosition)
-                .OrderBy(value => value.Slot)
-                .Take(4)
-                .ToArray();
             GameObject template = HeroEquipmentNodeIds.Get(cultivateView,
                 "Layer/zhuangbeiyangchengUI/zhuangbei/List/item_layer");
             if (template == null) return;
             Transform parent = template.transform.parent;
             ClearRuntimeCultivationTargets(parent);
+            bool hasWearer = current.FormationPosition > 0;
+            parent.gameObject.SetActive(hasWearer);
+            if (!hasWearer)
+            {
+                template.SetActive(false);
+                return;
+            }
+            DisplayRecord[] targets = equipment.Items
+                .Select(value => new DisplayRecord(value))
+                .Where(value => value.FormationPosition == current.FormationPosition)
+                .OrderBy(value => value.Slot)
+                .Take(4)
+                .ToArray();
             if (targets.Length == 0)
             {
                 template.SetActive(false);
@@ -1894,13 +1910,14 @@ namespace ProjectX.UI
             return placeholder;
         }
 
-        private void ApplyIcon(Image image, DisplayRecord item)
+        private void ApplyIcon(Image image, DisplayRecord item, bool preserveLayout = false)
         {
             if (image == null) return;
             image.sprite = item.Kind == HeroEquipmentKind.FaBao
                 ? resources.LoadFaBaoIcon(item.Definition.Picture, out _)
                 : resources.LoadEquipmentIcon(item.Definition.Picture);
             image.enabled = image.sprite != null;
+            if (preserveLayout) return;
             image.preserveAspect = true;
             RectTransform rect = image.rectTransform;
             bool isDetail = image == detailIcon;

@@ -23,14 +23,27 @@ namespace ProjectX.Editor
         [MenuItem("Tools/ProjectX 界面/重建原生资源引用索引")]
         public static void RebuildResourceReferences()
         {
+            RebuildResourceReferences(null);
+        }
+
+        public static void RebuildResourceReference(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key)) throw new ArgumentException("Resource key is required.", nameof(key));
+            RebuildResourceReferences(key);
+        }
+
+        private static void RebuildResourceReferences(string onlyKey)
+        {
             string settings = Path.GetFullPath(Path.Combine(Application.dataPath,
                 "../ProjectSettings/ProjectXAssetReferences.json"));
             var entries = JsonConvert.DeserializeObject<List<ResourceReferenceDefinition>>(File.ReadAllText(settings));
+            if (onlyKey != null && !entries.Any(entry => entry.key == onlyKey))
+                throw new InvalidDataException("Native resource key is not registered: " + onlyKey);
             var keys = new HashSet<string>(StringComparer.Ordinal);
             AssetDatabase.StartAssetEditing();
             try
             {
-                foreach (var group in entries.GroupBy(entry => entry.key))
+                foreach (var group in entries.Where(entry => onlyKey == null || entry.key == onlyKey).GroupBy(entry => entry.key))
                 {
                     ResourceReferenceDefinition entry = group.First();
                     if (string.IsNullOrWhiteSpace(entry.key) || entry.key.Contains("..") || !keys.Add(entry.key))

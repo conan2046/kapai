@@ -646,7 +646,7 @@ namespace ProjectX.Editor
             _selIndex = -1;
             ClearTextureCache();
             _needFit = _entries.Count > 0;
-            Debug.Log($"[MapEditor] 已读取 {_entries.Count} 张地图");
+            //Debug.Log($"[MapEditor] 已读取 {_entries.Count} 张地图");
         }
 
         private void Export()

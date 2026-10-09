@@ -4250,6 +4250,8 @@ namespace ProjectX.Core
             if (mainView == null) return;
             BindJingJieEntry();
             BindBagClick(autoInvoke: false);
+            // The Main Character entry now owns this route; keep the old HUD button hidden.
+            FindMainHudNode(BagPath)?.SetActive(false);
             GameObject shopEntry = FindMainHudNode(ShopPath);
             if (shopEntry != null)
                 mainView.BindClickNode(shopEntry, HandleShopClick, true, ShopPath);
@@ -4362,7 +4364,6 @@ namespace ProjectX.Core
             // level requirement when clicked. Rebind first so a feature that becomes
             // available after a level-up regains its normal route callback.
             BindPlayerHudControls();
-            SetSteamHudFeatureVisible(BagPath, 1, "背包", level);
             SetSteamHudFeatureVisible(MailPath, FunctionUnlockCatalog.Resolve(1221).OpenLevel, "邮件", level);
             SetSteamHudFeatureVisible(EquipmentMenuPath, FunctionUnlockCatalog.Resolve(1110).OpenLevel, "装备", level);
             SetSteamHudFeatureVisible(MainCharacterPath, FunctionUnlockCatalog.Resolve(1050).OpenLevel, "主角", level);
@@ -6556,10 +6557,9 @@ namespace ProjectX.Core
         private void RefreshStandardCurrencyHeader(UnityUiView view, string rootPath)
         {
             if (view == null || services == null) return;
-            Transform root = view.GameObject.transform;
-            Text stamina = root.Find(rootPath + "/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
-            Text gold = root.Find(rootPath + "/GoldIcon3/GoldNumBg/Num")?.GetComponent<Text>();
-            Text premium = root.Find(rootPath + "/GoldIcon4/GoldNumBg/Num")?.GetComponent<Text>();
+            Text stamina = view.FindNode(rootPath + "/GoldIcon1/GoldNumBg/Num")?.GetComponent<Text>();
+            Text gold = view.FindNode(rootPath + "/GoldIcon3/GoldNumBg/Num")?.GetComponent<Text>();
+            Text premium = view.FindNode(rootPath + "/GoldIcon4/GoldNumBg/Num")?.GetComponent<Text>();
             if (stamina != null) stamina.text = $"{services.Currencies.Stamina}/100";
             if (gold != null) gold.text = FormatHeaderCurrency(services.Currencies.Gold);
             if (premium != null) premium.text = services.Currencies.Premium.ToString();
@@ -7842,11 +7842,15 @@ namespace ProjectX.Core
                 "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Icon")?.GetComponent<Image>();
             if (portrait == null) return;
 
-            int formationPosition = heroEquipmentPresenter?.ActiveFormationPosition ?? 0;
+            int formationPosition = heroEquipmentPresenter?.ActiveCultivationFormationPosition ?? 0;
             int heroId = formationPosition > 0 && services.Formation.CombatHeroes.Count >= formationPosition
                 ? services.Formation.CombatHeroes[formationPosition - 1]
                 : 0;
             bool hasHeroDefinition = HeroCatalog.TryGet(heroId, out HeroDefinition heroDefinition);
+            heroEquipmentCultivateView.FindNode(
+                "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue")?.SetActive(hasHeroDefinition);
+            heroEquipmentCultivateView.FindNode(
+                "Layer/zhuangbeiyangchengUI/zhuangbei/Bg/Image_1")?.SetActive(hasHeroDefinition);
             portrait.sprite = hasHeroDefinition
                 ? services.Resources.LoadHeroPortrait(heroDefinition.Picture)
                 : null;

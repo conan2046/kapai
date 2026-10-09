@@ -284,7 +284,7 @@ namespace ProjectX.Core
             bool backgroundAtStart = battlePlaybackContext == BattlePlaybackContext.World
                 && !CanShowWorldBattleUi();
             worldBattlePlaybackPresenter.Show(!backgroundAtStart);
-            Debug.LogWarning($"[ProjectX][WorldBattle] ReplayStarted context={battlePlaybackContext} fight={replay.FightId} actions={replay.Actions.Count} skip={worldBattlePlaybackPresenter.SkipRequested}");
+            ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][WorldBattle] ReplayStarted context={battlePlaybackContext} fight={replay.FightId} actions={replay.Actions.Count} skip={worldBattlePlaybackPresenter.SkipRequested}");
             if (backgroundAtStart)
                 SetStatus("World battle replay running in background; authoritative action timing is preserved.");
             foreach (WorldBattleUnitRecord unit in replay.Units)
@@ -358,7 +358,7 @@ namespace ProjectX.Core
                 actionIndex++;
                 if (worldBattlePlaybackPresenter.SkipRequested)
                 {
-                    Debug.LogWarning($"[ProjectX][WorldBattle] ReplayInterruptedBeforeAction index={actionIndex} skip=true");
+                    ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][WorldBattle] ReplayInterruptedBeforeAction index={actionIndex} skip=true");
                     break;
                 }
                 bool passiveAction = action.FirstActionType == 6;
@@ -517,7 +517,7 @@ namespace ProjectX.Core
                     stableDeathCaptureRound = Mathf.Max(stableDeathCaptureRound, action.Round + 1);
                 if (worldBattlePlaybackPresenter.SkipRequested)
                 {
-                    Debug.LogWarning($"[ProjectX][WorldBattle] ReplayInterruptedAfterAction index={actionIndex} skip=true");
+                    ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][WorldBattle] ReplayInterruptedAfterAction index={actionIndex} skip=true");
                     break;
                 }
                 yield return new WaitForSecondsRealtime(.18f
@@ -580,7 +580,7 @@ namespace ProjectX.Core
                 yield break;
             }
             worldBattlePlaybackPresenter.ShowOutcome();
-            Debug.LogWarning($"[ProjectX][WorldBattle] ReplayOutcome context={battlePlaybackContext} skip={worldBattlePlaybackPresenter.SkipRequested}");
+            ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][WorldBattle] ReplayOutcome context={battlePlaybackContext} skip={worldBattlePlaybackPresenter.SkipRequested}");
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (services.Options.WorldBattleValidation)
             {

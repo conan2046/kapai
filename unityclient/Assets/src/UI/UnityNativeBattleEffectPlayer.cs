@@ -17,6 +17,7 @@ namespace ProjectX.UI
         private string currentSource = string.Empty;
         private float speedScale = 1f;
         private bool flippedX;
+        private bool pendingPlay;
 
         public bool IsLoaded => animator != null && controller != null && image != null;
         public bool IsPlaying => IsLoaded && clip != null
@@ -24,6 +25,17 @@ namespace ProjectX.UI
         public string CurrentAnimationSource => currentSource;
 
         private void Awake() => EnsureVisual();
+
+        private void OnEnable() => PlayPendingAction();
+
+        private void PlayPendingAction()
+        {
+            if (!pendingPlay || animator == null || !animator.isActiveAndEnabled) return;
+            pendingPlay = false;
+            animator.Rebind();
+            animator.Play("Action_0", 0, 0f);
+            animator.Update(0f);
+        }
 
         public bool LoadAnimation(string sourcePath)
         {
@@ -38,6 +50,7 @@ namespace ProjectX.UI
             controller = resolved;
             clip = resolvedClip;
             currentSource = sourcePath;
+            pendingPlay = false;
             animator.runtimeAnimatorController = controller;
             animator.enabled = true;
             ApplyVisualFlip();
@@ -48,10 +61,10 @@ namespace ProjectX.UI
         {
             if (action != 0 || !IsLoaded)
                 throw new InvalidOperationException("Battle effect action 0 is not loaded.");
-            animator.Rebind();
-            animator.Play("Action_0", 0, 0f);
-            animator.Update(0f);
             animator.speed = 1f / Mathf.Max(.01f, speedScale);
+            clip.SampleAnimation(gameObject, 0f);
+            pendingPlay = true;
+            PlayPendingAction();
             if (repeat != clip.isLooping)
                 Debug.LogWarning("Battle effect loop setting differs from its native clip: " + currentSource, this);
         }

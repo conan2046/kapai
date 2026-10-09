@@ -898,7 +898,7 @@ local function readLevelUpResponse(message)
     if success == 0 then
         local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
         M.mutationStage = nil
-        Bridge:Fail("Hero level-up failed: " .. tostring(reason))
+        Bridge:ShowToast(reason, 2)
         return
     end
     if M.mutationStage ~= "levelup_response" then return end

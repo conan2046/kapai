@@ -757,7 +757,7 @@ namespace ProjectX.UI
                 SetText(star, "Layer/yingxiongshengxingUI/Info/jichu/SkillName", definition.SkillName);
                 const string starSkillInfoPath = "Layer/yingxiongshengxingUI/Info/jichu/ScrollView/SkillInfo";
                 SetText(star, starSkillInfoPath, ResolveSkillDescription(hero, definition));
-                FitDescription(star, starSkillInfoPath, expandParent: true, rightInset: 25f);
+                FitDescription(star, starSkillInfoPath, scrollContent: true, rightInset: 25f);
                 Image skill = star.FindNode("Layer/yingxiongshengxingUI/Info/jichu/Btn_Skill/Icon")?.GetComponent<Image>();
                 if (skill != null)
                 {
@@ -774,7 +774,7 @@ namespace ProjectX.UI
                 $"{ItemQuantity(fragmentId)}/{cost}");
             SetMaterialIcon(star, "Layer/yingxiongshengxingUI/Info/cailiao/Icon",
                 resources.LoadItemIcon(config.GetItemPicture(fragmentId)), "HeroStarFragment",
-                config.GetItemQuality(fragmentId));
+                config.GetItemQuality(fragmentId), iconScale: 1.2f);
         }
 
         private void RenderBreak()
@@ -842,7 +842,7 @@ namespace ProjectX.UI
                 ItemQuantity(852).ToString());
             SetMaterialIcon(cultivate, "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1",
                 resources.LoadItemIcon(config.GetItemPicture(852)), "HeroCultivationMaterial",
-                config.GetItemQuality(852));
+                config.GetItemQuality(852), iconScale: 1.2f);
         }
 
         private void RenderInfo()
@@ -856,14 +856,21 @@ namespace ProjectX.UI
             {
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Info/dingwei/Value", definition.Feature);
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillName", definition.SkillName);
+                Image skill = info.FindNode("Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Btn_Skill/Icon")?.GetComponent<Image>();
+                if (skill != null)
+                {
+                    skill.sprite = definition.SkillId > 0
+                        ? resources.LoadFirst($"Art/Hero/skill_{definition.SkillId}") : null;
+                    skill.enabled = skill.sprite != null;
+                }
                 string skillDescription = ResolveSkillDescription(hero, definition);
                 const string skillInfoPath = "Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/SkillInfo";
                 SetText(info, skillInfoPath, skillDescription);
-                FitDescription(info, skillInfoPath, expandParent: false);
+                FitDescription(info, skillInfoPath, scrollContent: true);
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/Title", $"升至{hero.Star}星开启");
                 const string starTalentInfoPath = "Layer/shenjiangInfoUI/Info/ScrollView_1/shengxingtianfu/Item/SkillInfo";
                 SetText(info, starTalentInfoPath, skillDescription);
-                FitDescription(info, starTalentInfoPath, expandParent: false);
+                FitDescription(info, starTalentInfoPath, scrollContent: true);
                 SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/miaoshu/Item/Content", definition.Feature);
             }
             SetText(info, "Layer/shenjiangInfoUI/Info/ScrollView_1/jinjietianfu/Item/TalentInfo",
@@ -1590,7 +1597,7 @@ namespace ProjectX.UI
             text.text = value ?? string.Empty;
         }
 
-        private void FitDescription(UnityUiView view, string path, bool expandParent, float rightInset = 0f)
+        private void FitDescription(UnityUiView view, string path, bool scrollContent = false, float rightInset = 0f)
         {
             Text text = HeroCultivationNodeIds.Get(view, path)?.GetComponent<Text>();
             RectTransform rect = text?.rectTransform;
@@ -1599,6 +1606,25 @@ namespace ProjectX.UI
             text.supportRichText = true;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             RectTransform parent = rect.parent as RectTransform;
+            if (scrollContent && parent != null && parent.GetComponent<ScrollRect>() == null)
+            {
+                // Info descriptions have fixed authored text regions but no scroll shell.
+                // FindNode has cached this Text, so its logical binding remains valid.
+                var viewportObject = new GameObject(rect.name + "ScrollView",
+                    typeof(RectTransform), typeof(RectMask2D), typeof(ScrollRect));
+                RectTransform viewport = viewportObject.GetComponent<RectTransform>();
+                viewport.SetParent(parent, false);
+                viewport.anchorMin = rect.anchorMin;
+                viewport.anchorMax = rect.anchorMax;
+                viewport.pivot = rect.pivot;
+                viewport.sizeDelta = rect.sizeDelta;
+                viewport.anchoredPosition = rect.anchoredPosition;
+                viewport.localRotation = rect.localRotation;
+                viewport.localScale = rect.localScale;
+                viewport.SetSiblingIndex(rect.GetSiblingIndex());
+                rect.SetParent(viewport, false);
+                parent = viewport;
+            }
             if (!descriptionBaseHeights.TryGetValue(rect, out float baseTextHeight))
             {
                 baseTextHeight = rect.rect.height;
@@ -1612,13 +1638,36 @@ namespace ProjectX.UI
             float desiredHeight = Mathf.Ceil(text.preferredHeight) + 2f;
             float targetTextHeight = Mathf.Max(baseTextHeight, desiredHeight);
 
-            if (expandParent && parent != null)
+            if (scrollContent && parent != null)
             {
                 float baseParentHeight = descriptionContainerBaseHeights[parent];
-                parent.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
-                    Mathf.Max(baseParentHeight, desiredHeight));
-                targetTextHeight = Mathf.Min(targetTextHeight, parent.rect.height);
+                parent.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, baseParentHeight);
+                rect.anchorMin = new Vector2(0f, 1f);
+                rect.anchorMax = Vector2.one;
+                rect.pivot = new Vector2(0f, 1f);
+                rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,
+                    Mathf.Max(120f, parent.rect.width - rightInset));
                 rect.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, targetTextHeight);
+                rect.anchoredPosition = Vector2.zero;
+                text.raycastTarget = true;
+                ScrollRect scroll = parent.GetComponent<ScrollRect>();
+                if (scroll != null)
+                {
+                    if (parent.GetComponent<Graphic>() == null)
+                    {
+                        Image hitSurface = parent.gameObject.AddComponent<Image>();
+                        hitSurface.color = Color.clear;
+                        hitSurface.raycastTarget = true;
+                        hitSurface.canvasRenderer.cullTransparentMesh = false;
+                    }
+                    scroll.content = rect;
+                    scroll.viewport = parent;
+                    scroll.horizontal = false;
+                    scroll.vertical = true;
+                    scroll.movementType = ScrollRect.MovementType.Clamped;
+                    scroll.StopMovement();
+                    scroll.verticalNormalizedPosition = 1f;
+                }
             }
             else if (Mathf.Abs(targetTextHeight - rect.rect.height) > 0.5f)
             {
@@ -1659,7 +1708,8 @@ namespace ProjectX.UI
             text.horizontalOverflow = HorizontalWrapMode.Overflow;
         }
 
-        private void SetMaterialIcon(UnityUiView view, string path, Sprite sprite, string runtimeName, int quality = 0)
+        private void SetMaterialIcon(UnityUiView view, string path, Sprite sprite, string runtimeName,
+            int quality = 0, float? iconScale = null)
         {
             GameObject host = HeroCultivationNodeIds.Get(view, path);
             if (host == null) return;
@@ -1691,6 +1741,7 @@ namespace ProjectX.UI
             rect.anchorMin = new Vector2(0.12f, 0.12f);
             rect.anchorMax = new Vector2(0.88f, 0.88f);
             rect.offsetMin = rect.offsetMax = Vector2.zero;
+            if (iconScale.HasValue) rect.localScale = Vector3.one * iconScale.Value;
             Image image = value.GetComponent<Image>();
             image.sprite = sprite;
             image.enabled = sprite != null;
