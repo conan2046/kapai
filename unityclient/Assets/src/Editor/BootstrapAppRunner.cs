@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using ProjectX.Core;
 using ProjectX.Validation;
-using ProjectX.Validation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;

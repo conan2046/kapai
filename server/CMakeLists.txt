@@ -23,20 +23,14 @@ target_include_directories(kapai PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/tinyxml"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/gyu"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../client/ProjectX/frameworks/cocos2d-x/external/zlib/include"
 )
-
-set(DEFAULT_LUA_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../client/ProjectX/frameworks/cocos2d-x/external/lua/luajit/include")
-set(DEFAULT_LUA_LIBRARY "${CMAKE_CURRENT_SOURCE_DIR}/../client/ProjectX/frameworks/cocos2d-x/external/lua/luajit/prebuilt/win32/lua51.lib")
 
 set(BOOST_ROOT "" CACHE PATH "Boost root directory")
 find_package(Boost REQUIRED COMPONENTS thread system serialization)
 target_link_libraries(kapai PRIVATE Boost::thread Boost::system Boost::serialization)
 
-find_package(ZLIB QUIET)
-if(ZLIB_FOUND)
-    target_link_libraries(kapai PRIVATE ZLIB::ZLIB)
-endif()
+find_package(ZLIB REQUIRED)
+target_link_libraries(kapai PRIVATE ZLIB::ZLIB)
 
 find_package(OpenSSL QUIET)
 if(OpenSSL_FOUND)
@@ -54,9 +48,13 @@ set(MYSQL_INCLUDE_DIR "" CACHE PATH "MySQL include directory")
 set(MYSQL_LIBRARY "" CACHE FILEPATH "MySQL client library")
 set(SQLITE3_INCLUDE_DIR "" CACHE PATH "SQLite include directory")
 set(SQLITE3_LIBRARY "" CACHE FILEPATH "SQLite static library")
-set(LUA_INCLUDE_DIR "${DEFAULT_LUA_INCLUDE_DIR}" CACHE PATH "Lua include directory")
-set(LUA_LIBRARY "${DEFAULT_LUA_LIBRARY}" CACHE FILEPATH "Lua library")
+set(LUA_INCLUDE_DIR "" CACHE PATH "Lua 5.1/LuaJIT include directory")
+set(LUA_LIBRARY "" CACHE FILEPATH "Lua 5.1/LuaJIT library")
 option(KAPAI_BUILD_DATABASE_SMOKE "Build the standalone database adapter smoke test" OFF)
+
+if(NOT EXISTS "${LUA_INCLUDE_DIR}/lua.h" OR NOT EXISTS "${LUA_LIBRARY}")
+    message(FATAL_ERROR "Lua 5.1/LuaJIT headers and library are required. Use tools/local/Build-Server.ps1 or pass LUA_INCLUDE_DIR and LUA_LIBRARY explicitly.")
+endif()
 
 if(MYSQL_INCLUDE_DIR)
     target_include_directories(kapai PRIVATE "${MYSQL_INCLUDE_DIR}")

@@ -63,8 +63,6 @@ namespace ProjectX.Core
             { Fail("Login validation reached main UI without sending optional PRO_GONGGAO/88."); return; }
             if (requireNoticeResponse && (!IsGameNoticeOpen || GameNoticeCount <= 0))
             { Fail("Required local_test PRO_GONGGAO/88 response did not render NoticeLayer."); return; }
-            if (services.IsCocosUiCompatibilityProviderCreated)
-            { Fail("Login/Notice/Loading route instantiated the legacy Cocos UI compatibility provider."); return; }
             if (services.Options.LoginClosureValidation)
             {
                 SetStatus($"Login closure main ready: user={GetLocalUserId()} role={GetPlayerRoleId()} created={createdRole}.");

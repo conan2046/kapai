@@ -845,9 +845,16 @@ $loginAnimationValidator = Get-Content -LiteralPath (Join-Path $root `
 $imodAnimationValidator = Get-Content -LiteralPath (Join-Path $root `
     "docs/unityclient/history/legacy-animation-resources/retired-20261008/ImodAnimationValidation.cs") -Raw -Encoding UTF8
 $imodTextureImporter = Get-Content -LiteralPath (Join-Path $root `
-    "unityclient/Assets/src/Editor/ImodAnimationTextureImporter.cs") -Raw -Encoding UTF8
+    "docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/Editor/ImodAnimationTextureImporter.cs") -Raw -Encoding UTF8
 $nativeLoginSpriteImporter = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/src/Editor/UnityNativeLoginSpriteImporter.cs") -Raw -Encoding UTF8
+$heroUiTextureImporter = Get-Content -LiteralPath (Join-Path $root `
+    "unityclient/Assets/src/Editor/HeroUiTextureImporter.cs") -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    $heroUiTextureImporter.Contains('if (!importer.importSettingsMissing) return;') -and
+    $heroUiTextureImporter.IndexOf('if (!importer.importSettingsMissing) return;') -lt
+        $heroUiTextureImporter.IndexOf('importer.textureType = TextureImporterType.Sprite;')
+) "Hero icon reimports must preserve authored metadata and apply defaults only to new assets."
 $loginPresenterSource = Get-Content -LiteralPath (Join-Path $root `
     "unityclient/Assets/src/UI/LoginPresenter.cs") -Raw -Encoding UTF8
 Assert-ToolchainTest (
@@ -923,9 +930,9 @@ Assert-ToolchainTest (
     -not $gameServicesUiSource.Contains('UiPrefabLoader') -and
     $gameServicesUiSource.Contains('UiRouter = new UiRouter(UiAssets);') -and
     -not $gameServicesUiSource.Contains('DeferredCocosUiAssetProvider') -and
-    $gameServicesUiSource.Contains('public bool IsCocosUiCompatibilityProviderCreated => false;') -and
-    $loginValidationSource.Contains('if (services.IsCocosUiCompatibilityProviderCreated)') -and
-    $loginValidationSource.Contains('Login/Notice/Loading route instantiated the legacy Cocos UI compatibility provider.') -and
+    -not $gameServicesUiSource.Contains('IsCocosUiCompatibilityProviderCreated') -and
+    -not $loginValidationSource.Contains('IsCocosUiCompatibilityProviderCreated') -and
+    -not $loginValidationSource.Contains('Login/Notice/Loading route instantiated the legacy Cocos UI compatibility provider.') -and
     $uiPrefabLoaderSource.Contains('public static void Configure(Func<ICocosUiAssetProvider> factory)') -and
     $uiPrefabLoaderSource.Contains('private static ICocosUiAssetProvider Provider => provider ??= providerFactory?.Invoke();') -and
     $uiRouterSource.Contains('public UiRouter(IUiAssetProvider unityAssets)') -and
@@ -1305,6 +1312,10 @@ $runtimeCocosCollectorSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root 
 $runtimeCocosAppDelegateSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "client/ProjectX/frameworks/runtime-src/Classes/AppDelegate.cpp")
 $runtimeCocosFixtureSource = Get-Content -Raw -Encoding UTF8 (Join-Path $root "tools/unity-migration/Invoke-DrawCocosFixture.ps1")
 Assert-ToolchainTest (@($runtimeScenario.actions).Count -eq 28 -and @($runtimeScenario.actions.action.targetControlId | Sort-Object -Unique).Count -eq 28) "Draw runtime scenario must cover 28 unique controls."
+Assert-ToolchainTest (
+    @($runtimeScenario.actions | Where-Object { [string]::IsNullOrWhiteSpace($_.action.unityPath) }).Count -eq 0 -and
+    -not $runtimeCollectorSource.Contains('"cocosPath"')
+) "Unity snapshot binding must use complete native action paths without historical Cocos aliases."
 Assert-ToolchainTest (
     @($runtimeScenario.actions | Where-Object { $_.actionId -in @('DRAW-A21','DRAW-A22','DRAW-A23','DRAW-A24','DRAW-A28') -and $_.action.unityPath -notlike 'DynamicUi_dancichouka/*' }).Count -eq 0 -and
     @($runtimeScenario.actions | Where-Object { $_.actionId -in @('DRAW-A25','DRAW-A26','DRAW-A27') -and $_.action.unityPath -notlike 'DynamicUi_shilianchouka/*' }).Count -eq 0
@@ -4431,7 +4442,14 @@ Assert-ToolchainTest (
     $localServerProbeSource.Contains('crashOwner.State == LocalServerState.Failed') -and
     $localServerProbeSource.Contains('string runId = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff")') -and
     $localServerProbeSource.Contains('File.Copy(ownedDatabase, crashDatabase, true)') -and
-    $localServerProbeSource.Contains('report.residualKapai == 0')
+    $localServerProbeSource.Contains('report.residualKapai == 0') -and
+    $localServerProbeSource.Contains('if (!Application.isBatchMode)') -and
+    $localServerProbeSource.Contains('string[] inputs = ResolveRuntimeInputs(root);') -and
+    $localServerProbeSource.Contains('Path.Combine(root, ".local", "server-build", "server-win", "Debug", "kapai.exe")') -and
+    $localServerProbeSource.Contains('Path.Combine(root, "unityserver", "config")') -and
+    $localServerProbeSource.Contains('Path.Combine(root, "unityserver", "sql", "sqlite", "001_initial_schema.sql")') -and
+    -not $localServerProbeSource.Contains('Path.Combine(root, "server", "config")') -and
+    -not $localServerProbeSource.Contains('Path.Combine(root, "build", "server-win"')
 ) "S6 probe no longer gates duplicate-process prevention, crash detection, and residual-zero cleanup."
 Assert-ToolchainTest (
     $editorServerBuildGuardSource.Contains('PlayModeStateChange.ExitingEditMode') -and
@@ -5787,7 +5805,9 @@ Assert-ToolchainTest (
     -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/src/UI/Migration')) -and
     -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/src/Editor/CocosUiImporter.cs')) -and
     -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/src/Editor/CocosBindingCleaner.cs')) -and
-    -not ([regex]::IsMatch($activeUnitySources, 'class\s+(CocosUiBinding|CocosNodeMetadata|CocosNodeReference|CocosTimelinePlayer|UiPrefabIdentity)\b')) -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/src/Editor/ImodAnimationTextureImporter.cs')) -and
+    -not (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/src/Editor/ImodAnimationTextureImporter.cs.meta')) -and
+    -not ([regex]::IsMatch($activeUnitySources, 'class\s+(CocosUiBinding|CocosNodeMetadata|CocosNodeReference|CocosTimelinePlayer|UiPrefabIdentity|ImodAnimationTextureImporter)\b')) -and
     $runtimeInputSource.Contains('return hierarchyTarget;') -and
     -not $runtimeInputSource.Contains('RetiredMetadataAliases') -and
     -not $runtimeCollectorSource.Contains('BuildSerializedNodeIdentityIndex') -and
@@ -5837,6 +5857,25 @@ Assert-ToolchainTest (
 
 $spriteAtlasPlan = Get-Content -LiteralPath (Join-Path $root 'unityclient/ProjectSettings/ProjectXSpriteAtlases.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 $atlasTextureGuids = @($spriteAtlasPlan.atlases | ForEach-Object { $_.textureGuids })
+$atlasSourceGuidSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+foreach ($guid in $atlasTextureGuids) { [void]$atlasSourceGuidSet.Add($guid) }
+$compressedAtlasSourcePaths = @()
+$atlasSourceMetadataCount = 0
+foreach ($metadata in Get-ChildItem -LiteralPath (Join-Path $root 'unityclient/Assets/Art') -Recurse -File -Filter '*.meta') {
+    $sourceMetadata = Get-Content -LiteralPath $metadata.FullName -Raw -Encoding UTF8
+    $sourceGuid = [regex]::Match($sourceMetadata, '(?m)^guid:\s*([0-9a-f]+)').Groups[1].Value
+    if (-not $atlasSourceGuidSet.Contains($sourceGuid)) { continue }
+    $atlasSourceMetadataCount++
+    $defaultSettings = [regex]::Match($sourceMetadata,
+        '(?ms)^    buildTarget: DefaultTexturePlatform\s*\r?\n(.*?)(?=^  - serializedVersion:|^  \S|\z)').Groups[1].Value
+    if (-not [regex]::IsMatch($defaultSettings, '(?m)^    textureCompression: 0\s*$') -or
+        -not [regex]::IsMatch($defaultSettings, '(?m)^    crunchedCompression: 0\s*$')) {
+        $compressedAtlasSourcePaths += $metadata.FullName
+    }
+}
+Assert-ToolchainTest (
+    $atlasSourceMetadataCount -eq $atlasSourceGuidSet.Count -and $compressedAtlasSourcePaths.Count -eq 0
+) "Every packed atlas source must retain uncompressed, non-crunched import settings."
 Assert-ToolchainTest (
     $spriteAtlasPlan.atlasRoot -eq 'Assets/Art/Atlases' -and
     $spriteAtlasPlan.maxTextureSize -eq 2048 -and
@@ -5849,5 +5888,53 @@ Assert-ToolchainTest (
     @($spriteAtlasPlan.excluded | Where-Object { $_.reason -eq 'existing-animation-sheet' }).Count -gt 0 -and
     @($spriteAtlasPlan.excluded | Where-Object { $_.reason -eq 'raw-texture-and-runtime-slicing' }).Count -gt 0
 ) "Native SpriteAtlas ownership must be unique, preserve rectangular UI packing, and exclude original animation and runtime-sliced textures."
+
+$serverCmakeSource = Get-Content -LiteralPath (Join-Path $root 'server/CMakeLists.txt') -Raw -Encoding UTF8
+Assert-ToolchainTest (
+    -not [regex]::IsMatch($serverCmakeSource, '(?i)client[/\\]ProjectX|cocos2d-x') -and
+    $serverCmakeSource.Contains('find_package(ZLIB REQUIRED)') -and
+    $serverCmakeSource.Contains('target_link_libraries(kapai PRIVATE ZLIB::ZLIB)') -and
+    $serverCmakeSource.Contains('if(NOT EXISTS "${LUA_INCLUDE_DIR}/lua.h" OR NOT EXISTS "${LUA_LIBRARY}")')
+) "Server builds must use independent zlib/Lua inputs and never default to the Cocos SDK."
+
+# Retired Fish G0 commands must fail before touching either client's configuration.
+$fishPositionSourcePath = Join-Path $root 'unitydata/export/client/source/Configs/fish_position.json'
+$fishPositionRuntimePath = Join-Path $root 'unityclient/Assets/Resources/ProjectXData/Configs/fish_position.json'
+$fishPositionData = @(Get-Content -LiteralPath $fishPositionSourcePath -Raw -Encoding UTF8 | ConvertFrom-Json)
+$fishPositionRuntimeData = @(Get-Content -LiteralPath $fishPositionRuntimePath -Raw -Encoding UTF8 | ConvertFrom-Json)
+Assert-ToolchainTest (
+    $fishPositionData.Count -eq 1 -and
+    $fishPositionRuntimeData.Count -eq 1 -and
+    $fishPositionData[0].PSObject.Properties.Name -notcontains 'animation_resource' -and
+    $fishPositionRuntimeData[0].PSObject.Properties.Name -notcontains 'animation_resource' -and
+    $fishPositionData[0].fishing_shape_id -eq 2000 -and
+    $fishPositionData[0].map_resource -eq 'Art/Fish/Map/map33' -and
+    (Get-FileHash -LiteralPath $fishPositionSourcePath).Hash -eq (Get-FileHash -LiteralPath $fishPositionRuntimePath).Hash
+) "Fish position exports must match current native resources without the unused legacy animation field."
+
+$fishSyncPaths = @(
+    'unitydata/export/client/source/Configs/fish_position.json',
+    'unityclient/Assets/Resources/ProjectXData/Configs/fish_position.json',
+    'unityserver/config/json/fish_position.json',
+    'server/config/json/function.json',
+    'server/config/json/item.json'
+)
+$fishSyncBefore = @($fishSyncPaths | ForEach-Object { (Get-FileHash -LiteralPath (Join-Path $root $_)).Hash }) -join ','
+$fishRetiredRootBefore = Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX')
+$fishSyncNode = (Get-Command node -ErrorAction Stop).Source
+$fishSyncNativePreference = $PSNativeCommandUseErrorActionPreference
+try {
+    $PSNativeCommandUseErrorActionPreference = $false
+    foreach ($arguments in @(@(), @('--restore-clean-head-order'))) {
+        $fishSyncOutput = (& $fishSyncNode (Join-Path $root 'tools/unity-migration/Sync-FishConfig.mjs') @arguments 2>&1 | Out-String)
+        Assert-ToolchainTest ($LASTEXITCODE -eq 1 -and $fishSyncOutput.Contains('Sync-FishConfig is retired.')) `
+            "Retired Fish G0 command must fail explicitly, including its old HEAD restore mode."
+    }
+} finally { $PSNativeCommandUseErrorActionPreference = $fishSyncNativePreference }
+$fishSyncAfter = @($fishSyncPaths | ForEach-Object { (Get-FileHash -LiteralPath (Join-Path $root $_)).Hash }) -join ','
+Assert-ToolchainTest (
+    $fishSyncBefore -eq $fishSyncAfter -and
+    $fishRetiredRootBefore -eq (Test-Path -LiteralPath (Join-Path $root 'unityclient/Assets/ProjectX'))
+) "Retired Fish G0 invocation must not change Unity/Cocos data or recreate the retired asset root."
 
 Write-Host "Unity migration toolchain tests passed: $passed"

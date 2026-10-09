@@ -11,7 +11,7 @@ namespace ProjectX.Editor
     /// 基于 Unity 的地图数据编辑器（只读分析 + 可视化重配置 + 导出）。
     ///
     /// 不修改游戏任何运行时代码（FubenDetailMap / FuBenDetailUI / JsonConfig / WorldPresenter 等），
-    /// 只读取 map_res_dat.lua，拖拽调整 NPC / 怪物坐标，再导出为同格式 lua。
+    /// 读取 Unity 数据源 map_res_dat.txt，拖拽调整 NPC / 怪物坐标，再导出相同数据格式。
     ///
     /// 坐标空间与客户端严格一致（WYSIWYG）：
     ///   · 底图瓦片：1:1 复刻 FubenDetailMap.LoadMap()——1024 瓦片、行优先、自左上起。
@@ -45,23 +45,28 @@ namespace ProjectX.Editor
             public Coor map_size = new Coor(5500, 1500); // {w,h}
         }
 
-        // ===== 客户端常量（务必与 client/ProjectX/src/View/FuBenMap 保持一致）=====
+        // ===== 坐标合同与 Unity WorldPresenter 保持一致 =====
         private const float ScreenRate = 750f / 1080f;    // FuBenDetailUI.lua: local SCREENRATE = 750 / 1080
         private const float DataToImage = 1080f / 750f;   // 1/SCREENRATE：数据坐标 → 底图像素
         private const float MonsterAnchorDy = 100f;       // monster_coor → node1:setPosition(cc.p(x, y + 100))
         private const float MonsterModelDy = 15f;         // 怪物模型子节点 -85，故可视中心 = y + 100 - 85
         private const float RoleAnchorDy = 33f;           // _myNode:setPosition(cc.p(x, y + 33))
-        // 立绘贴图的固有偏移 Δ：静态立绘图（Monster_Bust / Role_Bust）的可见中心相对
+        // 预览贴图的固有偏移 Δ：怪物立绘与主角站立 Sprite 的可见中心相对
         // 客户端锚点的差值。实测默认 63（数据单位）。
-        // 注意：游戏内实际渲染的是 ModelAniNode / ImodAnim 骨骼模型，立绘 PNG 只是编辑器
-        // 预览用的等价替代，故 Δ 只服务于“编辑器里看起来站得对”，不改变导出数据。
+        // 预览只用于坐标编辑；运行时仍使用原生 Animator，Δ 不改变导出数据。
         private const float ModelTextureDelta = 63f;
 
         // ---- paths ----
         private string _sourcePath = "";
         private string _exportPath = "";
-        private string _resRoot = "";   // .../client/ProjectX/res/fuben
-        private string _artRoot = "";   // .../client/ProjectX/res2（Monster_Bust / Role_Bust 单帧立绘）
+        private string _resRoot = "";   // Assets/Art/World/Maps
+        private string _artRoot = "";   // Assets/Art
+        private const string RuntimeMapAsset = "Assets/Resources/ProjectXData/World/map_res_dat.txt";
+        private const string PlayerAnimationRoot = "Assets/Animations/World/StagePlayer/Animations/";
+        private static readonly Encoding Utf8 = new UTF8Encoding(false);
+
+        // 新路径设置按工程隔离；旧 MapEditor.* 路径不再被读取，也不删除。
+        private static string PathPreference(string name) => "MapEditor.UnityNative." + Application.dataPath + "." + name;
 
         // ---- data ----
         private List<MapEntry> _entries = new List<MapEntry>();
@@ -114,10 +119,10 @@ namespace ProjectX.Editor
 
         private void OnEnable()
         {
-            _sourcePath = EditorPrefs.GetString("MapEditor.Source", DefaultSource());
-            _exportPath = EditorPrefs.GetString("MapEditor.Export", _sourcePath);
-            _resRoot = EditorPrefs.GetString("MapEditor.ResRoot", DefaultResRoot());
-            _artRoot = EditorPrefs.GetString("MapEditor.ArtRoot2", DefaultArtRoot());
+            _sourcePath = SavedPath("Source", DefaultSource(), DataRoot());
+            _exportPath = SavedPath("Export", DefaultSource(), DataRoot());
+            _resRoot = SavedPath("Maps", DefaultResRoot(), DefaultArtRoot());
+            _artRoot = SavedPath("Art", DefaultArtRoot(), DefaultArtRoot());
             _monsterId = EditorPrefs.GetInt("MapEditor.MonsterId", 101);
             _heroId = EditorPrefs.GetInt("MapEditor.HeroId", 4);
             _modelHeight = EditorPrefs.GetFloat("MapEditor.ModelHeight", 320f);
@@ -129,14 +134,16 @@ namespace ProjectX.Editor
 
         private void OnDisable()
         {
-            EditorPrefs.SetString("MapEditor.Source", _sourcePath);
-            EditorPrefs.SetString("MapEditor.Export", _exportPath);
-            EditorPrefs.SetString("MapEditor.ResRoot", _resRoot);
-            EditorPrefs.SetString("MapEditor.ArtRoot2", _artRoot);
+            EditorPrefs.SetString(PathPreference("Source"), _sourcePath);
+            EditorPrefs.SetString(PathPreference("Export"), _exportPath);
+            EditorPrefs.SetString(PathPreference("Maps"), _resRoot);
+            EditorPrefs.SetString(PathPreference("Art"), _artRoot);
             EditorPrefs.SetInt("MapEditor.MonsterId", _monsterId);
             EditorPrefs.SetInt("MapEditor.HeroId", _heroId);
             EditorPrefs.SetFloat("MapEditor.ModelHeight", _modelHeight);
             EditorPrefs.SetFloat("MapEditor.ModelDeltaV2", _modelDy);
+            ClearTextureCache();
+            if (_circleTex != null) DestroyImmediate(_circleTex);
         }
 
         /// <summary>立绘可视中心的 Y 偏移 = 客户端锚点(怪物 +100 / 主角 +33) + Δ。</summary>
@@ -149,17 +156,40 @@ namespace ProjectX.Editor
 
         private string DefaultSource()
         {
-            return Path.GetFullPath(Path.Combine(ProjectRoot(), "..", "client", "ProjectX", "src", "ConfigData", "map_res_dat.lua"));
+            return Path.Combine(DataRoot(), "World", "map_res_dat.txt");
+        }
+
+        private static string DataRoot() => Path.GetFullPath(Path.Combine(ProjectRoot(), "..", "unitydata", "export", "client", "source"));
+
+        private static bool IsWithin(string path, string root)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            try
+            {
+                string full = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                string parent = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                return string.Equals(full, parent, System.StringComparison.OrdinalIgnoreCase)
+                    || full.StartsWith(parent + Path.DirectorySeparatorChar, System.StringComparison.OrdinalIgnoreCase);
+            }
+            catch (System.ArgumentException) { return false; }
+            catch (System.NotSupportedException) { return false; }
+            catch (PathTooLongException) { return false; }
+        }
+
+        private static string SavedPath(string key, string fallback, string root)
+        {
+            string saved = EditorPrefs.GetString(PathPreference(key), fallback);
+            return IsWithin(saved, root) ? saved : fallback;
         }
 
         private string DefaultResRoot()
         {
-            return Path.GetFullPath(Path.Combine(ProjectRoot(), "..", "client", "ProjectX", "res", "fuben"));
+            return Path.Combine(DefaultArtRoot(), "World", "Maps");
         }
 
-        private string DefaultArtRoot()
+        private static string DefaultArtRoot()
         {
-            return Path.GetFullPath(Path.Combine(ProjectRoot(), "..", "client", "ProjectX", "res"));
+            return Path.Combine(Application.dataPath, "Art");
         }
 
         // ===================== 坐标变换 =====================
@@ -190,7 +220,7 @@ namespace ProjectX.Editor
         {
             EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("数据源 lua", GUILayout.Width(70));
+            EditorGUILayout.LabelField("数据源", GUILayout.Width(70));
             _sourcePath = EditorGUILayout.TextField(_sourcePath);
             if (GUILayout.Button("浏览", GUILayout.Width(50))) Pick(ref _sourcePath);
             if (GUILayout.Button("读取", GUILayout.Width(50))) Load();
@@ -206,7 +236,7 @@ namespace ProjectX.Editor
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("导出 lua", GUILayout.Width(70));
+            EditorGUILayout.LabelField("导出数据", GUILayout.Width(70));
             _exportPath = EditorGUILayout.TextField(_exportPath);
             if (GUILayout.Button("浏览", GUILayout.Width(50))) Pick(ref _exportPath);
             if (GUILayout.Button("导出", GUILayout.Width(50))) Export();
@@ -238,9 +268,9 @@ namespace ProjectX.Editor
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("怪物模型", GUILayout.Width(60));
-            _monsterId = DrawIdPopup(_monsterIds, ref _monsterIdIdx, _monsterId, "Monster_Bust");
+            _monsterId = DrawIdPopup(_monsterIds, ref _monsterIdIdx, _monsterId, "怪物立绘");
             EditorGUILayout.LabelField("主角模型", GUILayout.Width(60));
-            _heroId = DrawIdPopup(_heroIds, ref _heroIdIdx, _heroId, "Role_Bust");
+            _heroId = DrawIdPopup(_heroIds, ref _heroIdIdx, _heroId, "主角站立动画");
             EditorGUILayout.LabelField("立绘高度(底图px)", GUILayout.Width(115));
             _modelHeight = EditorGUILayout.Slider(_modelHeight, 80f, 1200f);
             EditorGUILayout.EndHorizontal();
@@ -443,7 +473,7 @@ namespace ProjectX.Editor
             }
         }
 
-        /// <summary>绘制真实立绘：怪物取 res2/Monster_Bust/&lt;id&gt;.png，主角取 res2/Role_Bust/&lt;id&gt;.png。</summary>
+        /// <summary>怪物使用 Art 中的立绘，主角使用原生站立动画的首帧 Sprite。</summary>
         private void DrawModel(MapEntry e, Coor c, CoorType type, bool selected)
         {
             Texture2D tex = type == CoorType.Monster ? LoadMonsterTex() : LoadHeroTex();
@@ -609,11 +639,12 @@ namespace ProjectX.Editor
 
         private void Load()
         {
+            if (!IsWithin(_sourcePath, DataRoot())) { Debug.LogError("[MapEditor] 数据源必须位于当前工程的 unitydata/export/client/source。"); return; }
             if (!File.Exists(_sourcePath)) { Debug.LogError("[MapEditor] 数据源不存在: " + _sourcePath); return; }
-            _entries = ParseLua(File.ReadAllText(_sourcePath));
+            _entries = ParseLua(File.ReadAllText(_sourcePath, Utf8));
             _selectedMap = Mathf.Clamp(_selectedMap, 0, Mathf.Max(0, _entries.Count - 1));
             _selIndex = -1;
-            _texCache.Clear();
+            ClearTextureCache();
             _needFit = _entries.Count > 0;
             Debug.Log($"[MapEditor] 已读取 {_entries.Count} 张地图");
         }
@@ -621,14 +652,18 @@ namespace ProjectX.Editor
         private void Export()
         {
             if (_entries.Count == 0) { Debug.LogWarning("[MapEditor] 无数据可导出"); return; }
+            if (!IsWithin(_exportPath, DataRoot())) { Debug.LogError("[MapEditor] 导出必须位于当前工程的 unitydata/export/client/source。"); return; }
             string text = BuildLua(_entries);
-            File.WriteAllText(_exportPath, text);
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(_exportPath)));
+            File.WriteAllText(_exportPath, text, Utf8);
             Debug.Log($"[MapEditor] 已导出 {_entries.Count} 张地图 -> {_exportPath}");
-            string resCopy = Path.Combine(Application.dataPath, "Resources", "WorldUI", "Config", "map_res_dat.txt");
-            if (File.Exists(resCopy) && EditorUtility.DisplayDialog("同步 Resources", "是否同时覆盖 Unity Resources 的 map_res_dat.txt？", "是", "否"))
+            if (string.Equals(Path.GetFullPath(_exportPath), Path.GetFullPath(DefaultSource()), System.StringComparison.OrdinalIgnoreCase))
             {
-                File.WriteAllText(resCopy, text);
-                Debug.Log("[MapEditor] 已同步 Resources/ProjectXData/World/map_res_dat.txt");
+                string runtime = Path.Combine(ProjectRoot(), RuntimeMapAsset);
+                Directory.CreateDirectory(Path.GetDirectoryName(runtime));
+                File.WriteAllText(runtime, text, Utf8);
+                AssetDatabase.ImportAsset(RuntimeMapAsset);
+                Debug.Log("[MapEditor] 已同步 Unity 运行时地图数据。");
             }
         }
 
@@ -713,6 +748,7 @@ namespace ProjectX.Editor
         // ===================== texture helpers =====================
         private Texture2D LoadTexture(string file)
         {
+            if (!IsWithin(file, DefaultArtRoot())) return null;
             if (_texCache.TryGetValue(file, out var cached)) return cached;
             Texture2D tex = null;
             if (File.Exists(file))
@@ -721,7 +757,8 @@ namespace ProjectX.Editor
                 {
                     var bytes = File.ReadAllBytes(file);
                     tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                    tex.LoadImage(bytes);
+                    tex.hideFlags = HideFlags.HideAndDontSave;
+                    if (!tex.LoadImage(bytes)) { DestroyImmediate(tex); tex = null; }
                 }
                 catch (System.Exception ex) { Debug.LogWarning("[MapEditor] 贴图加载失败 " + file + " " + ex.Message); }
             }
@@ -729,25 +766,41 @@ namespace ProjectX.Editor
             return tex;
         }
 
-        /// <summary>兼容旧配置：美术根目录下若没有 Monster_Bust，则依次尝试 res2 与默认位置。</summary>
-        private string ArtRootResolved()
+        private void ClearTextureCache()
         {
-            var cands = new List<string>
-            {
-                _artRoot,
-                string.IsNullOrEmpty(_artRoot) ? null : Path.Combine(_artRoot, "res2"),
-                DefaultArtRoot(),
-                Path.GetFullPath(Path.Combine(ProjectRoot(), "..", "client", "ProjectX", "res2")),
-            };
-            foreach (var c in cands)
-                if (!string.IsNullOrEmpty(c) && Directory.Exists(Path.Combine(c, "Monster_Bust"))) return c;
-            return _artRoot;
+            foreach (Texture2D texture in _texCache.Values)
+                if (texture != null) DestroyImmediate(texture);
+            _texCache.Clear();
+            _boundsCache.Clear();
         }
 
-        // 单帧立绘：res2/Monster_Bust/<monsterId>.png、res2/Role_Bust/<heroId>.png
-        //（res/Monster/btm*_zd_show.png 是动画图集、含多帧，不能直接当标记；故取 Bust 单图）
-        private Texture2D LoadMonsterTex() { return LoadTexture(Path.Combine(ArtRootResolved(), "Monster_Bust", _monsterId + ".png")); }
-        private Texture2D LoadHeroTex() { return LoadTexture(Path.Combine(ArtRootResolved(), "Role_Bust", _heroId + ".png")); }
+        private Texture2D LoadMonsterTex() { return LoadTexture(Path.Combine(_artRoot, "Portraits", "Monsters", _monsterId + ".png")); }
+
+        private static string HeroClipPath(int id) => PlayerAnimationRoot + (id == 5 ? "H" : "K") + "_0_fd_Action_4.anim";
+
+        private Texture2D LoadHeroTex()
+        {
+            string key = HeroClipPath(_heroId);
+            if (_texCache.TryGetValue(key, out var cached)) return cached;
+            AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(key);
+            if (clip == null) return null;
+            foreach (var binding in AnimationUtility.GetObjectReferenceCurveBindings(clip))
+            {
+                if (binding.propertyName != "m_Sprite") continue;
+                var frames = AnimationUtility.GetObjectReferenceCurve(clip, binding);
+                if (frames.Length == 0 || !(frames[0].value is Sprite sprite)) continue;
+                Texture2D source = LoadTexture(Path.Combine(ProjectRoot(), AssetDatabase.GetAssetPath(sprite)));
+                if (source == null) return null;
+                Rect rect = sprite.rect;
+                Texture2D preview = new Texture2D((int)rect.width, (int)rect.height, TextureFormat.RGBA32, false);
+                preview.hideFlags = HideFlags.HideAndDontSave;
+                preview.SetPixels(source.GetPixels((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height));
+                preview.Apply();
+                _texCache[key] = preview;
+                return preview;
+            }
+            return null;
+        }
 
         /// <summary>粗采样求不透明包围盒（贴图像素坐标，y 向上）。</summary>
         private readonly Dictionary<Texture2D, Rect> _boundsCache = new Dictionary<Texture2D, Rect>();
@@ -800,8 +853,12 @@ namespace ProjectX.Editor
 
         private void RefreshMonsterIds()
         {
-            _monsterIds = ScanIds(Path.Combine(ArtRootResolved(), "Monster_Bust"));
-            _heroIds = ScanIds(Path.Combine(ArtRootResolved(), "Role_Bust"));
+            ClearTextureCache();
+            _monsterIds = IsWithin(_artRoot, DefaultArtRoot())
+                ? ScanIds(Path.Combine(_artRoot, "Portraits", "Monsters")) : new List<int>();
+            _heroIds = new List<int>();
+            foreach (int id in new[] { 4, 5 })
+                if (AssetDatabase.LoadAssetAtPath<AnimationClip>(HeroClipPath(id)) != null) _heroIds.Add(id);
             _monsterIdIdx = _monsterIds.IndexOf(_monsterId);
             _heroIdIdx = _heroIds.IndexOf(_heroId);
         }
@@ -810,6 +867,7 @@ namespace ProjectX.Editor
         {
             int s = 32;
             var t = new Texture2D(s, s, TextureFormat.RGBA32, false);
+            t.hideFlags = HideFlags.HideAndDontSave;
             Color[] px = new Color[s * s];
             Vector2 c = new Vector2(s / 2f, s / 2f);
             for (int y = 0; y < s; y++)
@@ -825,7 +883,7 @@ namespace ProjectX.Editor
 
         private void Pick(ref string field)
         {
-            string p = EditorUtility.OpenFilePanel("选择 lua", field, "lua");
+            string p = EditorUtility.OpenFilePanel("选择地图数据", Path.GetDirectoryName(field), "txt");
             if (!string.IsNullOrEmpty(p)) field = p;
         }
 

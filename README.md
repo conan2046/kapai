@@ -29,7 +29,20 @@ git lfs pull
 | Cocos2d-x 引擎 | `client/ProjectX/frameworks/` | 约 3.3G | 内部 3.17 快照，请从团队内部源获取并解压到该目录 |
 | vcpkg | `tools/local/vcpkg/` | 约 1.6G | 运行 `tools/local/Install-LocalDeps.ps1 -IncludeBoost`，脚本固定到 commit `a7bd30319eeac16afbe18d64a855303a0a425e84` |
 
-> 引擎与依赖体积大、含第三方代码，按团队约定不入库；克隆后需自行补齐上述目录才能编译运行。
+> 引擎与依赖体积大、含第三方代码，按团队约定不入库。Cocos 引擎只用于原版客户端；Unity 工程及本地服务端不需要该引擎。
+
+## Unity 新成员运行
+
+使用 Unity `2022.3.62f3c1`、Windows x64 和 PowerShell 7。先完成上面的 LFS 拉取，再从仓库根目录执行：
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File tools/local/Install-LocalDeps.ps1 -IncludeMySql -IncludeBoost
+pwsh -NoProfile -ExecutionPolicy Bypass -File tools/local/Build-Server.ps1 -BuildDir .local/server-build/server-win
+```
+
+依赖安装会准备 CMake、MSVC、LuaJIT、Boost、Zlib、SQLite 及 MySQL 客户端开发库；Unity 单机运行使用 SQLite。打开 `unityclient/`，等待包解析和资源导入完成，打开 `Assets/Scenes/Bootstrap.unity` 后点击 Play。Unity 会监管本地服务端，停止 Play 后关闭本轮服务；个人存档由单机菜单创建，无需复制他人的数据库。
+
+`Assets/`、`Packages/`、`ProjectSettings/` 和 `unityserver/` 是版本化输入；`Library/`、`.local/`、本机存档和图集导入缓存不随 Git 分发。35 个 SpriteAtlas V2 的源资源、GUID 和分组配置已入库，首次导入或构建时由 Unity 生成打包缓存。Git 包依赖需要能访问 `Packages/manifest.json` 中的仓库地址。发布打包流程见 [`LOCAL_RUN.md`](LOCAL_RUN.md)。
 
 服务端无需手工复制 SQL 或旧数据库。全新克隆的自动安装、建库、构建、启动命令见 `LOCAL_RUN.md` 的“全新克隆：服务端最短流程”。
 

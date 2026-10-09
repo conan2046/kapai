@@ -143,7 +143,6 @@ namespace ProjectX.Core
         public ProtocolDispatcher Protocols { get; }
         public UiRouter UiRouter { get; }
         public IUiAssetProvider UiAssets { get; }
-        public bool IsCocosUiCompatibilityProviderCreated => false;
         public UiStack UiStack { get; }
         public LuaRuntimeService Lua { get; }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

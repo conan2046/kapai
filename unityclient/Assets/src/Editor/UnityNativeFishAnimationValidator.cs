@@ -10,8 +10,8 @@ namespace ProjectX.Editor
 {
     public static class UnityNativeFishAnimationValidator
     {
-        private const string AssetRoot = "Assets/Animations/Fish";
-        private const string AnimationRoot = AssetRoot;
+        private const string AnimationRoot = "Assets/Animations/Fish";
+        private const string SpriteRoot = "Assets/Art/AnimationFrames/Fish";
 
         public static string ValidateForMcp()
         {
@@ -41,10 +41,10 @@ namespace ProjectX.Editor
                 : AnimationUtility.GetObjectReferenceCurve(clip, spriteBinding);
             if (keys.Length != 8 || keys.Any(key => key.value == null
                 || !AssetDatabase.GetAssetPath(key.value).StartsWith(
-                    AssetRoot + "/Art/", StringComparison.Ordinal)))
+                    SpriteRoot + "/", StringComparison.Ordinal)))
                 throw new InvalidOperationException($"Fish Action_2 has invalid Sprite keys: {keys.Length}.");
 
-            string atlasPath = AssetRoot + "/Art/Monster/btm2000_zd.png";
+            string atlasPath = SpriteRoot + "/Monster/btm2000_zd.png";
             int sprites = AssetDatabase.LoadAllAssetsAtPath(atlasPath).OfType<Sprite>().Count();
             if (sprites != 40)
                 throw new InvalidOperationException($"Expected 40 Fish atlas Sprites, found {sprites}.");

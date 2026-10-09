@@ -3,6 +3,8 @@
 > 当前状态：2026-09-15 Fish G3 逻辑与正式 UI 定向检查曾由用户实际确认通过。2026-09-30 W8 已将 Fish 入口改为 Unity-owned Prefab/`UnityUiView`/Catalog，Fish `ShapeId=2000` 的 Action 2 也已改为 Unity Sprite/AnimationClip/Animator（P-0172）；旧 UI importer 行退役，历史源 Prefab Identity 已清除且节点保留。Unity MCP 验证层级、原生动画和资源依赖；变更后的 Function_32/EnterBtn 路线与最终画面待用户复验。Fish 无旧 Timeline 轨道，OneLevel 共享帧复用 P-0107。G4-G6 尚未执行。
 > 2026-09-15 根据首次体验反馈完成正式 UI 收敛：钓场操作区复用 `FishLayer.prefab`，鱼篓直接复用 `zhujue/beibao.prefab` 的五列格子、品质框、详情区与 `OneLevelLayer` 外框；鱼篓为纵向 `ScrollRect`，数量显示在格子右下角，不再使用运行时代码绘制的纯色面板与按钮。
 
+> 数据维护续记（2026-10-09）：历史 `tools/unity-migration/Sync-FishConfig.mjs` 的 G0 写回实现已归档到 `docs/unityclient/history/legacy-ui-references/retired-data-tools-20261009/`。原命令入口立即报错，不再写原版 `server` 或旧 Unity Assets 目录；`--restore-clean-head-order` 停用。客户端数据以 `unitydata/export/client/source/Configs` 为源，由 `Export-UnityClientData.ps1` 导出到当前 `Assets/Resources/ProjectXData`。服务端 `fish_settings/fish_reward/fish_position` 暂保留 `unityserver/config/json` 基线，目前没有对应 Unity 专用 Excel 输入/生成表；不得用历史 G0 导出回填。此项不改玩法、奖励或冻结门禁。证据：`.local/unity-validation/fish-sync-tool-retirement-20261009/report.md`。
+
 ## 1. 范围决策（用户授权）
 
 - 决策来源：2026-09-14 用户口头确认「基于 Steam 平台进行单机化玩法迁移和修改」，并持续明确入口、地图、消耗、周期、容量、鱼种、经验、交互币与 Steam 分母等规则。

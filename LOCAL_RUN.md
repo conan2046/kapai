@@ -11,7 +11,7 @@ git lfs install
 git lfs pull
 pwsh -ExecutionPolicy Bypass -File tools/local/Install-LocalDeps.ps1 -IncludeMySql -IncludeBoost
 pwsh -ExecutionPolicy Bypass -File tools/local/Check-LocalEnv.ps1 -SkipClient
-pwsh -ExecutionPolicy Bypass -File tools/local/Build-Server.ps1
+pwsh -ExecutionPolicy Bypass -File tools/local/Build-Server.ps1 -BuildDir .local/server-build/server-win
 ```
 
 迁移开发者还必须安装仓库版本化的脱敏固定账号 SQLite。安装前会校验 LFS 文件、SHA-256、`integrity_check` 和 `1/1000001`、`7200057/1000003` 两组身份；存在本地运行库时先备份到 `.local/unity-validation/database-backups/`，不会无备份覆盖：
@@ -49,7 +49,7 @@ Tools → ProjectX App → Build Steam Windows Package
 打包器会自动完成以下工作：
 
 - 生成 Windows x64 `ProjectX.exe`；
-- 将刚构建的 `build/server-win/Debug/kapai.exe`、运行 DLL、服务端配置、Lua 脚本和 SQLite 初始 Schema 放入 `StreamingAssets/ProjectXServer/`；
+- 将发布构建目录 `.local/steam-server-build/server-win/Debug/` 中的 `kapai.exe`、运行 DLL、服务端配置、Lua 脚本和 SQLite 初始 Schema 放入 `StreamingAssets/ProjectXServer/`；
 - 删除 `DoNotShip` 目录，拒绝 PDB、`mysqld.exe`、PowerShell 等开发文件；
 - 为除 Manifest 自身外的全部发布文件生成 SHA-256 清单。
 
@@ -57,7 +57,7 @@ Tools → ProjectX App → Build Steam Windows Package
 
 若 `Build-Server.ps1` 报 SQLite 静态库缺失，重新执行依赖安装命令；构建脚本会硬失败，禁止生成不含 SQLite 的本地服用于正式打包。
 
-Unity Editor 中直接点击 Play 会先检查 `build/server-win/Debug/kapai.exe`：文件缺失或服务端 C/C++/CMake/构建脚本较新时，自动执行 `Build-Server.ps1`；构建失败会取消 Play 并在 Console 显示错误。构建就绪后自动启动 `kapai.exe + SQLite`，停止 Play 时自动保存并关闭其拥有的服务端。Editor 批处理验收不会隐式启动服务；需要继续联调手工启动的外部服务端时，在 Unity 启动参数中加入 `-projectXExternalServer`。
+Unity Editor 中直接点击 Play 会先检查 `.local/server-build/server-win/Debug/kapai.exe`：文件缺失或服务端 C/C++/CMake/构建脚本较新时，自动执行 `Build-Server.ps1`；构建失败会取消 Play 并在 Console 显示错误。构建就绪后自动启动 `kapai.exe + SQLite`，停止 Play 时自动保存并关闭其拥有的服务端。首次 Play 前须按上面的命令安装构建依赖。Editor 批处理验收不会隐式启动服务；需要继续联调手工启动的外部服务端时，在 Unity 启动参数中加入 `-projectXExternalServer`。
 
 ## 当前结论
 

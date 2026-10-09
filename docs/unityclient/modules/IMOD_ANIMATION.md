@@ -1,5 +1,7 @@
 # ImodAnim 兼容播放模块
 
+> 当前状态（2026-10-09）：Unity Imod 运行库和旧动画资源已退役；最后残留的 `ImodAnimationTextureImporter` 及原 `.meta` 也已移出 Assets，归档于 `docs/unityclient/history/legacy-ui-references/retired-unity-source-20261008/Editor/`。正式动画维护使用 `Assets/Animations` 和 `Assets/Art/AnimationFrames`。下文保留历史兼容实现与验证记录，不作为当前运行/导入链；不再按下方旧转换命令向 Unity 导入 Imod。最新技术证据见 `.local/unity-validation/imod-texture-importer-retirement-20261009/report.md`。
+
 ## 范围
 
 - 审计旧 Lua 中活动状态的 `ImodAnim` 构造、加载、播放和生命周期调用。

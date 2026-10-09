@@ -529,11 +529,8 @@ namespace ProjectX.Validation
             {
                 JObject action = (JObject)definition["action"];
                 string id = (string)action["targetControlId"];
-                foreach (string field in new[] { "unityPath", "cocosPath" })
-                {
-                    string path = (string)action[field];
-                    if (!string.IsNullOrWhiteSpace(path)) controlByPath[path.Replace('\\', '/').Trim('/')] = id;
-                }
+                string path = (string)action["unityPath"];
+                if (!string.IsNullOrWhiteSpace(path)) controlByPath[path.Replace('\\', '/').Trim('/')] = id;
             }
         }
 

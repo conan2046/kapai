@@ -57,6 +57,12 @@ namespace ProjectX.Editor
                 if (!groups.TryGetValue(group, out List<Texture2D> values)) groups[group] = values = new List<Texture2D>();
                 values.Add(texture);
             }
+            var groupPaths = groups.ToDictionary(pair => pair.Key,
+                pair => pair.Value.Select(AssetDatabase.GetAssetPath).ToArray(), StringComparer.Ordinal);
+            NormalizeSourceTextures(groupPaths.Values.SelectMany(paths => paths));
+            // Reimports replace Texture objects; rebuild the references from their stable asset paths.
+            foreach (var pair in groupPaths)
+                groups[pair.Key] = pair.Value.Select(AssetDatabase.LoadAssetAtPath<Texture2D>).ToList();
             var stalePaths = (previous?["atlases"] ?? new JArray()).Select(entry => (string)entry["path"])
                 .Where(path => !groups.Keys.Any(name => path == Root + "/" + name + ".spriteatlasv2")).ToArray();
             foreach (string path in stalePaths)
@@ -189,6 +195,69 @@ namespace ProjectX.Editor
                 && settings.textureCompression == TextureImporterCompression.Uncompressed;
         }
 
+        public static int NormalizeSourcesFromCurrentPlan()
+        {
+            if (EditorApplication.isPlaying) throw new InvalidOperationException("Normalize atlas sources in Edit mode.");
+            JObject plan = JObject.Parse(File.ReadAllText(Path.GetFullPath(Path.Combine(Application.dataPath,
+                "../ProjectSettings/ProjectXSpriteAtlases.json"))));
+            var paths = plan["atlases"].SelectMany(atlas => atlas["textureGuids"])
+                .Select(guid => AssetDatabase.GUIDToAssetPath((string)guid));
+            return NormalizeSourceTextures(paths);
+        }
+
+        private static bool IsCompressedSourceSetting(TextureImporterPlatformSettings settings)
+        {
+            return settings.textureCompression != TextureImporterCompression.Uncompressed
+                || settings.crunchedCompression
+                || (settings.format != TextureImporterFormat.Automatic
+                    && UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat((TextureFormat)settings.format));
+        }
+
+        private static bool NormalizeSourceSetting(TextureImporterPlatformSettings settings)
+        {
+            if (!IsCompressedSourceSetting(settings)) return false;
+            settings.textureCompression = TextureImporterCompression.Uncompressed;
+            settings.crunchedCompression = false;
+            if (settings.format != TextureImporterFormat.Automatic
+                && UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat((TextureFormat)settings.format))
+                settings.format = TextureImporterFormat.RGBA32;
+            return true;
+        }
+
+        private static int NormalizeSourceTextures(IEnumerable<string> paths)
+        {
+            string[] sources = paths.Distinct(StringComparer.Ordinal).OrderBy(path => path, StringComparer.Ordinal).ToArray();
+            foreach (string path in sources)
+                if (string.IsNullOrEmpty(path) || !path.StartsWith("Assets/Art/", StringComparison.Ordinal)
+                    || path.StartsWith(Root + "/", StringComparison.Ordinal)
+                    || path.StartsWith("Assets/Art/Backgrounds/", StringComparison.Ordinal)
+                    || path.StartsWith("Assets/Art/AnimationFrames/", StringComparison.Ordinal)
+                    || !(AssetImporter.GetAtPath(path) is TextureImporter))
+                    throw new InvalidDataException("Invalid atlas source texture: " + path);
+            int changed = 0;
+            AssetDatabase.StartAssetEditing();
+            try
+            {
+                foreach (string path in sources)
+                {
+                    var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+                    var defaults = importer.GetDefaultPlatformTextureSettings();
+                    var standalone = importer.GetPlatformTextureSettings("Standalone");
+                    bool defaultChanged = NormalizeSourceSetting(defaults);
+                    bool standaloneChanged = standalone.overridden && NormalizeSourceSetting(standalone);
+                    if (!defaultChanged && !standaloneChanged) continue;
+                    if (defaultChanged) importer.SetPlatformTextureSettings(defaults);
+                    if (standaloneChanged) importer.SetPlatformTextureSettings(standalone);
+                    AssetDatabase.WriteImportSettingsIfDirty(path);
+                    AssetDatabase.ImportAsset(path);
+                    changed++;
+                }
+            }
+            finally { AssetDatabase.StopAssetEditing(); }
+            Debug.Log($"Native atlas sources: {changed}/{sources.Length} texture compression settings normalized.");
+            return changed;
+        }
+
         [MenuItem("Tools/ProjectX 资源/验证原生 UI 图集")]
         public static void Validate()
         {
@@ -227,6 +296,13 @@ namespace ProjectX.Editor
                     if (sourcePath.StartsWith("Assets/Art/", StringComparison.Ordinal))
                     {
                         var sourceImporter = AssetImporter.GetAtPath(sourcePath) as TextureImporter;
+                        if (sourceImporter == null || IsCompressedSourceSetting(sourceImporter.GetDefaultPlatformTextureSettings())
+                            || (sourceImporter.GetPlatformTextureSettings("Standalone").overridden
+                                && IsCompressedSourceSetting(sourceImporter.GetPlatformTextureSettings("Standalone"))))
+                            failures.Add(path + ": source texture compression must be disabled: " + sourcePath);
+                        if (source is Texture2D texture
+                            && UnityEngine.Experimental.Rendering.GraphicsFormatUtility.IsCompressedFormat(texture.graphicsFormat))
+                            failures.Add(path + ": source texture is still imported in a compressed format: " + sourcePath);
                         string group = GetGroupName(sourcePath, sourceImporter, groupMerges);
                         if (Path.GetFileName(path) != group + ".spriteatlasv2")
                             failures.Add(path + ": source-directory group mismatch: " + sourcePath);

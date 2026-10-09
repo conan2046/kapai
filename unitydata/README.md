@@ -7,12 +7,22 @@
 ```text
 unitydata/export/client/source
     -> unitydata/tools/Export-UnityClientData.ps1
-    -> unityclient/Assets/ProjectX/Resources/ProjectXData
+    -> unityclient/Assets/Resources/ProjectXData
 ```
 
 `export/client/source` 是本次客户端迁移建立的 Unity 独立基线快照，包含 54 个当前 Unity 运行所需的数据文件。后续策划 Excel 和 Unity 专用导出工具应接入此目录，不再从 Cocos 或旧服务端目录复制。
 
 宝箱预览表 `World/reward_fixed_dat.txt` 由客户端导出工具从 Unity Excel 的服务端中间产物 `export/server/generated/json_server/reward_fixed.json` 生成，并检查与 `unityserver/config/json/reward_fixed.json` 一致，避免客户端预览与实际奖励不同。仅同步该表可用 `Export-UnityClientData.ps1 -OnlyWorldBoxRewards`。
+
+全量导出校验相对路径与文件哈希；内容未变时不重写文件。`-CleanOutput` 仅删除输出目录内数据源已不存在的数据文件，保留目录和全部 `.meta`，避免已有 Unity GUID/Importer 配置丢失。宝箱模式只同步宝箱预览表，不清理其他输出。
+
+历史 Fish G0 同步入口 `tools/unity-migration/Sync-FishConfig.mjs` 已停用并归档，不再向原版 `server` 或旧 Unity Assets 目录回填。钓鱼客户端三表使用当前独立数据源；服务端三表暂保留 `unityserver/config/json` 基线，尚未接入 Unity 专用 Excel 导出，不能把历史 G0 数据当作当前导出输入。
+
+```powershell
+& .\unitydata\tools\Export-UnityClientData.ps1
+& .\unitydata\tools\Export-UnityClientData.ps1 -OnlyWorldBoxRewards
+& .\unitydata\tools\Export-UnityClientData.ps1 -CleanOutput
+```
 
 ## 目录约定
 

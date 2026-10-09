@@ -15,6 +15,8 @@ namespace ProjectX.Editor
         {
             if (!assetPath.StartsWith("Assets/Art/Icons/Hero/")) return;
             if (!(assetImporter is TextureImporter importer)) return;
+            // Existing .meta files own their settings; defaults apply only to new assets.
+            if (!importer.importSettingsMissing) return;
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
             importer.alphaSource = TextureImporterAlphaSource.FromInput;

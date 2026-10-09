@@ -538,3 +538,53 @@ Unity MCP AssetDatabase 最新清点：`Assets/ProjectX` 下有 10 个 Prefab �
 MCP最终实查：398 Prefab，Identity/旧Timeline/Imod/缺失脚本/旧递归依赖均0；137 Catalog条目实例化、释放和清场全部通过。110次动画采样对比通过；27项资源测试、478项工具链检查通过。维护模式unity-native-only，活动UI/Timeline导入行0/0；回写保护已验证。未运行Play、未修改用户存档，最终路线和画面仍待用户确认，业务屏蔽保持原范围。
 
 详细清单、问题解决与文件证据：[全部原生化技术收口](../../.local/unity-validation/w8-all-native-20261008.md)。
+
+### P-0209：地图编辑器移除 Cocos 读写路径（2026-10-09）
+
+MapEditorWindow 改读写 Unity 独立数据源，正式源导出同步当前 Resources 地图配置；旧全局路径偏好不再读取，新偏好按工程隔离，并限制数据/美术路径到本工程维护目录。底图与怪物立绘复用 Art；男女预览使用原生 StagePlayer 动画首帧 Sprite，无 Cocos 回退和美术副本。
+
+编译/Console 0 error、0 warning；127条地图字段往返、地图瓦片加载、69个怪物ID及男女原生预览、路径边界、临时导出和正式运行时同步检查通过。测试后 Unity源/运行时配置/Cocos原表哈希均恢复一致。未执行鼠标拖拽或业务Play，不重算迁移门禁/最终画面验收；编辑器窗口保留打开。证据：`.local/unity-validation/map-editor-native-20261009/report.md`。
+
+### P-0210：客户端导表切当前 Resources 目录（2026-10-09）
+
+Export-UnityClientData 输出改为 `Assets/Resources/ProjectXData`；全量按相对路径/哈希验证，未变内容不重写，CleanOutput 只清理过时数据文件并保留目录/.meta。宝箱单表模式补缺失目录创建与哈希验证；钓鱼独立数据源地图键同步已生效的 Art 路径，防止全量导表回写旧键。
+
+隔离验证覆盖全量、清理、宝箱、重复执行、BOM、缺失目录和奖励不一致拦截。正式导出54文件/613奖励记录通过，运行时54数据/58metadata共112文件及奖励权威输入前后哈希全相同，未创建旧Assets/ProjectX。无运行时资产变更，不重复编译/Play，不重算冻结门禁；未改SQLite、未提交/推送。证据：`.local/unity-validation/client-data-export-native-20261009/report.md`。历史Sync-FishConfig旧路径留待生成/验证工具清理。
+
+### P-0211：残留 Imod 图片导入器退役（2026-10-09）
+
+最后的ImodAnimationTextureImporter及原meta移出Assets，归档到现有retired-unity-source-20261008/Editor，两份文件哈希一致。工具链历史合同改读归档，活动源码防护禁止类/源码/meta回流；模块文档标明退役。工具链483项通过，Unity编译后旧类/MonoScript/AssetPostprocessor注册均0、Console error=0。资源刷新期间CS2001旧编译输入与单份元数据自动重写均已诊断/解决，5677份原生资产元数据最终与操作前一致。
+
+现有重复using/过时API和压缩Sprite图集警告继续披露；未改这些资源合同，未执行Play/改SQLite/提交推送。证据：`.local/unity-validation/imod-texture-importer-retirement-20261009/report.md`；问题记录：`.local/unity-validation/imod-texture-importer-operation-ledger.json`。
+
+后续复核的元数据覆写第二次出现，已按公共根因修HeroUiTextureImporter，只为首次导入的新图初始化默认值，保留现有meta。真实原图重导入、新图默认值及自定义压缩/过滤/PPU重复导入验证通过；5677份元数据与操作前一致，临时资源已清理。最新工具链484项通过，记录关联同一问题ID。
+
+### P-0212：本地服务验证探针切 Unity 运行包路径（2026-10-09）
+
+LocalServerSupervisorProbe改用当前编辑器的.local/server-build构建产物及unityserver配置/SQLite schema；移除原版build/server-win与server/config输入。Run增加batch-only保护，防止交互式调用触发finally退出Editor。工具链补当前路径/保护断言，484项通过（含P-0211元数据保留补修）；Unity编译后Console error=0。
+
+MCP验证编译后的探针输入与实际监督器一致、交互式Run提前拒绝。隔离SQLite实际启动ReadyOwned、loopback监听、graceful shutdown通过；kapai/8711监听残留0，SQLite无文件锁。未执行完整batch S6故障注入、业务Play或最终画面验收，未改用户存档/原版服务配置/服务源码、未提交推送。证据：`.local/unity-validation/local-server-probe-native-20261009/report.md`。
+
+### P-0213：历史 Fish G0 写回入口退役（2026-10-09）
+
+未发现Sync-FishConfig活动调用。原实现按字节归档，原命令保留为显式退役提示，普通与restore-clean-head-order模式均拒绝，不再回填原版server/旧Unity目录或从HEAD恢复数据。客户端指向现有unitydata独立源与当前导出；服务端钓鱼三表继续保留unityserver基线，暂无Unity专用Excel生成链，不冒充完成该链路。
+
+两种旧命令exit1且无数据写入，54份客户端导出通过，267份Unity/原版配置哈希不变；旧Assets/ProjectX未出现。工具链487项通过，未改Unity脚本/资产或SQLite，不重复编译/Play，不改冻结门禁，无提交推送。证据：`.local/unity-validation/fish-sync-tool-retirement-20261009/report.md`。
+
+### P-0214：服务端构建移除 Cocos SDK 默认依赖（2026-10-09）
+
+server/CMakeLists移除Cocos zlib头文件及32位Lua默认库，zlib使用独立ZLIB::ZLIB，显式Lua输入缺失在配置阶段报错。当前编辑器kapai目标构建成功，生成VS工程Cocos SDK/客户端路径0；独立Lua/zlib来自工作区vcpkg。共用server/src和当前协议/业务兼容实现保留，不删除有实际消费者的模型或标签转换。
+
+缺Lua隔离配置明确失败；新产物隔离SQLite启动、loopback、graceful shutdown及无残留/锁验证通过。TCP固定字节布局/中文代理对回读通过，8份协议/业务/配置合同源码哈希不变；工具链488项、UnityConsole error0、定向diff检查通过。原C++构建警告继续披露，未改业务源码/用户数据库，不计业务Play或画面验收、未提交推送。证据：`.local/unity-validation/server-sdk-retirement-20261009/report.md`；本轮交接：`.local/unity-validation/HANDOFF-cocos-association-cleanup-20261009.md`。
+
+### P-0215：无效兼容开关与钓鱼旧动画字段移除（2026-10-09）
+
+删除GameServices恒false兼容开关与登录验证的无效分支，保留实际登录业务断言。Fish独立数据源去掉无消费者animation_resource，由正式导出更新当前Resources；其他字段和服务端配置不变。原生Fish验证器贴图路径纠正到当前Art/AnimationFrames/Fish，未改动画或图片。
+
+编译/Console error0，反射确认旧属性/加载数据旧字段均消失；原生Animator的8关键帧/40切片/隐藏页初始化及临时对象清理通过。54份数据导出、7保护文件与58meta哈希验证、工具链489项通过；仅技术检查，未执行玩家业务Play/画面验收、未改SQLite/提交推送。证据：`.local/unity-validation/cocos-unused-residuals-20261009/report.md`。
+
+### P-0216：Unity 快照绑定去 Cocos 路径别名（2026-10-09）
+
+RuntimeSnapshotCollector索引只读unityPath；原动作执行/RuntimeInputDispatcher不改。Draw的28动作均有原生路径，24条最终映射与旧算法原生部分一致；保持既有共享路径覆盖、后缀/大小写规则。双端场景JSON/控件矩阵/输入派发器哈希不变，原版cocosPath对照与资源映射历史溯源保留。
+
+编译/Console error0；原生映射、规范化、排除历史别名/旧路径单独条目和临时对象清理通过，工具链490项。首次探针对独立路径数量的错误假设已诊断并关联解决。未跑真实业务快照/Play，不重算G5/G6或画面结论，未改SQLite/提交推送。证据：`.local/unity-validation/unity-snapshot-path-cleanup-20261009/report.md`。

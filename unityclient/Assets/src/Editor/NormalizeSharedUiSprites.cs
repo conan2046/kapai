@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
+using UnityEditor.U2D.Sprites;
 using UnityEngine;
 
 namespace ProjectX.Editor
@@ -255,12 +256,19 @@ namespace ProjectX.Editor
             if (importer == null)
                 throw new InvalidOperationException("Texture importer missing: " + rule.AssetPath);
 
-            SpriteMetaData[] sheet = importer.spritesheet;
+            var factories = new SpriteDataProviderFactories();
+            factories.Init();
+            ISpriteEditorDataProvider provider = factories.GetSpriteEditorDataProviderFromObject(importer);
+            if (provider == null)
+                throw new InvalidOperationException("Sprite data provider missing: " + rule.AssetPath);
+            provider.InitSpriteEditorDataProvider();
+
+            SpriteRect[] sheet = provider.GetSpriteRects();
             bool found = false;
-            var kept = new List<SpriteMetaData>();
+            var kept = new List<SpriteRect>();
             for (int i = 0; i < sheet.Length; i++)
             {
-                SpriteMetaData data = sheet[i];
+                SpriteRect data = sheet[i];
                 if (data.name == rule.CanonicalName)
                 {
                     data.border = rule.CanonicalBorder;
@@ -279,20 +287,32 @@ namespace ProjectX.Editor
             if (!found)
                 throw new InvalidOperationException("Canonical Sprite metadata missing: " + rule.AssetPath + "#" + rule.CanonicalName);
 
-            importer.spriteImportMode = SpriteImportMode.Multiple;
-            importer.spritesheet = kept.ToArray();
-            EditorUtility.SetDirty(importer);
-            // Unity 2022.3 can retain removed sub-sprite IDs in the serialized
-            // name/file-ID lookup table even after spritesheet is replaced.
-            // Clear that bookkeeping table as well so the .meta contains only
-            // the canonical Sprite entry.
-            SerializedObject serializedImporter = new SerializedObject(importer);
-            SerializedProperty nameFileIdTable = serializedImporter.FindProperty("m_SpriteSheet.m_NameFileIdTable");
-            if (nameFileIdTable != null)
+            provider.SetSpriteRects(kept.ToArray());
+            // Retain GUID-backed IDs for surviving Sprites instead of clearing their lookup table.
+            var names = provider.GetDataProvider<ISpriteNameFileIdDataProvider>();
+            if (names != null && importer.spriteImportMode == SpriteImportMode.Multiple)
             {
-                nameFileIdTable.ClearArray();
-                serializedImporter.ApplyModifiedPropertiesWithoutUndo();
+                var keptIds = new HashSet<GUID>();
+                foreach (SpriteRect data in kept) keptIds.Add(data.spriteID);
+                var pairs = new List<SpriteNameFileIdPair>();
+                var pairedIds = new HashSet<GUID>();
+                foreach (SpriteNameFileIdPair pair in names.GetNameFileIdPairs())
+                {
+                    GUID id = pair.GetFileGUID();
+                    if (!keptIds.Contains(id)) continue;
+                    pairs.Add(pair);
+                    pairedIds.Add(id);
+                }
+                foreach (SpriteRect data in kept)
+                {
+                    if (pairedIds.Contains(data.spriteID)) continue;
+                    var pair = new SpriteNameFileIdPair { name = data.name };
+                    pair.SetFileGUID(data.spriteID);
+                    pairs.Add(pair);
+                }
+                names.SetNameFileIdPairs(pairs);
             }
+            provider.Apply();
             importer.SaveAndReimport();
         }
     }

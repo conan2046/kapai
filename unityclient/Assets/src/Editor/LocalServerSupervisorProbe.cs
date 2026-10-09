@@ -34,6 +34,8 @@ namespace ProjectX.Editor
 
         public static void Run()
         {
+            if (!Application.isBatchMode)
+                throw new InvalidOperationException("S6 supervisor probe requires batch mode; it must not close an interactive Unity Editor.");
             var report = new ProbeReport { generatedAt = DateTime.UtcNow.ToString("o"), status = "Failed" };
             int exitCode = 1;
             LocalServerSupervisor owner = null;
@@ -44,9 +46,10 @@ namespace ProjectX.Editor
             {
                 string root = Directory.GetParent(Application.dataPath)?.Parent?.FullName
                     ?? throw new InvalidOperationException("Repository root could not be resolved.");
-                string executable = Path.Combine(root, "build", "server-win", "Debug", "kapai.exe");
-                string config = Path.Combine(root, "server", "config");
-                string schema = Path.Combine(root, "unityserver", "sql", "sqlite", "001_initial_schema.sql");
+                string[] inputs = ResolveRuntimeInputs(root);
+                string executable = inputs[0];
+                string config = inputs[1];
+                string schema = inputs[2];
                 string evidencePath = ResolveEvidencePath(root);
                 string runId = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
                 Directory.CreateDirectory(Path.GetDirectoryName(evidencePath));
@@ -156,6 +159,13 @@ namespace ProjectX.Editor
         private static LocalServerSupervisor NewSupervisor(string root, string executable, string config,
             string schema, string databaseName) => new LocalServerSupervisor(executable, config,
             DatabasePath(root, databaseName), schema, 8711, 25f);
+
+        private static string[] ResolveRuntimeInputs(string root) => new[]
+        {
+            Path.Combine(root, ".local", "server-build", "server-win", "Debug", "kapai.exe"),
+            Path.Combine(root, "unityserver", "config"),
+            Path.Combine(root, "unityserver", "sql", "sqlite", "001_initial_schema.sql")
+        };
 
         private static string DatabasePath(string root, string databaseName) =>
             Path.Combine(root, ".local", "unity-validation", databaseName + ".db");
