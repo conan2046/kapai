@@ -27,6 +27,7 @@ local M = {
     -- 「自动挑战」控制失败后回本章第一关重试，以及 Boss 胜利后重跑当前章节。
     -- 普通关胜利后的下一关续战不依赖该开关；「自动挑战下一章」由结算层处理。
     chainAuto = false,
+    chainAutoNext = false,
     chainIndex = 0,         -- 当前第几场（服务端回包为准）
     chainNextNodeId = 0     -- 下一关（失败时 = 本章第一关，BOSS 通关 = 0）
 }
@@ -254,8 +255,8 @@ function M.cancelChain()
     send(29, function(message) message:WriteByte(M.mapType) end)
 end
 
-function M.setChainAuto(value) M.chainAuto = value and true or false end
-function M.setChainAutoNext(value) M.chainAutoNext = value and true or false end
+function M.setChainAuto(value) M.chainAuto = value == true or value == 1 end
+function M.setChainAutoNext(value) M.chainAutoNext = value == true or value == 1 end
 function M.refreshAfterBattle()
     M.validationStage = "verify_world"
     requestWorld()

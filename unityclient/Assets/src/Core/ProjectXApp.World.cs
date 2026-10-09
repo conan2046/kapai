@@ -105,6 +105,13 @@ namespace ProjectX.Core
             EnsureWorldPresenter();
             // 默认章节＝上次挑战过的章节（没有记录时退回进度章）
             uint preferredChapterId = ResolveLastWorldChapterId();
+            WorldChapterRecord preferred = services.World.Chapters.FirstOrDefault(value => value.Id == preferredChapterId);
+            if (preferredChapterId != 0 && (preferred == null || preferred.Id > services.World.CurrentChapterId
+                || preferred.OpenLevel > services.Player.Level))
+            {
+                preferredChapterId = services.World.CurrentChapterId;
+                RememberLastWorldChapter(preferredChapterId);
+            }
             worldPresenter.ShowWorld(preferredChapterId);
             // 底栏「通关奖励」条（DadituuiLayer/bg/Panel_2/ListView_1）由
             // WorldPresenter.RenderBossRewardPreview() 汇总 store.Stages[].Rewards 绘制。
@@ -211,8 +218,10 @@ namespace ProjectX.Core
             bool isCurrency)
         {
             if (pendingWorldStage == null) throw new InvalidOperationException("World stage reward arrived without a stage.");
+            RewardRecord display = DescribeWorldConfiguredReward(new WorldConfiguredReward(type, checked((int)id), 1));
             pendingWorldStage.AddReward(new RewardRecord(type, checked((uint)id), checked((uint)amount),
-                name, picture, quality), isCurrency);
+                display.Picture > 0 ? display.Name : name, display.Picture > 0 ? display.Picture : picture,
+                display.Picture > 0 ? display.Quality : quality), isCurrency);
         }
 
         public void EndWorldStage()
@@ -350,7 +359,7 @@ namespace ProjectX.Core
             // 逻辑态与 CheckBox_1 勾选态必须一致：否则会出现「界面上没勾但仍在循环重跑」
             // 这类不可解释的状态。
             worldPresenter?.SetChainAutoState(enabled);
-            InvokeLuaOrFail(onWorldSetChainAuto, "World.SetChainAuto", enabled ? 1d : 0d);
+            InvokeLuaOrFail(onWorldSetChainAuto, "World.SetChainAuto", enabled);
             SetStatus($"World chain auto challenge {(enabled ? "on" : "off")}.");
         }
 
@@ -358,7 +367,7 @@ namespace ProjectX.Core
         public void SetWorldChainAutoNext(bool enabled)
         {
             worldChainAutoNext = enabled;
-            InvokeLuaOrFail(onWorldSetChainAutoNext, "World.SetChainAutoNext", enabled ? 1d : 0d);
+            InvokeLuaOrFail(onWorldSetChainAutoNext, "World.SetChainAutoNext", enabled);
             SetStatus($"World chain auto next chapter {(enabled ? "on" : "off")}.");
         }
 

@@ -175,6 +175,13 @@ namespace ProjectX.UI
             CloseAll();
         }
 
+        public void ShowQuantitySelection(BagItemRecord item)
+        {
+            if (item.Quantity <= 0) return;
+            activeItem = item;
+            ShowInput(item);
+        }
+
         public void ShowUseFlow(BagItemRecord item)
         {
             activeItem = item;

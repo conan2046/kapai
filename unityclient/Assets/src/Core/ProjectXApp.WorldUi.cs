@@ -31,7 +31,7 @@ namespace ProjectX.Core
                 HandleWorldChallengeRequest,
                 () => InvokeLuaOrFail(onWorldSweep, "World.Sweep"),
                 ShowWorldResetConfirmation,
-                id => InvokeLuaOrFail(onWorldClaimBox, "World.ClaimBox", (double)id),
+                ShowWorldStarBox,
                 ShowWorldNormalBox,
                 HandleWorldFormationPopupClick,
                 returnToDetail =>
@@ -56,7 +56,10 @@ namespace ProjectX.Core
                 // 龙崖副本模式：`bg/CheckBox_1`「自动挑战」/ `bg/CheckBox_2`「自动挑战下一章」→ 通知 Lua
                 setChainAuto: enabled => SetWorldChainAuto(enabled),
                 setChainAutoNext: enabled => SetWorldChainAutoNext(enabled),
-                leaveCurrentChapter: BackgroundWorldBattle);
+                leaveCurrentChapter: BackgroundWorldBattle,
+                showRewardDetail: ShowWorldRewardDetail,
+                feedback: message => ShowToast(message, 2f),
+                goldAdd: HandleShopClick, staminaAdd: OpenWorldStaminaItem);
             // 关键：op=1 到达时 worldPresenter 可能尚未创建（模式下发早于
             // EndWorldChapterList → EnsureWorldPresenter），因此在这里补一次。
             worldPresenter.SetChainMode(worldChainMode);
@@ -223,17 +226,35 @@ namespace ProjectX.Core
         private void ShowWorldNormalBox(WorldStageRecord stage)
         {
             if (stage == null || stage.RewardBoxId == 0) return;
-            EnsureWorldBoxAwardView();
             selectedWorldBoxStageId = stage.Id;
-            bool claimable = stage.RewardBoxState == 1;
-            bool claimed = stage.RewardBoxState >= 2;
+            selectedWorldStarBoxRewardId = 0;
+            ShowWorldBoxAward(stage.RewardBoxId, "关卡宝箱", stage.RewardBoxState == 1
+                ? $"{stage.Name} 宝箱可领取" : stage.RewardBoxState >= 2
+                    ? "该宝箱已领取" : $"通关 {stage.Name} 后可领取", stage.RewardBoxState == 1);
+        }
+
+        private uint selectedWorldStarBoxRewardId;
+        private bool worldStaminaUsePending;
+
+        private void ShowWorldStarBox(WorldStarBoxRecord box)
+        {
+            if (box == null) return;
+            selectedWorldBoxStageId = 0;
+            selectedWorldStarBoxRewardId = box.RewardId;
+            ShowWorldBoxAward(box.RewardId, "星级宝箱", box.State == 1 ? "星级宝箱可领取"
+                : box.State >= 2 ? "该宝箱已领取" : $"达到{box.RequiredStars}星后可领取", box.State == 1);
+        }
+
+        private void ShowWorldBoxAward(uint rewardId, string titleText, string hintText, bool claimable)
+        {
+            EnsureWorldBoxAwardView();
             Text title = worldBoxAwardView.FindNode("Layer/Cangbaotu/bg/Title/TitleBg")?.GetComponentInChildren<Text>(true);
-            if (title != null) title.text = "关卡宝箱";
+            if (title != null) title.text = titleText;
             Text hint = worldBoxAwardView.FindNode("Layer/Cangbaotu/bg/Image_bg/Text_2")?.GetComponent<Text>();
-            if (hint != null) hint.text = claimable ? $"{stage.Name} 宝箱可领取" : claimed ? "该宝箱已领取" : $"通关 {stage.Name} 后可领取";
-            if (!WorldVisualCatalog.TryGetBoxRewards(stage.RewardBoxId, out WorldConfiguredReward[] configuredRewards))
+            if (hint != null) hint.text = hintText;
+            if (!WorldVisualCatalog.TryGetBoxRewards(rewardId, out WorldConfiguredReward[] configuredRewards))
             {
-                SetWorldError($"宝箱 {stage.RewardBoxId} 的奖励配置缺失。");
+                SetWorldError($"宝箱 {rewardId} 的奖励配置缺失。");
                 return;
             }
             RenderWorldBoxRewards(configuredRewards);
@@ -338,6 +359,14 @@ namespace ProjectX.Core
 
         private void ClaimSelectedWorldBox()
         {
+            if (selectedWorldStarBoxRewardId != 0)
+            {
+                WorldStarBoxRecord box = services.World.StarBoxes.FirstOrDefault(value => value.RewardId == selectedWorldStarBoxRewardId);
+                if (box == null || box.State != 1) { SetWorldError("该宝箱当前不可领取。"); return; }
+                HideWorldBoxAward();
+                InvokeLuaOrFail(onWorldClaimBox, "World.ClaimBox", (double)box.RewardId);
+                return;
+            }
             WorldStageRecord stage = services.World.Stages.FirstOrDefault(value => value.Id == selectedWorldBoxStageId);
             if (stage == null || stage.RewardBoxId == 0 || stage.RewardBoxState != 1)
             {
@@ -352,6 +381,38 @@ namespace ProjectX.Core
         {
             if (worldBoxAwardView != null) worldBoxAwardView.GameObject.SetActive(false);
             SetWorldBoxRootProxiesVisible(false);
+        }
+
+        private void ShowWorldRewardDetail(RewardRecord reward)
+        {
+            int itemId = reward.Id > 0 ? checked((int)reward.Id) : reward.Type;
+            services.ShopCatalog.TryGetServerItemPresentation(itemId, out string description, out string source);
+            var lines = new List<string> { reward.Name, $"数量：{reward.Amount}" };
+            if (!string.IsNullOrWhiteSpace(description)) lines.Add(description);
+            if (!string.IsNullOrWhiteSpace(source)) lines.Add(source);
+            EnsureErrorPresenter();
+            errorPresenter.Show("道具详情", string.Join("\n", lines));
+        }
+
+        private void OpenWorldStaminaItem()
+        {
+            if (worldStaminaUsePending) return;
+            worldStaminaUsePending = true;
+            InvokeLuaOrFail(onBagClicked, "World.StaminaItemSnapshot");
+        }
+
+        private void ShowWorldStaminaItemFromSnapshot()
+        {
+            worldStaminaUsePending = false;
+            if (worldView?.GameObject.activeInHierarchy != true) return;
+            BagItemRecord item = services.Bag.Items.FirstOrDefault(value => value.ItemId == 500);
+            if (item.Quantity <= 0)
+            {
+                ShowWorldRewardDetail(services.ShopCatalog.DescribeServerReward(500, 0, 0));
+                return;
+            }
+            EnsureBagPresenter();
+            bagFlowPresenter.ShowQuantitySelection(item);
         }
 
         private void SetWorldBoxRootProxiesVisible(bool visible)

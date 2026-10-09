@@ -33,6 +33,11 @@ namespace ProjectX.Core
         public void EndBagUpdate()
         {
             services.Bag.Replace(pendingBagItems);
+            if (worldStaminaUsePending)
+            {
+                ShowWorldStaminaItemFromSnapshot();
+                return;
+            }
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (services.Options.HeroCultivationG3Validation
                 && heroCultivationView?.GameObject.activeSelf == true)

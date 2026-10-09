@@ -209,7 +209,6 @@ namespace ProjectX.UI
         private readonly Action challenge;
         private readonly Action sweep;
         private readonly Action<WorldStageRecord> requestReset;
-        private readonly Action<uint> claimBox;
         private readonly Action<WorldStageRecord> showNormalBox;
         private readonly Action openFormation;
         private readonly Action<bool> openHeroFormation;
@@ -217,6 +216,10 @@ namespace ProjectX.UI
         private readonly Action openYouLi;
         private readonly Action close;
         private readonly Action leaveCurrentChapter;
+        private readonly Action<WorldStarBoxRecord> showStarBox;
+        private readonly Action<RewardRecord> showRewardDetail;
+        private readonly Action<string> feedback;
+        private readonly GameObject chapterDropdown;
         private readonly Action<string> validationControl;
         // 龙崖副本模式（fuben_AB == 2）自动连战
         private readonly Action<bool> setChainAuto;
@@ -264,13 +267,16 @@ namespace ProjectX.UI
             ShopCatalog itemCatalog,
             EquipmentCatalog equipmentCatalog,
             Action<uint> requestChapter, Action<uint> requestStage, Action challenge, Action sweep,
-            Action<WorldStageRecord> requestReset, Action<uint> claimBox, Action<WorldStageRecord> showNormalBox,
+            Action<WorldStageRecord> requestReset, Action<WorldStarBoxRecord> showStarBox, Action<WorldStageRecord> showNormalBox,
             Action openFormation, Action<bool> openHeroFormation, Action openAchievement, Action openYouLi, Action close,
             Action<string> validationControl = null,
             // 龙崖副本模式（fuben_AB == 2）
             Action<bool> setChainAuto = null,
             Action<bool> setChainAutoNext = null,
-            Action leaveCurrentChapter = null)
+            Action leaveCurrentChapter = null,
+            Action<RewardRecord> showRewardDetail = null,
+            Action<string> feedback = null,
+            Action goldAdd = null, Action staminaAdd = null)
         {
             this.worldView = worldView ?? throw new ArgumentNullException(nameof(worldView));
             this.stageView = stageView ?? throw new ArgumentNullException(nameof(stageView));
@@ -289,7 +295,7 @@ namespace ProjectX.UI
             this.challenge = challenge ?? throw new ArgumentNullException(nameof(challenge));
             this.sweep = sweep ?? throw new ArgumentNullException(nameof(sweep));
             this.requestReset = requestReset ?? throw new ArgumentNullException(nameof(requestReset));
-            this.claimBox = claimBox ?? throw new ArgumentNullException(nameof(claimBox));
+            this.showStarBox = showStarBox ?? throw new ArgumentNullException(nameof(showStarBox));
             this.showNormalBox = showNormalBox ?? throw new ArgumentNullException(nameof(showNormalBox));
             this.openFormation = openFormation ?? throw new ArgumentNullException(nameof(openFormation));
             this.openHeroFormation = openHeroFormation ?? throw new ArgumentNullException(nameof(openHeroFormation));
@@ -297,6 +303,8 @@ namespace ProjectX.UI
             this.openYouLi = openYouLi ?? throw new ArgumentNullException(nameof(openYouLi));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
             this.leaveCurrentChapter = leaveCurrentChapter;
+            this.showRewardDetail = showRewardDetail;
+            this.feedback = feedback;
             this.validationControl = validationControl;
             this.setChainAuto = setChainAuto;
             this.setChainAutoNext = setChainAutoNext;
@@ -318,27 +326,34 @@ namespace ProjectX.UI
             ReparentOverlay(detailView, stageView.GameObject.transform, false);
             ConfigureDetailMask();
             (stageMapScroll, stageMapContent) = CreateStageMapScroll();
-            GameObject popup = Require(mapView, "Layer/Popup");
-            popup.SetActive(false);
-            RectTransform popupRect = popup.GetComponent<RectTransform>();
-            if (popupRect != null)
-            {
-                popupRect.anchorMin = new Vector2(0.03f, 0.16f);
-                popupRect.anchorMax = new Vector2(0.43f, 0.82f);
-                popupRect.offsetMin = popupRect.offsetMax = Vector2.zero;
-            }
+            chapterDropdown = Require(mapView, "Layer/Popup");
+            chapterDropdown.SetActive(false);
             GameObject viewport = Require(mapView, ListViewportPath);
             RectTransform viewportRect = viewport.GetComponent<RectTransform>();
             if (viewportRect != null)
             {
                 viewportRect.anchorMin = Vector2.zero;
                 viewportRect.anchorMax = Vector2.one;
-                viewportRect.offsetMin = new Vector2(18f, 18f);
-                viewportRect.offsetMax = new Vector2(-18f, -18f);
+                viewportRect.offsetMin = new Vector2(25f, 40f);
+                viewportRect.offsetMax = new Vector2(-25f, -40f);
             }
             list = new VirtualList<ListEntry>(viewport, Require(mapView, ListTemplatePath), 76f, BindRow);
+            // 旧根节点动画会将下拉面板移出屏幕并清零尺寸。
+            // 将原有图形挂在标题下，避开旧动画对该面板的绑定。
+            RectTransform popupRect = chapterDropdown.GetComponent<RectTransform>();
+            popupRect.SetParent(Require(mapView, "Layer/Panel_zuoshang").transform, false);
+            popupRect.anchorMin = popupRect.anchorMax = Vector2.zero;
+            popupRect.pivot = new Vector2(0f, 1f);
+            popupRect.anchoredPosition = new Vector2(0f, -2f);
+            popupRect.sizeDelta = new Vector2(430f, 450f);
 
-            Bind(mapView, "Layer/Panel_zuoshang/Button_xiala", () => { showDropdown = !showDropdown; Render(); Mark("WORLD-04-CHAPTER-DROPDOWN"); });
+            Bind(mapView, "Layer/Panel_zuoshang/Button_xiala", () =>
+            {
+                if (chainStageActive || store.Chapters.Count == 0) return;
+                showDropdown = !showDropdown;
+                Render();
+                Mark("WORLD-04-CHAPTER-DROPDOWN");
+            });
             Bind(mapView, "Layer/Title/CloseBtn", () =>
             {
                 leaveCurrentChapter?.Invoke();
@@ -356,6 +371,8 @@ namespace ProjectX.UI
             Bind(worldView, "Layer/Button_2", () => { TurnChapterPage(1); Mark("WORLD-03-CHAPTER-NEXT"); });
             // 龙崖副本模式：`bg/Button_1` = 挑战，`bg/CheckBox_1` = 自动挑战（C2）
             BindChainControls();
+            if (goldAdd != null) Bind(mapView, "Layer/GoldCheck/GoldIcon1/AddBtn", goldAdd);
+            if (staminaAdd != null) Bind(mapView, "Layer/GoldCheck/GoldIcon4/AddBtn", staminaAdd);
             for (int index = 1; index <= 5; index++)
             {
                 int slot = index - 1;
@@ -576,8 +593,7 @@ namespace ProjectX.UI
             SetActive(mapView, "Layer/Panel_1/jindutiao", normal);
             SetActive(mapView, "Layer/Panel_1/Button_paihangbang", normal);
             SetActive(mapView, "Layer/Panel_youxia", normal);
-            SetActive(mapView, "Layer/Panel_zuoshang", normal);
-            if (chainMode) showDropdown = false;
+            SetActive(mapView, "Layer/Panel_zuoshang", true);
             SetActive(detailView, $"{DetailRoot}/Image_bg/Panel_4/Button_3", normal);
             SetActive(detailView, $"{DetailRoot}/Image_bg/Panel_4/TimesBg/AddBtn", normal);
         }
@@ -597,8 +613,10 @@ namespace ProjectX.UI
             // Panel_1（宝箱/星星/排行/队伍/阵容）默认打开：类型 2 由 ApplyChainEntryVisibility
             // 只收起其子节点（Box/星星/排行），根节点常开
             SetActive(mapView, "Layer/Panel_1", true);
-            GameObject popup = Find(mapView, "Layer/Popup");
-            if (popup != null) popup.SetActive(!chainMode && !showChapters && !showDetail && showDropdown);
+            bool chapterDropdownAvailable = !chainStageActive && store.Chapters.Count > 0;
+            SetActive(mapView, "Layer/Panel_zuoshang/Button_xiala", chapterDropdownAvailable);
+            if (!chapterDropdownAvailable) showDropdown = false;
+            chapterDropdown.SetActive(!showDetail && showDropdown);
             IReadOnlyList<ListEntry> entries = (showChapters || showDropdown)
                 ? store.Chapters.Select(ListEntry.ForChapter).ToArray()
                 : store.Stages.Select(ListEntry.ForStage).ToArray();
@@ -612,7 +630,7 @@ namespace ProjectX.UI
                 && WorldVisualCatalog.TryGetChapter(store.SelectedChapterId, out WorldChapterVisualDefinition selectedVisual))
                 chapterName = selectedVisual.Name;
             SetText(mapView, "Layer/Panel_zuoshang/Image_bg2/guanqia",
-                showChapters ? "章节列表" : string.IsNullOrEmpty(chapterName) ? "关卡"
+                showChapters && !chainMode ? "章节列表" : string.IsNullOrEmpty(chapterName) ? "关卡"
                     : $"{store.SelectedChapterId % 1000} {chapterName}");
             Text chapterTitle = Find(mapView, "Layer/Panel_zuoshang/Image_bg2/guanqia")?.GetComponent<Text>();
             if (chapterTitle != null)
@@ -691,7 +709,24 @@ namespace ProjectX.UI
             pendingChapterRewards = 0;
             int chapterIndex = chapterPageStart + slot;
             if (chapterIndex < 0 || chapterIndex >= store.Chapters.Count) return;
-            requestChapter(store.Chapters[chapterIndex].Id);
+            WorldChapterRecord chapter = store.Chapters[chapterIndex];
+            if (!CanSelectChapter(chapter)) return;
+            requestChapter(chapter.Id);
+        }
+
+        private bool CanSelectChapter(WorldChapterRecord chapter)
+        {
+            if (chapter.Id > store.CurrentChapterId)
+            {
+                feedback?.Invoke($"请先通关第{chapter.Id % 1000 - 1}章");
+                return false;
+            }
+            if (player.Level < chapter.OpenLevel)
+            {
+                feedback?.Invoke($"达到{chapter.OpenLevel}级后开启");
+                return false;
+            }
+            return true;
         }
 
         private void OpenChapterRewardSlot(int slot)
@@ -699,6 +734,7 @@ namespace ProjectX.UI
             int chapterIndex = chapterPageStart + slot;
             if (chapterIndex < 0 || chapterIndex >= store.Chapters.Count) return;
             WorldChapterRecord chapter = store.Chapters[chapterIndex];
+            if (!CanSelectChapter(chapter)) return;
             if (chapter.ClaimedBoxes == 0) return;
             pendingChapterRewards = chapter.Id;
             requestChapter(chapter.Id);
@@ -719,8 +755,8 @@ namespace ProjectX.UI
         private void ClaimBoxSlot(int slot)
         {
             WorldStarBoxRecord box = slot >= 0 && slot < store.StarBoxes.Count ? store.StarBoxes[slot] : null;
-            if (box == null || box.State != 1) return;
-            claimBox(box.RewardId);
+            if (box == null) return;
+            showStarBox?.Invoke(box);
             Mark("WORLD-12-STAR-BOX");
         }
 
@@ -796,10 +832,8 @@ namespace ProjectX.UI
                 SetActive(worldView, root + "/boxBg/Prompt", chapter.ClaimedBoxes > 0);
             }
 
-            RenderChapterRewardHint("Image_qipao_L", store.Chapters.Take(chapterPageStart)
-                .FirstOrDefault(chapter => chapter.ClaimedBoxes > 0));
-            RenderChapterRewardHint("Image_qipao_R", store.Chapters.Skip(chapterPageStart + 5)
-                .FirstOrDefault(chapter => chapter.ClaimedBoxes > 0));
+            SetActive(worldView, "Image_qipao_L", false);
+            SetActive(worldView, "Image_qipao_R", false);
 
             // 原版 ChangePage：self._leftBtn:setVisible(curIndex > 0) /
             // self._rightBtn:setVisible(curIndex < self._pageNum - 1) —— 首/末页各自收起。
@@ -819,12 +853,6 @@ namespace ProjectX.UI
                     background.preserveAspect = false;
                 }
             }
-        }
-
-        private void RenderChapterRewardHint(string path, WorldChapterRecord chapter)
-        {
-            SetText(worldView, path + "/Text_1", chapter == null ? string.Empty : $"第{chapter.Id % 1000}章");
-            SetActive(worldView, path, showChapters && chapter != null);
         }
 
         // 大底图「通关奖励」（ListView_1）：汇总本章节全部怪物（关卡）的胜利收益——
@@ -874,19 +902,34 @@ namespace ProjectX.UI
         private void ApplyRewardRow(Transform row, RewardRecord reward, uint total)
         {
             row.gameObject.SetActive(true);
+            Image frame = row.GetComponent<Image>();
+            if (frame != null)
+            {
+                frame.sprite = resources.LoadFirst($"Art/Hero/common_quality_{Mathf.Clamp(reward.Quality, 1, 7):00}");
+                frame.enabled = frame.sprite != null;
+                frame.raycastTarget = true;
+            }
             Transform iconTransform = row.Find("Icon");
             if (iconTransform != null)
             {
                 Image icon = iconTransform.GetComponent<Image>();
                 if (icon != null)
                 {
-                    Sprite sprite = reward.Picture > 0 ? resources.LoadItemIcon(reward.Picture) : null;
-                    if (sprite != null) icon.sprite = sprite;
+                    icon.sprite = reward.Type == 60002 ? resources.LoadHeroPortrait(reward.Picture)
+                        : reward.Type == 60005 ? resources.LoadEquipmentIcon(equipmentCatalog.GetEquipment(checked((int)reward.Id)).Picture)
+                        : reward.Picture > 0 ? resources.LoadItemIcon(reward.Picture) : null;
+                    icon.enabled = icon.sprite != null;
+                    icon.preserveAspect = true;
                 }
             }
             Transform numTransform = row.Find("Num");
             Text num = numTransform != null ? numTransform.GetComponent<Text>() : null;
             if (num != null) num.text = FormatCompact(total);
+            Button button = row.GetComponent<Button>() ?? row.gameObject.AddComponent<Button>();
+            button.targetGraphic = frame;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(() => showRewardDetail?.Invoke(new RewardRecord(
+                reward.Type, reward.Id, total, reward.Name, reward.Picture, reward.Quality)));
         }
 
         private void RenderCurrencies()
@@ -935,6 +978,11 @@ namespace ProjectX.UI
 
         private void BindRow(RectTransform row, ListEntry entry, int index)
         {
+            if (entry.IsChapter)
+            {
+                Image background = row.GetComponent<Image>();
+                if (background != null) background.type = Image.Type.Sliced;
+            }
             SetNamedText(row, "zhangjie", entry.Title);
             SetNamedText(row, "xing_num", entry.Subtitle);
             Button button = row.GetComponent<Button>() ?? row.gameObject.AddComponent<Button>();
@@ -945,10 +993,16 @@ namespace ProjectX.UI
             {
                 if (entry.IsChapter)
                 {
-                    showChapters = false;
+                    WorldChapterRecord chapter = store.Chapters.FirstOrDefault(value => value.Id == entry.Id);
+                    if (chapter == null || !CanSelectChapter(chapter)) return;
+                    showChapterRewards = false;
+                    pendingChapterRewards = 0;
+                    showChapters = chainMode;
+                    if (chainMode) chapterPageIndex = ChapterPageIndexFor(entry.Id);
                     showDetail = false;
                     showDropdown = false;
                     requestChapter(entry.Id);
+                    Render();
                     Mark("WORLD-05-CHAPTER-QUICK-ROW");
                 }
                 else
@@ -1837,8 +1891,8 @@ namespace ProjectX.UI
             public static ListEntry ForChapter(WorldChapterRecord value) => new ListEntry
             {
                 Id = value.Id,
-                Title = value.Name,
-                Subtitle = $"{value.OwnedStars}/{value.MaximumStars} 星  Lv.{value.OpenLevel}",
+                Title = $"{value.Id % 1000} {value.Name}",
+                Subtitle = $"{value.OwnedStars}/{value.MaximumStars}",
                 Enabled = true,
                 IsChapter = true
             };
