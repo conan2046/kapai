@@ -32,9 +32,10 @@ namespace ProjectX.Core
             redDots.Define("hero.roster.train", HeroTabDots[1]);
             redDots.Define("hero.deployed.activate", HeroTabDots[0]);
             redDots.Define("hero.roster.activate", HeroTabDots[1]);
-            redDots.Define("hero.roster.book", HeroTabDots[1]);
-            redDots.Define("hero.book.activate", "hero.roster.book");
-            redDots.Define("hero.book.upgrade", "hero.roster.book");
+            // The independent book entry contributes to the HUD, not the roster card tab.
+            redDots.Define("hero.book", HeroDot);
+            redDots.Define("hero.book.activate", "hero.book");
+            redDots.Define("hero.book.upgrade", "hero.book");
             redDots.Changed += RenderHeroRedDots;
             services.Bag.Changed += RefreshHeroRedDots;
             services.Heroes.Changed += RefreshHeroRedDots;
@@ -124,7 +125,7 @@ namespace ProjectX.Core
             RedDotVisual.Set(worldMapView?.FindNode("Layer/Panel_1/btn_zhenrong")?.transform, redDots.IsVisible(HeroDot), RedDotTemplate);
             RedDotVisual.Set(worldMapView?.FindNode("Layer/Panel_1/duiwu")?.transform, redDots.IsVisible("hero.formation.upgrade"), RedDotTemplate);
             RedDotVisual.Set(heroBagView?.FindNode("Layer/yingxiongbeibaoUI/cell")?.transform,
-                redDots.IsVisible("hero.roster.book"), RedDotTemplate);
+                redDots.IsVisible("hero.book"), RedDotTemplate);
             RedDotVisual.Set(heroListView?.FindNode("Layer/shenjiangListUI/List/btn_buzhen")?.transform,
                 redDots.IsVisible("hero.formation.upgrade"), RedDotTemplate);
             if (heroHubOpen && (heroListView?.GameObject.activeInHierarchy == true
@@ -138,11 +139,17 @@ namespace ProjectX.Core
             RedDotVisual.Set(heroListView?.FindNode("Layer/shenjiangListUI/List/btn_buzhen")?.transform,
                 redDots.IsVisible("hero.formation.upgrade"), RedDotTemplate);
             RedDotVisual.Set(heroBagView?.FindNode("Layer/yingxiongbeibaoUI/cell")?.transform,
-                redDots.IsVisible("hero.roster.book"), RedDotTemplate);
+                redDots.IsVisible("hero.book"), RedDotTemplate);
             Transform panel = oneLevelFrameView?.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             string[] names = { "Button1", "Button2_Runtime", "Button3_Runtime" };
             for (int index = 0; index < names.Length; index++)
-                RedDotVisual.Set(panel?.Find(names[index]), redDots.IsVisible(HeroTabDots[index]), RedDotTemplate);
+            {
+                bool visible = redDots.IsVisible(HeroTabDots[index]);
+                // Other hub pages lead through this tab to the independent book entrance.
+                if (index == 1 && heroHubTab != HeroHubTab.Heroes)
+                    visible |= redDots.IsVisible("hero.book");
+                RedDotVisual.Set(panel?.Find(names[index]), visible, RedDotTemplate);
+            }
         }
 
         private void DisposeHeroRedDots()

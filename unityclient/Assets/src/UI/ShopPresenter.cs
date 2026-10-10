@@ -48,10 +48,13 @@ namespace ProjectX.UI
             if (requestRefresh == null) throw new ArgumentNullException(nameof(requestRefresh));
             quantityPresenter = new ShopQuantityPresenter(quantityInputSource);
 
-            GameObject viewport = Require("List");
-            GameObject template = Require("Item");
-            float itemHeight = Math.Max(1f, template.GetComponent<RectTransform>()?.rect.height ?? 115f);
-            list = new VirtualList<ShopRow>(viewport, template, itemHeight, BindRow);
+            GameObject viewport = Require("bg/List");
+            RectTransform content = viewport.GetComponent<ScrollRect>()?.content
+                ?? throw new InvalidOperationException("Shop ScrollRect requires its authored Content reference.");
+            GameObject template = content.Find("Item")?.gameObject
+                ?? throw new InvalidOperationException("Shop Content requires its authored Item row.");
+            float itemHeight = template.GetComponent<RectTransform>().rect.height;
+            list = new VirtualList<ShopRow>(viewport, template, itemHeight, BindRow, content);
             detailName = RequireText("bg/name");
             detailDescription = RequireText("bg/desc");
             quantity = RequireText("bg/bg_Num/Text");
@@ -86,8 +89,6 @@ namespace ProjectX.UI
             if (baseTabText != null)
             {
                 baseTabText.text = "道具购买";
-                baseTabText.rectTransform.sizeDelta = new Vector2(112f, baseTabText.rectTransform.sizeDelta.y);
-                baseTabText.horizontalOverflow = HorizontalWrapMode.Overflow;
             }
             baseTabButton.onClick.RemoveAllListeners();
             baseTabButton.onClick.AddListener(Render);
@@ -302,9 +303,6 @@ namespace ProjectX.UI
             {
                 icon.sprite = sprite;
                 icon.enabled = sprite != null;
-                icon.preserveAspect = true;
-                RectTransform iconRect = icon.rectTransform;
-                iconRect.sizeDelta = new Vector2(64f, 64f);
             }
             Image costIcon = cell.Find("bg_Price/Icon")?.GetComponent<Image>();
             SetCurrencyIcon(costIcon, item.CostPicture);
@@ -333,8 +331,8 @@ namespace ProjectX.UI
             detailDescription.text = item.Description;
             selectedQuantity = Mathf.Clamp(selectedQuantity, 1, MaximumQuantity(item));
             quantity.text = selectedQuantity.ToString();
-            limitLabel.text = item.Limit < 0 ? "已购次数：" : $"限购 {item.Limit} 次，剩余：";
-            limitValue.text = item.Limit < 0 ? $"{item.BuyCount}次" : $"{item.RemainingLimit}次";
+            limitLabel.text = item.Limit < 0 ? $"已购{item.BuyCount}次" : $"限购{item.Limit}次";
+            limitValue.text = string.Empty;
             owned.text = currencies.Get(item.CostType).ToString();
             long totalCost = item.TotalCost(selectedQuantity);
             expenditure.text = totalCost.ToString();
@@ -381,7 +379,6 @@ namespace ProjectX.UI
             Sprite sprite = picture > 0 ? resources.LoadItemIcon(picture, out placeholder) : null;
             target.sprite = sprite;
             target.enabled = sprite != null;
-            target.preserveAspect = true;
         }
 
         private static IReadOnlyList<ShopRow> BuildRows(IReadOnlyList<ShopRecord> items)
@@ -419,8 +416,23 @@ namespace ProjectX.UI
             return value ?? throw new InvalidOperationException($"Shop UI text was not found: {BasePath}/{path}");
         }
 
-        private GameObject Require(string relativePath) => view.FindNode($"{BasePath}/{relativePath}")
-            ?? throw new InvalidOperationException($"Shop node was not found: {relativePath}");
+        private GameObject Require(string relativePath)
+        {
+            Transform root = view.FindNode(BasePath)?.transform
+                ?? throw new InvalidOperationException($"Shop node was not found: {BasePath}");
+            var matches = new List<Transform> { root };
+            foreach (string segment in relativePath.Split('/'))
+            {
+                var next = new List<Transform>();
+                foreach (Transform parent in matches)
+                    foreach (Transform child in parent)
+                        if (child.name == segment) next.Add(child);
+                matches = next;
+            }
+            if (matches.Count != 1)
+                throw new InvalidOperationException($"Shop path requires one matching node: {relativePath} ({matches.Count}).");
+            return matches[0].gameObject;
+        }
 
         private sealed class ShopRow
         {

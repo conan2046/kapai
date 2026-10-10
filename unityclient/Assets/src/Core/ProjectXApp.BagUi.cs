@@ -52,7 +52,7 @@ namespace ProjectX.Core
                     bagFlowPresenter.CloseAll();
                     SetOneLevelFrameVisible(false);
                     HandleBack();
-                }, RedDotTemplate);
+                });
         }
 
 

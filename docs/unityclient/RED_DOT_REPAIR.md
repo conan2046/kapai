@@ -2,6 +2,40 @@
 
 目标：按功能入口逐个补齐叶节点、页签、主入口；每完成一个子功能汇报。原始清单：`Outputs/RedDotAudit/20261009/Unity红点系统入口审计.md`。当前工作工程为 E 盘，本次不修改迁移门禁或历史完成率。
 
+## 本轮追加主干提交（2026-10-10）
+
+用户授权提交推送现有本地修复。范围为普通背包取消可用物品/使用按钮/背包页签红点，神将卡片页签与独立图鉴提醒分离并补齐其他页到图鉴的父入口，以及商城标题/帮助/单条限购文案和Prefab组件布局。包含用户最终保存的shangcheng Prefab层级、六行商品与手调布局；代码复用ScrollRect.Content和预制体行，不覆盖布局组件。九个指定文件提交，不包含个人存档、Captures或.local产物；没有正式配置表、协议、SQLite结构或迁移门禁变更。
+
+沿用各定向问题已有Unity编译、EventSystem/Raycast、SQLite/重登及清理证据，不重复初始化已完成夹具。提交前源码diff检查通过，Unity不在编译、Console错误0；用户最新Prefab SHA256为`388184C8A54A880C1BE860CFFA871AE725EA5E8E08E4801431CD1A0E7881473E`，组件引用、新层级及六行绑定合同检查通过，Prefab编辑态无未保存改动。最后实操回归使用此前`483F9AA1...`版本；其后用户额外手调纳入本次提交，仅完成结构检查，未重跑Play，用户最终画面确认仍待完成。下文“未提交推送”为各修复当时的历史状态，不代表本轮追加提交。
+
+## 商城界面定向修复（2026-10-10）
+
+### 最新布局归属：Prefab为准
+
+用户层级适配（2026-10-10）：用户将List移到ShopUI第二个同名bg下，并在VirtualContent内手调六行`Item`、`Item (1)`…`Item (5)`。ShopPresenter按`bg/List`查找，并使用ScrollRect.Content正式组件引用；相对路径逐层收集同名候选，终点必须唯一，避免两个bg互相遮蔽。原生组件列表直接采用用户六行及其兄弟顺序，商品超过六行才克隆补充，不再隐藏首行模板后另造六行；不足时隐藏空行，销毁恢复原行激活状态和清理本轮事件转发组件，保留Prefab行。
+
+Prefab原文件及布局未修改，修复前后SHA256均为`483F9AA1A8F1ACA9B06CC27081D57EF437862B329F2F3903AACB4F73A3E90289`。编译/Console错误0；编辑态验证六行复用、八行扩展、两行隐藏及销毁恢复通过。隔离Slot09真实进入商城、商品选择、将魂商店→商城、滚动末行及末件选择通过，内容仅六个原名行，末件详情“转盘钥匙”正确；未购买/领取。Slot01哈希/六项业务字段不变，SQLite完整性ok；Slot09归档`shop-hierarchy-test-slot09`，测试服务退出。证据`shop-hierarchy-runtime-result.json`、`shop-hierarchy-storage-result.json`，截图`mall-user-hierarchy.png`；技术通过，用户画面确认待完成，未提交推送。
+
+最终组件版（2026-10-10）：`List`的RectTransform/ScrollRect/RectMask2D负责显示范围；`VirtualContent`新增VerticalLayoutGroup和ContentSizeFitter，纵向间距及Padding由组件配置、高度由PreferredSize计算；`Item`新增HorizontalLayoutGroup和LayoutElement，三列间距/对齐及行高由组件配置。用户此前约15.41的顶偏移转入VerticalLayoutGroup.Padding.Top=15，卡片顶间距转入HorizontalLayoutGroup.Padding.Top=1；原生Padding使用整数。商城借用内容容器时只创建/绑定商品行，不再设置内容高度或逐行位置，也不按代码视口估算可见行数；本商城18件商品/6行均交给原生Layout排版及Mask裁剪。其他既有虚拟列表仍沿用原模式。
+
+组件定向验证：纵向Spacing增加7，三行内容高度准确增加14；横向Spacing增加4，第二列位置准确增加4；空列表高度由Padding决定；销毁保留预制体容器。Play隔离Slot09真实商品选择、滚动末行、末件选择及将魂商店→商城通过，六行内容高度674.8662与组件计算一致，切页后仍一致；编译/Console错误0。未购买或领取，Slot01数据库/metadata哈希及六项业务字段不变，SQLite完整性ok；Slot09归档`shop-components-test-slot09`、测试服务退出。已打开Prefab选中VirtualContent；截图`mall-layout-components.png`，证据`shop-components-runtime-result.json`、`shop-components-storage-result.json`。技术通过，用户画面确认待完成，未提交推送。下文代码计算高度/手动行偏移为此前版本历史。
+
+2026-10-10补充：`VirtualContent`也已固化于商城Prefab，ScrollRect.Content直接引用`ShopUI/List/VirtualContent`，商品模板移至其下`Item`。商城显式复用此节点，代码不再创建第二个Content，不覆盖Content锚点/枢轴/缩放/横向尺寸或预制体滚动参数；商品行也保留模板锚点、尺寸、枢轴和起始偏移。用户此轮手调的Item偏移`(0.41,-15.41)`及约109.9777行高保留，数据行只按该行高递增位置，内容高度随商品数变化。销毁列表只清理生成的数据行并恢复Content状态，不删除预制体节点；其他模块沿用原构造方式。
+
+编译完成、Console错误0；临时内存验证覆盖Content/行布局不变、滚动参数保留、借用节点销毁恢复及原动态模式兼容。用户在Play期间自行进入Slot01商城，故真实EventSystem/Raycast回归沿用当前页面，只选择商品、滚动末行及将魂商店→商城，不购买/领取；运行时Content和商品布局与Prefab逐项一致、Content唯一。本轮新建但未使用的Slot09已归档`shop-content-unused-slot09`，当前用户Slot01会话保留，不把该用户会话的正常写回当作隔离档证据。截图`Captures/Editor/ShopRepair/mall-authored-content.png`，结果`shop-content-runtime-result.json`；用户画面确认待完成，未提交推送。
+
+用户随后要求所有静态效果及滚动框范围可在Prefab中调整。已将视口尺寸/位置、背景伸缩、RectMask2D、ScrollRect、商品行高、三列卡片位置/缩放和图标尺寸写入`Assets/Prefabs/Shop/shangcheng.prefab`；商品模板位于`ShopUI/List/Item`，行高约109.1667，三个卡片为其下`Item1/2/3`。删除ShopPresenter对视口、卡片、图标及文字区域尺寸的代码覆盖，虚拟列表只读取模板行高、复制商品行并绑定内容/业务状态。此前新增的按压静止缩放接口已移除，按钮直接使用Prefab自带缩放。动态商品数、文本、价格、资源及选中/售罄状态仍由业务绑定，不静态写死。
+
+新一轮隔离Slot09仅建立一次，经真实EventSystem/Raycast进入商城、选择商品、将魂商店→商城、滚动末行及选择末件商品，运行时视口及三张卡片的尺寸/位置/锚点/枢轴/缩放逐项与Prefab一致；编译完成、Console错误0。原Slot01哈希及六项业务字段不变，SQLite完整性ok；Play结束、测试服务退出，Slot09归档`.local/red-dot-audit-20261009/shop-prefab-test-slot09`。证据`shop-prefab-runtime-result.json`、`shop-prefab-storage-result.json`及截图`Captures/Editor/ShopRepair/mall-prefab-bottom.png`。Prefab meta哈希不变；已在Unity中打开该Prefab并选中List，方便用户手调。技术回归通过，用户最终画面确认待完成；未提交推送。
+
+以下记录为此前代码布局版本的诊断和回归历史，当前布局实现以上述Prefab版本为准。
+
+- 商品列表及背景统一到用户红框：1334×750下屏幕x202–852、y125–675；三列卡片横向布局间距10→5px，纵向5→2.5px。背景旧固定尺寸未随列表改变、按钮按压反馈缓存旧缩放共同导致超框；现背景随视口伸缩，绑定卡片后同步反馈的静止缩放，切页及点击不再恢复原尺寸。Prefab/meta不改。
+- 共享标题按当前页显示“商城”或“将魂商店”；商城问号隐藏，将魂商店保留原帮助。限购商品只显示“限购5次”等单条总限购文案，无限购商品只显示“已购0次”等单条文案；实际剩余次数、可购买数量与购买资格保持正式规则。
+- 沿用本轮仅建立一次的隔离Slot09，源码修复后重登同档；真实EventSystem/Raycast验证HUD入口、商品选择、将魂商店→商城、滚动末行/首行及末行商品选择。背景及卡片横向边界均在视口内，首末可见卡片上下受RectMask2D裁剪；按压及切页后静止缩放约0.9697，标题/帮助状态和单条限购文案正确。Unity编译完成，Console错误0。
+- 未购买或领取，原Slot01以用户授权正常退出后的哈希为基线保持不变；神将、图鉴、道具、装备、金币及元宝字段一致，SQLite完整性ok。Play正常结束，Slot09归档至`.local/red-dot-audit-20261009/shop-layout-test-slot09`，测试kapai退出。结果为`shop-layout-runtime-result.json`及`shop-layout-storage-result.json`；截图为`unityclient/Captures/Editor/ShopRepair/mall-final.png`和`mall-bottom.png`。技术回归通过，用户最终画面确认待完成；本轮未提交推送。
+- 清理期间用户随后重新进入Slot01的Play并打开商城：当前kapai PID91540明确使用Slot01，保留该用户会话；Slot09菜单目录已不存在。上述哈希核对限定隔离技术回归结束时，不将用户随后继续游玩的写回计作测试修改。
+
 ## 本次主干提交范围
 
 2026-10-10用户授权整理红点任务相关改动并提交推送main。范围包括主角、神将/图鉴/布阵、装备/法宝、招募、副本、九个有效玩法及将魂商店的业务叶、按钮/页签/卡片与HUD汇总；答题A/B/C/D选项无红点。业务资格与实际消耗共用正式配置，补齐神将/阵法配置导出、装备配置一致性校验及任务可领取特效的现有Prefab引用。
@@ -30,6 +64,20 @@ Unity 编译完成、Console 错误 0；Edit 模式通过 35 项临时内存异�
 - 用户授权正常结束原Slot01会话（会正常写回游玩时长），之后从只读快照建立Slot09一次。真实EventSystem/Raycast走旧的回忆→Slot09→穿戴，切法宝、进入养成、返回、切碎片和装备：三个父页签点均与业务一致；法宝强化true/精炼false，返回兄弟点保留；48件装备、13件法宝当前列表缺图0。未执行养成或合成消耗。原Slot01以授权正常退出后的哈希为基线，此后不变；equip/fabao/item表一致，完整性ok；编译/Console错误0。Slot09及服务已清理，测试结果归档`.local/red-dot-audit-20261009/equipment-display-*`。
 - 全配置补充审计：44件装备图标加载均通过；服务端新增法宝1106不在旧客户端图标映射中，仍使用无效`petequip_1006`，没有正式素材依据，未猜配图标。当前隔离档不含该ID；该项不计为图标全表完成。
 - 截图：`unityclient/Captures/Editor/RedDotRepair/screenshot-20261010-152458.png`（装备）、`screenshot-20261010-152501.png`（法宝）。手调Main Prefab哈希保持不变；按最新用户授权，本轮提交包含上述修复及现有Main Prefab红点位置、默认显示与文字布局手调，用户最终画面确认待完成。
+
+### 神将页签与图鉴提醒归属修正（2026-10-10）
+
+后续用户补充布阵页的神将入口应提示图鉴待处理。最终显示合同按当前页面区分：布阵/碎片页的“神将”导航入口聚合神将培养与图鉴业务；进入神将列表后，其选中页签按卡片培养状态显示，图鉴由独立按钮提示。该差异只影响入口显示，不清除图鉴业务叶或HUD。隔离档真实布阵→神将→布阵验证：前/后布阵入口Prompt=true，神将列表页签Prompt=false、图鉴按钮Prompt=true，`hero.heroes=false`、`hero.book=true`及HUD=true始终保持。截图`screenshot-20261010-163251.png`位于`unityclient/Captures/Editor/RedDotRepair`；证据`.local/red-dot-audit-20261009/hero-book-nav-*`。编译/Console错误0，神将/图鉴/背包/货币持久字段未变化，原Slot01以授权正常退出后的基线不变，Slot09已归档清理。用户最终画面确认待完成，未提交。
+
+用户当前Play中所有神将培养资格均false、卡片无点，但`hero.book.activate=true`。根因是图鉴入口业务被挂在神将页签下，导致独立图鉴激活机会点亮了神将页签。现将图鉴节点`hero.book`独立挂到`hero`根：神将页签只聚合其卡片的等级/突破/升星/修炼资格；图鉴入口及HUD仍保留真实激活/升级提醒，不因关闭神将页签而误清。
+
+编译/Console错误0；隔离Slot09一次复制，EventSystem/Raycast真实进入神将→神将页签，业务和层级断言：`hero.heroes=false`、活动卡片Prompt数0、页签Prompt=false，图鉴叶/入口Prompt及HUD仍true。未培养、未激活图鉴。截图`screenshot-20261010-162651.png`位于`unityclient/Captures/Editor/RedDotRepair`，用户画面确认仍待完成；前一张162608为入口异步过渡期间采集，不作为本次验收证据。证据`.local/red-dot-audit-20261009/hero-tab-*`，本轮未提交。
+
+### 普通背包提示规则修正（用户2026-10-10确认）
+
+普通道具背包不因可使用物品而显示红点：关闭`player.bag`业务叶，背包页签及父HUD不再从此叶聚合提醒；物品格和使用按钮不显示Prompt。境界、邮件及装备/法宝背包的独立规则保留。真实“新获得”状态如有，仅在对应物品图标右上角显示“新”标记，不用可使用状态代替；当前BagItemRecord及背包回包没有该字段，本轮未伪造新状态或增加新获取判断。
+
+Unity编译及Console错误0；隔离Slot09一次复制后走EventSystem/Raycast旧的回忆→Slot09→主角→背包。背包可使用物品仍存在，但`player.bag=false`、背包页签Prompt=false、物品页活动Prompt数量0、使用按钮Prompt=false；境界叶/页签仍true。SQLite物品表无消耗、完整性ok；Slot01以用户授权正常退出后的基线保持不变。截图`unityclient/Captures/Editor/RedDotRepair/screenshot-20261010-161903.png`；证据`.local/red-dot-audit-20261009/bag-prompt-*`。用户画面确认待完成，本轮未提交。
 
 ### 同批 Prefab 副本清理与发布边界
 

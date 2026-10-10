@@ -43,7 +43,8 @@ namespace ProjectX.Core
                 services.Player.Level, services.Player.Power, services.Currencies.Gold, material)
                 == JingJieUpgradeBlock.None);
             redDots.Set(PlayerTabDots[2], services.Mails.HasUnreadPrompt);
-            redDots.Set(PlayerTabDots[1], services.Bag.HasDirectlyUsableItems);
+            // Usable inventory is not pending work; any future new-arrival marker belongs to the item icon.
+            redDots.Set(PlayerTabDots[1], false);
             RenderPlayerRedDots();
         }
 

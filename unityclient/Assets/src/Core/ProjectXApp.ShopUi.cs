@@ -167,6 +167,10 @@ namespace ProjectX.Core
             if (tabs == null || template == null) return;
 
             tabs.gameObject.SetActive(true);
+            Text hubTitle = binding.FindNode("Layer/shopBg/Popup/Title/Title")?.GetComponent<Text>();
+            if (hubTitle != null) hubTitle.text = selected == ShopHubTab.Shop ? "商城" : "将魂商店";
+            Transform hubHelp = hubTitle?.transform.Find("Button_1");
+            if (hubHelp != null) hubHelp.gameObject.SetActive(selected == ShopHubTab.Soul);
             if (selected == ShopHubTab.Shop)
             {
                 // The shared shop frame stays open for the merged mall entry.
