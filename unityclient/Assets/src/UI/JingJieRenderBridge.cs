@@ -213,10 +213,25 @@ namespace ProjectX.UI
         {
             string iconPath = panelPath + "/bg_L/Icon";
             Image icon = Require(view, iconPath).GetComponent<Image>();
-            Sprite sprite = resources.LoadSprite("Art/Icons/JingJie/" + definition.Icon);
-            icon.sprite = sprite;
-            icon.enabled = sprite != null;
-            icon.preserveAspect = true;
+            if (definition.Icon != null && definition.Icon.StartsWith("role_{sex}_", StringComparison.Ordinal))
+            {
+                icon.enabled = false;
+                if (player.IsLoaded)
+                {
+                    Transform anchor = icon.transform.Find("SpineAnchor");
+                    if (anchor == null) throw new InvalidOperationException("JingJie Icon/SpineAnchor is missing.");
+                    RoleSpinePortrait portrait = anchor.GetComponent<RoleSpinePortrait>()
+                        ?? anchor.gameObject.AddComponent<RoleSpinePortrait>();
+                    portrait.Show(definition.Icon, player.Sex);
+                }
+            }
+            else
+            {
+                Sprite sprite = resources.LoadSprite("Art/Icons/JingJie/" + definition.Icon);
+                icon.sprite = sprite;
+                icon.enabled = sprite != null;
+                icon.preserveAspect = true;
+            }
             Text name = RequireText(view, panelPath + "/bg_L/Panel_name/name");
             name.text = definition.Name;
             name.color = QualityColor(definition.Quality);

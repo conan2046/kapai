@@ -44,6 +44,8 @@ namespace ProjectX.Editor
                 string reason = null;
                 if (importer == null || importer.textureType != TextureImporterType.Sprite || texture == null)
                     reason = "not-source-sprite";
+                else if (path.StartsWith("Assets/Art/Spine/", StringComparison.Ordinal))
+                    reason = "spine-atlas-texture";
                 else if (path.StartsWith("Assets/Art/AnimationFrames/", StringComparison.Ordinal))
                     reason = "existing-animation-sheet";
                 else if (fixedExclusions.TryGetValue(sourceGuid, out string fixedReason))
@@ -290,6 +292,7 @@ namespace ProjectX.Editor
                     string guid = AssetDatabase.AssetPathToGUID(sourcePath);
                     if (!ownedTextures.Add(guid)) failures.Add(path + ": texture belongs to multiple atlases: " + sourcePath);
                     if (sourcePath.StartsWith("Assets/Art/Backgrounds/", StringComparison.Ordinal)
+                        || sourcePath.StartsWith("Assets/Art/Spine/", StringComparison.Ordinal)
                         || sourcePath.StartsWith("Assets/Art/AnimationFrames/", StringComparison.Ordinal)
                         || excludedGuids.Contains(guid))
                         failures.Add(path + ": excluded source must not be packed: " + sourcePath);

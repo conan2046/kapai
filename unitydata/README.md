@@ -4,6 +4,19 @@
 
 ## 当前客户端链路
 
+### 境界 Spine 展示
+
+- `excel/jingjie_config.xlsx` 的 `icon` 填 `role_{sex}_01`～`role_{sex}_14`；`{sex}` 按角色存档中 `0=男、1=女` 替换为 `m/w`。创角按钮选项 `1/2` 已由登录协议转为存档值，展示层不要再次转换。
+- `excel/role_visual.xlsx` 维护14组男女 Spine、头像、循环动作与创角默认外观。`jingjie_config.icon` 的末尾编号引用 `visual_id`，具体资源名由此表解析。
+- 原始预制体位于 `unityclient/Assets/Prefabs/Spine/Role`；Canvas 展示预制体位于 `Assets/Prefabs/Spine/UI/Role`，创角、主界面 `role` 和境界页面共用，通过既有资源引用索引加载。
+- 头像位于 `Assets/Art/Portraits/Players`；主界面 `role` 与左上头像按保存的性别、当前境界同步切换。尚未取得境界快照或境界为0时使用创角默认外观。
+- Spine 实例挂在持久化的 `SpineAnchor` 空节点下：创角 `Role/SpineAnchor`、主界面 `role/SpineAnchor`、境界各 `Icon/SpineAnchor`。直接在这三份界面 Prefab 中调整空节点的位置、缩放、旋转；代码与资源重建均不覆盖这些值，不自动适配大小。
+- Spine 源资产位于 `Assets/Art/Spine`，保持自身 Atlas，不纳入静态 UI SpriteAtlas。运行库位于 `Assets/Plugins/Spine`。
+- 原 Excel 的消耗列仍是历史数据。本阶段只导出 `icon`，保留现有客户端/服务端属性、门槛及金币消耗；服务端转换器跳过此工作簿。
+- 定向导出：`& .\unitydata\tools\Export-UnityClientData.ps1 -OnlyJingJieVisuals`；仅外观表使用 `-OnlyRoleVisuals`。全量客户端导出也执行同一校验。
+- 资源导入后使用菜单 `Tools/ProjectX 资源/构建境界 Spine 展示预制体` 重建展示预制体及引用。
+- `role.unitypackage` 里的 `zmls_001` 缺失贴图，H 盘原工程同样缺失；此资源未用于境界，不能选作可播放资源。
+
 ```text
 unitydata/export/client/source
     -> unitydata/tools/Export-UnityClientData.ps1

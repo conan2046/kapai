@@ -252,6 +252,7 @@ function OnAnswerClicked(functionId) AnswerController.onClick(functionId) end
 function OnAnswerSelected(index) AnswerController.select(index) end
 function OnAnswerNextRequested() AnswerController.nextQuestion() end
 function OnJingJieClicked() JingJieController.onClick() end
+function OnRoleVisualSnapshotRequested() JingJieController.requestSnapshot() end
 function OnJingJieUpgrade() JingJieController.upgrade() end
 function OnMonopolyClicked(functionId) MonopolyController.onClick(functionId) end
 function OnMonopolyRoll() MonopolyController.roll() end

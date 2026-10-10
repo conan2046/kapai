@@ -17,6 +17,9 @@ namespace ProjectX.UI
         private readonly ChatStore chat;
         private readonly IUiResourceProvider resources;
         private readonly Image portrait;
+        private readonly JingJieViewState realm;
+        private readonly JingJieConfigData realmConfig;
+        private readonly RoleSpinePortrait mainRole;
         private readonly Text nameText;
         private readonly Text levelText;
         private readonly Text vipText;
@@ -53,7 +56,7 @@ namespace ProjectX.UI
 
         public MainHudPresenter(UnityUiView view, UnityUiView chatView, PlayerStore player,
             CurrencyStore currencies, ChatStore chat, IUiResourceProvider resources,
-            bool seedStableRedDots = true)
+            bool seedStableRedDots = true, JingJieViewState realm = null, JingJieConfigData realmConfig = null)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.chatView = chatView;
@@ -190,6 +193,19 @@ namespace ProjectX.UI
             chatVisibleStartIndex = chat.Count;
             systemChatSummaryVisible = false;
             SetChatExpanded(false);
+            this.realm = realm;
+            this.realmConfig = realmConfig;
+            if (realm != null)
+            {
+                var roleNode = view.FindNode("Layer/Bg/btn_jingjie/temp_bg/role");
+                if (roleNode == null) throw new InvalidOperationException("Main HUD role attachment is missing.");
+                Image oldRole = roleNode.GetComponent<Image>();
+                if (oldRole != null) oldRole.enabled = false;
+                Transform anchor = roleNode.transform.Find("SpineAnchor");
+                if (anchor == null) throw new InvalidOperationException("Main role/SpineAnchor is missing.");
+                mainRole = anchor.GetComponent<RoleSpinePortrait>() ?? anchor.gameObject.AddComponent<RoleSpinePortrait>();
+                realm.Changed += Render;
+            }
             player.Changed += Render;
             currencies.Changed += Render;
             chat.Changed += RenderChatSummary;
@@ -219,7 +235,15 @@ namespace ProjectX.UI
                 if (compactPower && powerWanRect != null)
                     powerWanRect.anchoredPosition = new Vector2(Mathf.Ceil(powerText.preferredWidth), 0f);
             }
-            if (portrait != null) portrait.sprite = resources.LoadPlayerRoundPortrait(player.Head);
+            if (realm != null && player.IsLoaded)
+            {
+                string template = realm.HasAuthoritativeState && realm.CurrentId > 0
+                    ? realmConfig.Get(realm.CurrentId).Icon : RoleVisualCatalog.Current.CreationDefault.Template;
+                var visual = RoleVisualCatalog.Current.Resolve(template);
+                mainRole.Show(template, player.Sex);
+                if (portrait != null) portrait.sprite = resources.LoadSprite(visual.AvatarKey(player.Sex));
+            }
+            else if (portrait != null) portrait.sprite = resources.LoadPlayerRoundPortrait(player.Head);
             goldText.text = FormatGold(currencies.Gold);
             premiumText.text = Math.Max(0, currencies.Premium).ToString();
             staminaText.text = $"{Math.Max(0, currencies.Stamina)}/{StaminaLimit}";
@@ -358,6 +382,8 @@ namespace ProjectX.UI
 
         public void Dispose()
         {
+            if (realm != null) realm.Changed -= Render;
+            if (mainRole != null) mainRole.Clear();
             player.Changed -= Render;
             currencies.Changed -= Render;
             chat.Changed -= RenderChatSummary;

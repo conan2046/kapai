@@ -312,7 +312,11 @@ namespace ProjectX.Core
             services.Currencies.Initialize(money, premium, boundPremium, soul, guildContribution);
             services.Mails.ConfigureAccount(roleId);
             if (singlePlayerTitleEnabled && activeSaveSlotId > 0)
-                singlePlayerSaves?.UpdatePlayer(activeSaveSlotId, roleId, name, model, level, checked((ulong)power));
+            {
+                singlePlayerSaves.UpdatePlayer(activeSaveSlotId, roleId, name, model, level, checked((ulong)power));
+                if (singlePlayerSaves.ActiveSlotId != activeSaveSlotId)
+                    singlePlayerSaves.BeginSession(activeSaveSlotId);
+            }
         }
 
         public void ShowLoginUi()
@@ -622,7 +626,6 @@ namespace ProjectX.Core
             startupPresenter.Dispose();
             startupPresenter = null;
             localServerSupervisor.Failed += HandleLocalServerFailure;
-            singlePlayerSaves.BeginSession(slotId);
             loginPresenter.ShowLocalServer($"本地存档 {slotId:00}");
             loginView.SetVisible(false);
             localSaveServerStarting = false;
@@ -666,7 +669,11 @@ namespace ProjectX.Core
             try { await pendingSave; }
             catch (Exception exception) { ClientLog.Error("SinglePlayer", "待完成的保存失败，继续关闭会话。", exception.ToString()); }
             Exception[] errors = CleanupSequence.Run(() => saves?.CompleteSession());
-            try { if (supervisor != null) await supervisor.DisposeAsync(); }
+            try
+            {
+                if (supervisor != null) await supervisor.DisposeAsync();
+                saves?.DiscardPendingCreation();
+            }
             catch (Exception exception) { ClientLog.Error("SinglePlayer", "本机服务关闭失败。", exception.ToString()); }
             foreach (Exception error in errors)
                 ClientLog.Error("SinglePlayer", "结束存档会话时发生错误，已继续执行清理。", error.ToString());

@@ -38,6 +38,9 @@ $stage = Join-Path $Root ('.local\unityserver-export\stage-' + [guid]::NewGuid()
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'excel') | Out-Null
 Copy-Item -LiteralPath $vendor -Destination (Join-Path $stage 'xl转表.exe') -Force
 Get-ChildItem -LiteralPath $excel -Recurse -File | ForEach-Object {
+    # This inherited workbook currently owns only client Spine icon templates.
+    # Do not overwrite the server's accepted breakthrough costs with its old data.
+    if ($_.Name -in @('jingjie_config.xlsx','role_visual.xlsx')) { return }
     $relative = $_.FullName.Substring($excel.Length).TrimStart('\', '/')
     $target = Join-Path (Join-Path $stage 'excel') $relative
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null

@@ -7,6 +7,12 @@ function M.onClick()
     Bridge:ShowJingJie()
 end
 
+function M.requestSnapshot()
+    local message = Protocol.newMessage(Protocol.JING_JIE)
+    message:WriteByte(1)
+    Bridge:Send(message)
+end
+
 function M.upgrade()
     if M.pending or not Bridge:BeginJingJieUpgrade() then return false end
     M.pending = true

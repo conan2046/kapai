@@ -14,7 +14,7 @@ namespace ProjectX.UI
         private readonly UnityUiView roleCreate;
         private Animator backgroundAnimation;
         private Animator roleBackgroundAnimation;
-        private Animator roleAnimation;
+        private RoleSpinePortrait rolePortrait;
         private int selectedSex = 1;
         private InputField accountInput;
         private InputField signatureInput;
@@ -44,7 +44,7 @@ namespace ProjectX.UI
         public int PlayingAnimationCount =>
             (IsAnimatorActive(backgroundAnimation) ? 1 : 0)
             + (IsAnimatorActive(roleBackgroundAnimation) ? 1 : 0)
-            + (IsAnimatorActive(roleAnimation) ? 1 : 0);
+            + (rolePortrait != null && rolePortrait.IsPlaying ? 1 : 0);
         public bool IsRoleCreateVisible => roleCreate?.GameObject != null && roleCreate.GameObject.activeSelf;
         public int SelectedSex => selectedSex;
         public string RoleName => roleNameInput == null ? string.Empty : roleNameInput.text.Trim();
@@ -234,15 +234,19 @@ namespace ProjectX.UI
         public bool ValidateRoleAnimations(out string detail)
         {
             if (!IsRoleCreateVisible) { detail = "RoleCreateLayer is not visible"; return false; }
-            ShowRole(1);
-            if (!IsAnimatorInState(roleAnimation, "Male"))
-            { detail = "male Unity AnimationClip is not playing"; return false; }
-            ShowRole(2);
-            if (!IsAnimatorInState(roleAnimation, "Female"))
-            { detail = "female Unity AnimationClip is not playing"; return false; }
-            ShowRole(1);
-            detail = "Create_5/Create_4 Unity Animator loop states passed";
-            return true;
+            int previousSex = selectedSex;
+            try
+            {
+                ShowRole(1);
+                if (rolePortrait == null || !rolePortrait.IsPlaying || rolePortrait.PrefabName != ProjectX.Data.RoleVisualCatalog.Current.CreationDefault.Prefab(0))
+                { detail = "Male Spine role is not playing"; return false; }
+                ShowRole(2);
+                if (!rolePortrait.IsPlaying || rolePortrait.PrefabName != ProjectX.Data.RoleVisualCatalog.Current.CreationDefault.Prefab(1))
+                { detail = "Female Spine role is not playing"; return false; }
+                detail = "Male/female Spine loop states passed";
+                return true;
+            }
+            finally { ShowRole(previousSex); }
         }
 
         public void InvokeRoleCreate()
@@ -276,7 +280,7 @@ namespace ProjectX.UI
         {
             if (backgroundAnimation != null) UnityEngine.Object.Destroy(backgroundAnimation.gameObject);
             if (roleBackgroundAnimation != null) UnityEngine.Object.Destroy(roleBackgroundAnimation.gameObject);
-            if (roleAnimation != null) UnityEngine.Object.Destroy(roleAnimation.gameObject);
+            if (rolePortrait != null) rolePortrait.Clear();
             if (serverAreaRow != null) UnityEngine.Object.Destroy(serverAreaRow);
             if (serverRow != null) UnityEngine.Object.Destroy(serverRow);
         }
@@ -488,34 +492,39 @@ namespace ProjectX.UI
         private void ShowRole(int sex)
         {
             selectedSex = sex == 2 ? 2 : 1;
+            var visual = ProjectX.Data.RoleVisualCatalog.Current.CreationDefault;
+            ApplyRoleAvatar("Layer/RoleCreateUI/man", visual.AvatarKey(0));
+            ApplyRoleAvatar("Layer/RoleCreateUI/woman", visual.AvatarKey(1));
             Toggle man = ResolveNode(roleCreate, "Layer/RoleCreateUI/man")?.GetComponent<Toggle>();
             Toggle woman = ResolveNode(roleCreate, "Layer/RoleCreateUI/woman")?.GetComponent<Toggle>();
             if (man != null) man.SetIsOnWithoutNotify(selectedSex == 1);
             if (woman != null) woman.SetIsOnWithoutNotify(selectedSex == 2);
-            if (roleAnimation == null)
+            if (rolePortrait == null)
             {
-                Transform host = ResolveNode(roleCreate, "Layer/RoleCreateUI/Role")?.transform;
-                if (host == null) return;
-                RuntimeAnimatorController controller = ProjectX.UI.UnityAssetReference.LoadAsset<RuntimeAnimatorController>(
-                    "Animations/Login/Controllers/RoleCreateCharacter");
-                if (controller == null)
-                    throw new InvalidOperationException("Unity role animation controller is missing.");
-                var node = new GameObject("RuntimeUnity_RoleCharacter",
-                    typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Animator));
-                RectTransform rect = node.GetComponent<RectTransform>();
-                rect.SetParent(host, false);
-                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.anchoredPosition = Vector2.zero;
-                rect.sizeDelta = new Vector2(640f, 720f);
-                Image image = node.GetComponent<Image>();
-                image.raycastTarget = false;
-                image.preserveAspect = true;
-                roleAnimation = node.GetComponent<Animator>();
-                roleAnimation.runtimeAnimatorController = controller;
-                roleAnimation.applyRootMotion = false;
+                Transform anchor = ResolveNode(roleCreate, "Layer/RoleCreateUI/Role")?.transform.Find("SpineAnchor");
+                if (anchor == null) throw new InvalidOperationException("RoleCreate Role/SpineAnchor is missing.");
+                rolePortrait = anchor.GetComponent<RoleSpinePortrait>() ?? anchor.gameObject.AddComponent<RoleSpinePortrait>();
             }
-            roleAnimation.Play(selectedSex == 1 ? "Male" : "Female", 0, 0f);
-            roleAnimation.Update(0f);
+            rolePortrait.Show(ProjectX.Data.RoleVisualCatalog.Current.CreationDefault.Template, (byte)(selectedSex - 1));
+        }
+
+        private void ApplyRoleAvatar(string path, string key)
+        {
+            var node = ResolveNode(roleCreate, path);
+            if (node == null) return;
+            Sprite sprite = UnityAssetReference.LoadAsset<Sprite>(key);
+            if (sprite == null) throw new InvalidOperationException("Role avatar reference is missing: " + key);
+            Image normal = node.GetComponent<Image>();
+            if (normal != null) { normal.sprite = sprite; normal.preserveAspect = true; }
+            Image selected = node.transform.Find("__Checkmark")?.GetComponent<Image>();
+            if (selected != null)
+            {
+                selected.sprite = sprite;
+                selected.preserveAspect = true;
+                Outline outline = selected.GetComponent<Outline>() ?? selected.gameObject.AddComponent<Outline>();
+                outline.effectColor = new Color32(255, 211, 89, 255);
+                outline.effectDistance = new Vector2(3, 3);
+            }
         }
 
         private static bool IsAnimatorActive(Animator animator) => animator != null

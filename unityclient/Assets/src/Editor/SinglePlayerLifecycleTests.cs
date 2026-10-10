@@ -37,6 +37,19 @@ namespace ProjectX.Editor
             try
             {
                 var saves = new SinglePlayerSaveService(isolatedRoot);
+                string draftDatabase = saves.PrepareForPlay(2, true);
+                saves.ResolveLocalUserId(2, true, 1);
+                File.WriteAllBytes(draftDatabase, System.Text.Encoding.ASCII.GetBytes("SQLite format 3\0draft"));
+                check("creation-screen-does-not-publish-save", !saves.ReadSlot(2).Exists);
+                saves.DiscardPendingCreation();
+                check("cancelled-creation-removes-draft", !Directory.Exists(Path.GetDirectoryName(draftDatabase)));
+                draftDatabase = saves.PrepareForPlay(2, true);
+                saves.ResolveLocalUserId(2, true, 1);
+                File.WriteAllBytes(draftDatabase, System.Text.Encoding.ASCII.GetBytes("SQLite format 3\0role"));
+                saves.UpdatePlayer(2, 42, "Created role", 5, 1, 1);
+                check("successful-role-login-publishes-save", saves.ReadSlot(2).Exists);
+                saves.DiscardPendingCreation();
+                check("completed-role-save-is-preserved", File.Exists(draftDatabase));
                 saves.PrepareForPlay(1, true);
                 uint userId = saves.ResolveLocalUserId(1, true, 1);
                 saves.BeginSession(1);

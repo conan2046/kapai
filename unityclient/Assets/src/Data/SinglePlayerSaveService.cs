@@ -47,6 +47,7 @@ namespace ProjectX.Data
         private readonly bool includeLegacyDatabase;
         private DateTime sessionStartedUtc;
         private int sessionSlotId;
+        private int pendingCreationSlotId;
 
         public SinglePlayerSaveService(string persistentDataPath, bool includeLegacyDatabase = false)
         {
@@ -83,6 +84,9 @@ namespace ProjectX.Data
             bool exists = File.Exists(resolvedDatabase) && new FileInfo(resolvedDatabase).Length > 0;
             bool corrupt = exists && !HasSqliteHeader(resolvedDatabase);
             SinglePlayerSaveMetadata metadata = ReadMetadata(metadataPath, slotId, out string metadataError);
+            // Creation-screen server data becomes a playable save only after role login.
+            // Keep corrupt metadata visible rather than silently hiding a real save.
+            exists = exists && (legacy || metadata.roleId != 0 || !string.IsNullOrEmpty(metadataError));
             return new SinglePlayerSaveSlot
             {
                 SlotId = slotId,
@@ -106,6 +110,7 @@ namespace ProjectX.Data
                 if (Directory.Exists(slotDirectory)) Directory.Delete(slotDirectory, true);
                 Directory.CreateDirectory(slotDirectory);
                 WriteMetadata(Path.Combine(slotDirectory, MetadataName), NewMetadata(slotId));
+                pendingCreationSlotId = slotId;
                 return Path.Combine(slotDirectory, DatabaseName);
             }
             if (!slot.Exists) throw new InvalidOperationException($"存档 {slotId:00} 尚未创建。");
@@ -162,6 +167,7 @@ namespace ProjectX.Data
         public void UpdatePlayer(int slotId, uint roleId, string roleName, int heroPicture, int level, ulong combatPower)
         {
             ValidateSlotId(slotId);
+            if (roleId == 0) throw new ArgumentOutOfRangeException(nameof(roleId));
             string metadataPath = Path.Combine(GetSlotDirectory(slotId), MetadataName);
             SinglePlayerSaveMetadata metadata = ReadMetadata(metadataPath, slotId, out _) ?? NewMetadata(slotId);
             metadata.roleId = roleId;
@@ -171,6 +177,19 @@ namespace ProjectX.Data
             metadata.combatPower = combatPower;
             metadata.updatedUtc = DateTime.UtcNow.ToString("o");
             WriteMetadata(metadataPath, metadata);
+            if (pendingCreationSlotId == slotId) pendingCreationSlotId = 0;
+        }
+
+        // Called after the server releases SQLite. Never remove an existing role save.
+        public void DiscardPendingCreation()
+        {
+            int slotId = pendingCreationSlotId;
+            if (slotId <= 0) return;
+            string directory = GetSlotDirectory(slotId);
+            SinglePlayerSaveMetadata metadata = ReadMetadata(Path.Combine(directory, MetadataName), slotId, out string error);
+            if (!string.IsNullOrEmpty(error)) throw new IOException(error);
+            if (metadata.roleId == 0 && Directory.Exists(directory)) Directory.Delete(directory, true);
+            pendingCreationSlotId = 0;
         }
 
         public string CreateSnapshotStagingPath(int targetSlotId)

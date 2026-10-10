@@ -8716,7 +8716,11 @@ namespace ProjectX.Core
             }
             mainHudPresenter = new MainHudPresenter(mainView, chatMiniView, services.Player,
                 services.Currencies, services.Chat, services.Resources,
-                seedStableRedDots: !singlePlayerTitleEnabled);
+                seedStableRedDots: !singlePlayerTitleEnabled, realm: services.JingJie,
+                realmConfig: jingJieConfig ?? (jingJieConfig = new JingJieConfigData()));
+            if (services.Player.IsLoaded)
+                using (var request = services.Lua.GetFunction("OnRoleVisualSnapshotRequested"))
+                    InvokeLuaOrFail(request, "MainHud.RoleVisualSnapshot");
         }
 
         private void EnsureErrorPresenter()
