@@ -88,8 +88,14 @@ namespace ProjectX.UI
         private readonly Transform redDotTemplate;
         public uint SelectedUid => selected.Uid;
         public HeroEquipmentKind SelectedKind => selected.Kind;
+        private readonly Dictionary<Transform, DisplayRecord> boundListCells = new Dictionary<Transform, DisplayRecord>();
         public void ApplyRedDots()
         {
+            foreach (var entry in boundListCells)
+            {
+                if (entry.Key == null || !entry.Key.gameObject.activeInHierarchy) continue;
+                ApplyListCellRedDot(entry.Key, entry.Value);
+            }
             Button[] actions = { strengthOnceButton, refineOnceButton, awakenOnceButton, divineOnceButton };
             for (int mode = 0; mode < 4; mode++) RedDotVisual.Set(actions[mode]?.transform,
                 canCultivate?.Invoke(selected.Uid, selected.Kind, mode) == true, redDotTemplate);
@@ -516,6 +522,7 @@ namespace ProjectX.UI
 
         public void Dispose()
         {
+            boundListCells.Clear();
             bag.Changed -= Render;
             currencies.Changed -= Render;
             if (equipment != null) equipment.Changed -= Render;
@@ -555,6 +562,7 @@ namespace ProjectX.UI
 
         private void BindCell(Transform cell, DisplayRecord item)
         {
+            boundListCells[cell] = item;
             cell.gameObject.SetActive(true);
             cell.gameObject.name = $"{item.Kind}Cell_{item.Uid}";
             SetText(cell, "Name_1", item.StrengthLevel > 0 ? $"{item.Definition.Name}+{item.StrengthLevel}" : item.Definition.Name);
@@ -585,9 +593,15 @@ namespace ProjectX.UI
                 cultivate.gameObject.SetActive(true);
                 cultivate.onClick.RemoveAllListeners();
                 cultivate.onClick.AddListener(() => ShowStrength(item));
-                RedDotVisual.Set(cultivate.transform, Enumerable.Range(0, item.Kind == HeroEquipmentKind.Equipment ? 4 : 2)
-                    .Any(mode => canCultivate?.Invoke(item.Uid, item.Kind, mode) == true), redDotTemplate);
+                ApplyListCellRedDot(cell, item);
             }
+        }
+
+        private void ApplyListCellRedDot(Transform cell, DisplayRecord item)
+        {
+            RedDotVisual.Set(cell.Find("Btn_yangcheng"),
+                Enumerable.Range(0, item.Kind == HeroEquipmentKind.Equipment ? 4 : 2)
+                    .Any(mode => canCultivate?.Invoke(item.Uid, item.Kind, mode) == true), redDotTemplate);
         }
 
         private void ShowDetails(DisplayRecord item)

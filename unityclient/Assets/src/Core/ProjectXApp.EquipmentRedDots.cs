@@ -65,9 +65,10 @@ namespace ProjectX.Core
             ApplyEquipmentHubDots();
             heroEquipmentPresenter?.ApplyRedDots();
         }
-        private void ApplyEquipmentHubDots()
+        private void ApplyEquipmentHubDots(bool preparingTabs = false)
         {
-            if (heroEquipmentListView?.GameObject.activeInHierarchy != true && heroEquipmentFragmentView?.GameObject.activeInHierarchy != true) return;
+            if (!preparingTabs && heroEquipmentListView?.GameObject.activeInHierarchy != true
+                && heroEquipmentFragmentView?.GameObject.activeInHierarchy != true) return;
             Transform panel = oneLevelFrameView?.FindNode("Layer/Panel_12/Bg/Btn_ListView/Panel_10")?.transform;
             string[] names = { "Button1", "Button2_Runtime", "Button3_Runtime" };
             string[] keys = { "equipment.gear", "equipment.fabao", "equipment.fragments" };

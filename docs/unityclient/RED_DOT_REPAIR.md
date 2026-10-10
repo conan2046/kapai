@@ -22,6 +22,21 @@ Unity 编译完成、Console 错误 0；Edit 模式通过 35 项临时内存异�
 
 ## 统一合同
 
+### 装备背包显示回归（2026-10-10）
+
+- 根因已通过 Git 对比确认：`ad8849c9` 将装备/法宝服务端整行配置同步到客户端时覆盖了原 `pic`。例如装备1002的 `petequip_2102` 被改为不存在的 `petequip_1002`；法宝1001的 `1002` 被改为 `equip25100`，原法宝加载器又只搜索FaBao目录，回退为怪物默认头像。原正式资源未丢失。
+- `unitydata/export/client/visuals/equipment-icons.json` 保存此前正常客户端的图标身份；现有导出器先验证服务端业务表一致，再应用客户端图标元数据并校验对应资源。其余业务字段保持当前正式服务端值。法宝加载器支持现存Items目录中的正式新增资源键，未复制资源或修改meta。
+- 右侧装备/法宝/碎片页签的业务树原已为true，但配置页签时列表尚未显示，`activeInHierarchy`门槛跳过了赋值。现在配置时初始化目标页签；正常后台刷新仍受当前装备页面门槛约束。列表养成按钮随统一资格实时刷新，不重建列表。
+- 用户授权正常结束原Slot01会话（会正常写回游玩时长），之后从只读快照建立Slot09一次。真实EventSystem/Raycast走旧的回忆→Slot09→穿戴，切法宝、进入养成、返回、切碎片和装备：三个父页签点均与业务一致；法宝强化true/精炼false，返回兄弟点保留；48件装备、13件法宝当前列表缺图0。未执行养成或合成消耗。原Slot01以授权正常退出后的哈希为基线，此后不变；equip/fabao/item表一致，完整性ok；编译/Console错误0。Slot09及服务已清理，测试结果归档`.local/red-dot-audit-20261009/equipment-display-*`。
+- 全配置补充审计：44件装备图标加载均通过；服务端新增法宝1106不在旧客户端图标映射中，仍使用无效`petequip_1006`，没有正式素材依据，未猜配图标。当前隔离档不含该ID；该项不计为图标全表完成。
+- 截图：`unityclient/Captures/Editor/RedDotRepair/screenshot-20261010-152458.png`（装备）、`screenshot-20261010-152501.png`（法宝）。手调Main Prefab哈希保持不变；按最新用户授权，本轮提交包含上述修复及现有Main Prefab红点位置、默认显示与文字布局手调，用户最终画面确认待完成。
+
+### 同批 Prefab 副本清理与发布边界
+
+Retained原有282个Prefab、31组跨目录同名资源；其中开箱、钓鱼、邮件3组序列化内容完全一致且Importer参数一致。保留Bag/OpenBox_1Layer、Fish/FishLayer、Mail/MailLayer的原GUID/fileID，删除Retained中的3份副本及meta；开箱Catalog引用转到Bag正式资源，现有工具链检查改用正式路径并禁止副本返回。Retained剩279个，其他28组同名但内容不同的资源按用户要求暂不处理。
+
+Unity定向资产加载、开箱引用解析、删除GUID残留审计及Console错误0通过；全量工具链在1455行的验证数据库种子integrity/identity检查失败，早于本次修改段，未修改测试库或绕过门禁，不能报告全量通过。审计与备份保存在`.local/retained-prefab-*`。提交不含截图、隔离存档、个人数据库或.local证据，不修改迁移门禁或SteamExcluded范围。
+
 - 业务未处理状态保存在 RedDotStore；页面切换不清除。
 - 父节点对已开放、当前范围有效的子节点做 OR；处理一项不能清掉另一项。
 - 业务回包及金币/材料/等级变化驱动重算；UI只显示状态。

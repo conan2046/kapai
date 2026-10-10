@@ -59,12 +59,35 @@ if ($OnlyWorldBoxRewards) {
     return
 }
 
+# Client visual metadata is independent from server operation costs and attributes.
+$equipmentVisuals = Get-Content -LiteralPath (Join-Path $Root 'unitydata\export\client\visuals\equipment-icons.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 # Equipment reminders and operation UI share the active server's formal configuration.
 foreach ($table in @('equip','equip_qianghua','equip_jinglian','equip_juexing','equip_shenzhu','fabao','fabao_qianghua','fabao_jinglian','quality','item','hecheng')) {
     $inputRows = @(Get-Content -LiteralPath (Join-Path $Root "unitydata\export\server\generated\json_server\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json)
     $activeRows = @(Get-Content -LiteralPath (Join-Path $Root "unityserver\config\json\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json)
     if (($inputRows | ConvertTo-Json -Depth 32 -Compress) -cne ($activeRows | ConvertTo-Json -Depth 32 -Compress)) {
         throw "Formal equipment table differs from the active Unity server: $table"
+    }
+    if ($table -in @('equip', 'fabao')) {
+        $visualById = @{}
+        foreach ($visual in $equipmentVisuals.$table) {
+            if ($visualById.ContainsKey([int]$visual.id)) { throw "Duplicate $table visual ID: $($visual.id)" }
+            $visualById[[int]$visual.id] = [string]$visual.pic
+        }
+        foreach ($row in $inputRows) {
+            # Preserve established client identities; newly added server-only IDs keep their source key.
+            if (-not $visualById.ContainsKey([int]$row.id)) { continue }
+            $row.pic = $visualById[[int]$row.id]
+            # 615-617 are refine materials, not selectable equipment/treasure icons.
+            if ([int]$row.id -in @(615, 616, 617)) { continue }
+            $token = [string]$row.pic
+            $itemPath = Join-Path $Root "unityclient\Assets\Art\Icons\Items\$token.png"
+            $faBaoPath = Join-Path $Root "unityclient\Assets\Art\Icons\FaBao\$token.png"
+            if (-not (Test-Path -LiteralPath $itemPath) -and
+                ($table -ne 'fabao' -or -not (Test-Path -LiteralPath $faBaoPath))) {
+                throw "Missing formal $table icon: id=$($row.id), pic=$token"
+            }
+        }
     }
     Write-Utf8IfChanged -Path (Join-Path $source "Configs\$table.json") -Content (($inputRows | ConvertTo-Json -Depth 32 -Compress) + "`n")
 }

@@ -7858,7 +7858,8 @@ namespace ProjectX.Core
             fragmentButton.interactable = true;
             fragmentButton.onClick.RemoveAllListeners();
             fragmentButton.onClick.AddListener(ShowHeroEquipmentFragments);
-            ApplyEquipmentHubDots();
+            // Configure runs before the list is shown, so seed tab dots even while hidden.
+            ApplyEquipmentHubDots(true);
         }
 
         private static void HideRuntimeTab(Transform panel, string name)

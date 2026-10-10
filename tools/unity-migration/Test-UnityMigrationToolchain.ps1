@@ -2199,7 +2199,7 @@ $bagLegacyIdentityGuid = [regex]::Match((Get-Content -LiteralPath `
 $bagLegacyLayerPrefab = Get-Content -LiteralPath `
     (Join-Path $root "unityclient/Assets/Prefabs/Retained/BagLayer.prefab") -Raw -Encoding UTF8
 $bagLegacyOpenBoxPrefab = Get-Content -LiteralPath `
-    (Join-Path $root "unityclient/Assets/Prefabs/Retained/common/OpenBox_1Layer.prefab") -Raw -Encoding UTF8
+    (Join-Path $root "unityclient/Assets/Prefabs/Bag/OpenBox_1Layer.prefab") -Raw -Encoding UTF8
 $bagManifestEntries = @($bagUiManifest.documents | Where-Object {
     $_.source -eq "cocosstudio/csd/zhujue/beibao.csd"
 })
@@ -2273,7 +2273,8 @@ Assert-ToolchainTest (
     -not $bagLegacyLayerPrefab.Contains("guid: $bagLegacyIdentityGuid") -and
     -not $bagLegacyOpenBoxPrefab.Contains("guid: $bagLegacyIdentityGuid") -and
     (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/BagLayer.prefab.meta") -PathType Leaf) -and
-    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/common/OpenBox_1Layer.prefab.meta") -PathType Leaf)
+    (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Bag/OpenBox_1Layer.prefab.meta") -PathType Leaf) -and
+    -not (Test-Path -LiteralPath (Join-Path $root "unityclient/Assets/Prefabs/Retained/common/OpenBox_1Layer.prefab") -PathType Leaf)
 ) "Bag retired source Prefabs regained active manifest/Catalog entries, Identity, or lost their preserved files."
 $bootstrapIdempotenceSource = Get-Content -LiteralPath `
     (Join-Path $root "tools/unity-migration/Test-BootstrapSceneIdempotence.ps1") -Raw -Encoding UTF8

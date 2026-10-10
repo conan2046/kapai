@@ -99,7 +99,7 @@ namespace ProjectX.Core
             }
             string token = picture.EndsWith(".png", StringComparison.OrdinalIgnoreCase)
                 ? picture.Substring(0, picture.Length - 4) : picture;
-            Sprite sprite = LoadFirst($"Art/Icons/FaBao/{token}");
+            Sprite sprite = LoadFirst($"Art/Icons/FaBao/{token}", $"Art/Icons/Items/{token}");
             if (sprite != null) return sprite;
             usedPlaceholder = true;
             RecordMissing($"FaBaoIcon/{token}");
