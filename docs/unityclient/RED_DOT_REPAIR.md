@@ -2,6 +2,28 @@
 
 目标：按功能入口逐个补齐叶节点、页签、主入口；每完成一个子功能汇报。原始清单：`Outputs/RedDotAudit/20261009/Unity红点系统入口审计.md`。当前工作工程为 E 盘，本次不修改迁移门禁或历史完成率。
 
+发布说明（2026-10-10）：按用户授权，将本轮龙崖宝箱自动结算、奖励列表、章节层级/默认入口及下拉隐藏修复，与用户手调的 DadituuiLayer、WorldMapNewLayer 和结算 Prefab 一并提交到主干。下文“未提交推送”是各次回归当时的记录，以本说明及 Git 提交记录为当前发布状态。无配置表或数据库结构变更，不包含存档、夹具、截图或迁移门禁；技术回归与用户最终画面确认继续分开记录。
+
+## 龙崖章节Prefab层级与默认入口适配（2026-10-10）
+
+龙崖章节下拉修复：Render 原先仅判断“未连战且有章节”，因此把用户在 DadituuiLayer Prefab 中隐藏的 Button_xiala 重新激活。显示条件及点击回调现均排除 chainMode，刷新同时关闭 Popup，Panel_zuoshang 继续保留章节标题。未改用户手调 Prefab。编译及 Console 错误检查通过；隔离 Slot09 经实际 EventSystem/Raycast 的登录、HUD 副本入口及切章，原生 CloseBtn 键盘 Submit 退出后再次从 HUD 进入，Button_xiala 的 activeSelf/activeInHierarchy 均为 false，Popup 为 false，标题可见。原 Slot01 哈希及六项业务字段不变，SQLite 完整性 ok；证据 world-dropdown-runtime-result.json、world-dropdown-storage-result.json。用户最终画面确认待完成，未提交推送。
+
+以用户手调的WorldMapNewLayer Prefab为准，文件不改：五个btn_X的章节名称继续绑定Label/Text，序号改为其兄弟Label/xuhao，对应节点身份映射同步更新。龙崖不显示boxBg、Finish、perfect、Text_xing及Label/Image_bg，渲染不再按星数重新激活通关/完美或星数；普通副本原完成/星数条件保留。副本新入口按op=1权威CurrentChapterId定位章节页及奖励预览，不再优先读取上次选章偏好；玩家在本次打开期间仍可自由选旧章。
+
+隔离Slot09仅从原档只读复制一次，无战斗/领取。真实HUD入口定位最新1007“哪吒闹海”，章节页显示6～10，所有上述节点activeSelf=false；名称、序号适配新层级。真实Raycast改选1006，再用原生CloseBtn的EventSystem键盘Submit退出，重新真实点击HUD，已保存偏好为1006仍选中权威1007；Console错误0，源码diff检查通过。指针探针对CloseBtn中心无Raycast命中，故退出步骤仅记录键盘路径通过，不声称指针退出通过。原Slot01哈希及六项业务字段不变、SQLite完整性ok；Slot09归档world-chapter-layout-test-slot09，服务退出。Prefab前后SHA256均为255131E23CD28895436939D1A2D10ED1BCAFCF02C19AEAC88D7BCB46EF974092。证据world-chapter-layout-runtime-result.json、world-chapter-layout-storage-result.json及longya-latest-chapter-labels.png。用户最终画面确认待完成，未提交推送。
+
+## 龙崖章节宝箱自动结算（2026-10-10）
+
+龙崖模式不再显示章节boxBg及Prompt，不再生成RuntimeWorldAchievementEntry；宝箱和该成就的手动提醒不参与龙崖HUD。普通副本保留原宝箱路径。服务端仅在龙崖Boss胜利时收集当前章fixState=1的正式宝箱奖励，按原领奖语义设为2、移除fixIds；普通战斗奖励与宝箱奖励合并进原op=8结算数据，实际发放仍分别使用MUT_GuanQiaNode/MUT_GuanQiaFix。不新增协议，不改配置、概率、数据库结构或迁移门禁。失败/中途战斗不触发此胜利分支，其他章节状态不改，已领状态防止重复发放。
+
+实操发现旧WorldOutcomePresenter只显示前两种物品及神将奖励缺少元数据。现龙崖结算使用zhandoujiesuanLayer Prefab中的ChapterRewardList：原生ScrollRect/RectMask2D、GridLayoutGroup/ContentSizeFitter和Item模板展示全部物品；尺寸和排列在Prefab调整，运行时只绑定实际数据。World op=8使用专用奖励元数据绑定，神将60002从HeroCatalog解析名称/图片/品质，并加载神将头像。
+
+隔离Slot09建立一次，复用原角色战斗资源，当前章1001/boss10006已有星数；原档只读快照后在隔离档设置五个待领奖宝箱。真实EventSystem/Raycast挑战Boss，权威回包18种奖励记录，其中16种物品；10000/10011/20011/20012/20013自动领取。SQLite证明状态2且fixIds为空，其他章/支线不变；各保证道具到账（2402额外300为已有神将奖励转换，不能误判重复发箱），再真实重打Boss只返回金币1000和普通掉落4624×10，没有再次返回宝箱奖励。重登同档后章节boxBg全部activeInHierarchy=false，成就动态节点数量0。Slot01数据库/metadata哈希保持不变，SQLite完整性ok。
+
+全量结算展示修复后，首次宝箱已消费，未重新初始化夹具：使用首次实际服务端回包做独立组件回放，16种物品均绑定、缺图0、神将名“接引道人”正确；真实EventSystem/Raycast滚动到末项“觉醒石×1000”可见。该组件回放不产生奖励，不冒充再次实战领奖；修复后的真实重打结算已使用新Prefab列表。最终完整首次结算画面仍待用户确认。客户端与服务端编译通过，Console错误0；Slot09成果归档longya-auto-box-test-slot09，服务退出，临时组件探针清理。证据longya-auto-box-runtime-result.json、longya-auto-box-database-result.json及longya-auto-box-operation-ledger.json；截图位于Captures/Editor/WorldLongya。未提交推送。
+
+过程中旧Slot01本地服务在Play退出后残留并锁住kapai.exe，导致首次链接LNK1168；先创建只读SQLite完整备份longya-orphan-slot01-backup，再核对原PID65912/父Editor18284/工程及数据库路径后清理残留，重试构建成功。初始失败日志保留，未为回归重置原档。
+
 ## 本轮追加主干提交（2026-10-10）
 
 用户授权提交推送现有本地修复。范围为普通背包取消可用物品/使用按钮/背包页签红点，神将卡片页签与独立图鉴提醒分离并补齐其他页到图鉴的父入口，以及商城标题/帮助/单条限购文案和Prefab组件布局。包含用户最终保存的shangcheng Prefab层级、六行商品与手调布局；代码复用ScrollRect.Content和预制体行，不覆盖布局组件。九个指定文件提交，不包含个人存档、Captures或.local产物；没有正式配置表、协议、SQLite结构或迁移门禁变更。

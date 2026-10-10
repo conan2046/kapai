@@ -1333,10 +1333,27 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainI
 		MergeAwardList(awards, nma);
 	}
 	sCMissionManager.UpdateQuestState(pUser, EMQCT_40, 1, m_curNodeId);
+	// Longya settles the current chapter's pending node/star boxes with its boss result.
+	// Claimed states remain authoritative across repeats and reconnects.
+	MultiAward chapterBoxAwards;
+	if (mode == FUBEN_MODE_LONGYA && cfg->type == 3)
+	{
+		for (FixGetStateIt box = userGuanqia->fixState.begin(); box != userGuanqia->fixState.end(); ++box)
+		{
+			if (box->second != 1) continue;
+			MultiAward* configured = sCGuanQiaCfgMgr.QueryFixAward(box->first);
+			if (configured == NULL) continue;
+			MergeAwardList(chapterBoxAwards, *configured);
+			box->second = 2;
+			userGuanqia->fixIds.erase(box->first);
+		}
+	}
 	// 主角经验：按产品口径从副本产出中移除（改由后续「修炼系统」供给）
 	// 连战序号：chainIndex / chainTotal（0 表示非连战），chainNextNodeId = 下一关（0 = 本章已通关）
 	msg << star << chainIndex << chainTotal << chainNextNodeId;
-	MakeMultiAwardMsg(awards, msg);
+	MultiAward displayedAwards = awards;
+	MergeAwardList(displayedAwards, chapterBoxAwards);
+	MakeMultiAwardMsg(displayedAwards, msg);
 	LogLocalTestMessageFingerprint("guanqia-result", msg);
 	m_curNodeId = 0;
 	m_curMapId = 0;
@@ -1348,6 +1365,8 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainI
 	uint32 realSpiritCost = (mode == FUBEN_MODE_LONGYA) ? 0 : cfg->spiritCost;
 	sp.SubSpirit(pUser, (uint16)realSpiritCost);
 	pUser->AddMultiAward(awards, true, false, MUT_GuanQiaNode);
+	if (!chapterBoxAwards.empty())
+		pUser->AddMultiAward(chapterBoxAwards, true, false, MUT_GuanQiaFix);
 
 }
 

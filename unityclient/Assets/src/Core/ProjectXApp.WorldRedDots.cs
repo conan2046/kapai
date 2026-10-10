@@ -22,10 +22,10 @@ namespace ProjectX.Core
         {
             if (!worldRedDotsSubscribed) return;
             redDots.SetEnabled("dungeon", services.Player.Level > 0);
-            redDots.Set("dungeon.achievement", Enumerable.Range(1, 6).Any(services.World.CanClaimAchievement));
-            redDots.Set("dungeon.boxes", services.World.HasReadyBoxes(services.Player.Level));
-            redDots.Set("dungeon.boxes.normal", services.World.HasReadyBoxKind(false, services.Player.Level));
-            redDots.Set("dungeon.boxes.star", services.World.HasReadyBoxKind(true, services.Player.Level));
+            redDots.Set("dungeon.achievement", !worldChainMode && Enumerable.Range(1, 6).Any(services.World.CanClaimAchievement));
+            redDots.Set("dungeon.boxes", !worldChainMode && services.World.HasReadyBoxes(services.Player.Level));
+            redDots.Set("dungeon.boxes.normal", !worldChainMode && services.World.HasReadyBoxKind(false, services.Player.Level));
+            redDots.Set("dungeon.boxes.star", !worldChainMode && services.World.HasReadyBoxKind(true, services.Player.Level));
             RedDotVisual.Set(mainView?.FindNode(WorldPath)?.transform, redDots.IsVisible("dungeon"), RedDotTemplate);
             RedDotVisual.Set(worldMapView?.FindNode("Layer/Panel_youxia/Button_zhuxianchengjiu")?.transform,
                 redDots.IsVisible("dungeon.achievement"), RedDotTemplate);

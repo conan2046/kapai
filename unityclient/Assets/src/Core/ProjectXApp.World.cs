@@ -104,15 +104,8 @@ namespace ProjectX.Core
                 checked((uint)currentStageId), pendingWorldChapters);
             if (snapshotOnly || !IsWorldOpen) return;
             EnsureWorldPresenter();
-            // 默认章节＝上次挑战过的章节（没有记录时退回进度章）
-            uint preferredChapterId = ResolveLastWorldChapterId();
-            WorldChapterRecord preferred = services.World.Chapters.FirstOrDefault(value => value.Id == preferredChapterId);
-            if (preferredChapterId != 0 && (preferred == null || preferred.Id > services.World.CurrentChapterId
-                || preferred.OpenLevel > services.Player.Level))
-            {
-                preferredChapterId = services.World.CurrentChapterId;
-                RememberLastWorldChapter(preferredChapterId);
-            }
+            // Entry always follows authoritative progress, regardless of an older selected chapter.
+            uint preferredChapterId = checked((uint)currentChapterId);
             worldPresenter.ShowWorld(preferredChapterId);
             // 底栏「通关奖励」条（DadituuiLayer/bg/Panel_2/ListView_1）由
             // WorldPresenter.RenderBossRewardPreview() 汇总 store.Stages[].Rewards 绘制。
@@ -127,7 +120,7 @@ namespace ProjectX.Core
 
         // 延后一帧再发：EndWorldChapterList 是 Lua op=1 回调的同步出口，
         // 直接在里面回呼 Lua 会重入 Lua 状态机。
-        // 玩家点了某个章节（＝选中并准备挑战它）时记录，下次进副本默认回到这一章。
+        // Record explicit chapter selection; it no longer determines the next entry's default.
         private void RememberLastWorldChapter(uint chapterId)
         {
             if (chapterId == 0) return;
@@ -357,6 +350,7 @@ namespace ProjectX.Core
             }
             worldPresenter?.SetChainMode(enabled);
             worldOutcomePresenter?.SetChainMode(enabled);
+            RefreshWorldRedDots();
             SetStatus($"World chain mode {(enabled ? "enabled" : "disabled")}.");
         }
 

@@ -20,6 +20,7 @@ namespace ProjectX.UI
         private readonly IUiResourceProvider resources;
         private readonly PlayerStore player;
         private readonly HeroStore heroes;
+        private readonly List<Transform> chapterRewardCells = new List<Transform>();
         private WorldBattleReplayStore replay;
         private readonly Action requestSweepAgain;
         private readonly Action requestContinue;
@@ -487,12 +488,54 @@ namespace ProjectX.UI
                 ? CreatePetExperienceEntries(host, petExperience)
                 : 0;
             RewardRecord[] items = values.Where(value => value.Type != 60052 && value.Type != 60006
-                && !IsCocosMoneyReward(value)).Take(2).ToArray();
+                && !IsCocosMoneyReward(value)).ToArray();
+            Transform chapterList = battleView.GameObject.transform.Find("ChapterRewardList");
+            if (chapterList != null) chapterList.gameObject.SetActive(chainMode);
+            host.Find("HeroRewardLabel")?.gameObject.SetActive(!chainMode);
+            if (chainMode)
+            {
+                renderedItemRewardCount = items.Length;
+                host.Find("ItemRewardLabel")?.gameObject.SetActive(false);
+                host.Find("HeroRewardLabel")?.gameObject.SetActive(false);
+                RenderChapterRewards(chapterList, items);
+                return;
+            }
+            items = items.Take(2).ToArray();
             renderedItemRewardCount = items.Length;
             Transform itemRewardLabel = host.Find("ItemRewardLabel");
             if (itemRewardLabel != null) itemRewardLabel.gameObject.SetActive(items.Length > 0);
             for (int index = 0; index < items.Length; index++)
                 CreateBattleItemEntry(host, items[index], index);
+        }
+
+        private void RenderChapterRewards(Transform list, RewardRecord[] items)
+        {
+            if (list == null) throw new InvalidOperationException("ChapterRewardList prefab binding is missing.");
+            ScrollRect scroll = list.GetComponent<ScrollRect>();
+            Transform content = scroll.content;
+            Transform template = content.Find("Item");
+            if (chapterRewardCells.Count == 0) chapterRewardCells.Add(template);
+            while (chapterRewardCells.Count < items.Length)
+                chapterRewardCells.Add(UnityEngine.Object.Instantiate(template.gameObject, content, false).transform);
+            for (int index = 0; index < chapterRewardCells.Count; index++)
+            {
+                Transform cell = chapterRewardCells[index];
+                cell.gameObject.SetActive(index < items.Length);
+                if (index >= items.Length) continue;
+                RewardRecord reward = items[index];
+                cell.Find("Name").GetComponent<Text>().text = reward.Name;
+                cell.Find("Amount").GetComponent<Text>().text = reward.Amount.ToString();
+                Image icon = cell.Find("QualityFrame/Icon").GetComponent<Image>();
+                icon.sprite = LoadRewardSprite(reward);
+                icon.enabled = icon.sprite != null;
+                Image frame = cell.Find("QualityFrame").GetComponent<Image>();
+                frame.sprite = reward.Quality > 0
+                    ? resources.LoadFirst($"Art/Hero/common_quality_{Mathf.Clamp(reward.Quality, 1, 7):00}") : null;
+                frame.enabled = frame.sprite != null;
+            }
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scroll.content);
+            scroll.StopMovement();
+            scroll.verticalNormalizedPosition = 1f;
         }
 
         private int CreatePetExperienceEntries(Transform parent, RewardRecord reward)
@@ -876,6 +919,7 @@ namespace ProjectX.UI
 
         private Sprite LoadRewardSprite(RewardRecord reward)
         {
+            if (reward.Type == 60002) return resources.LoadHeroPortrait(reward.Picture);
             if (reward.Picture > 0) return resources.LoadItemIcon(reward.Picture);
             switch (reward.Type)
             {

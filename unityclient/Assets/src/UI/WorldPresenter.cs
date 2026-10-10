@@ -22,7 +22,7 @@ namespace ProjectX.UI
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/HeadBg/Icon"] = -1586059452,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/Label"] = -1670407296,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/Label/Text"] = -1065416459,
-            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/Label/Text/xuhao"] = -106180424,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/Label/xuhao"] = -106180424,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/Text_xing"] = 2004959446,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/boxBg"] = 72941550,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_1/perfect"] = 2138837287,
@@ -34,7 +34,7 @@ namespace ProjectX.UI
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/HeadBg/Icon"] = -1366901774,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/Label"] = 633396305,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/Label/Text"] = 833807430,
-            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/Label/Text/xuhao"] = 2103143803,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/Label/xuhao"] = 2103143803,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/Text_xing"] = 180757990,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/boxBg"] = 1204452512,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_2/perfect"] = 984900064,
@@ -46,7 +46,7 @@ namespace ProjectX.UI
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/HeadBg/Icon"] = -1064400310,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/Label"] = 397275053,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/Label/Text"] = -1986540584,
-            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/Label/Text/xuhao"] = -1095695747,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/Label/xuhao"] = -1095695747,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/Text_xing"] = 1054120911,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/boxBg"] = -698932479,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_3/perfect"] = 319992497,
@@ -58,7 +58,7 @@ namespace ProjectX.UI
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/HeadBg/Icon"] = 880615303,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/Label"] = -1661505323,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/Label/Text"] = 299131043,
-            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/Label/Text/xuhao"] = -1649483615,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/Label/xuhao"] = -1649483615,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/Text_xing"] = -1525359025,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/boxBg"] = -1690783205,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_4/perfect"] = 306518146,
@@ -70,7 +70,7 @@ namespace ProjectX.UI
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/HeadBg/Icon"] = 356199246,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/Label"] = -51013817,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/Label/Text"] = -2145148885,
-            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/Label/Text/xuhao"] = 2020984049,
+            ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/Label/xuhao"] = 2020984049,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/Text_xing"] = -696434811,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/boxBg"] = -64089246,
             ["fuben/WorldMapNewLayer|Layer/chapterPage/btn_5/perfect"] = 542625462,
@@ -214,7 +214,6 @@ namespace ProjectX.UI
         private readonly Action<bool> openHeroFormation;
         private readonly Action openAchievement;
         private readonly Transform redDotTemplate;
-        private Transform chapterAchievementEntry;
         private readonly Action openYouLi;
         private readonly Action close;
         private readonly Action leaveCurrentChapter;
@@ -352,7 +351,7 @@ namespace ProjectX.UI
 
             Bind(mapView, "Layer/Panel_zuoshang/Button_xiala", () =>
             {
-                if (chainStageActive || store.Chapters.Count == 0) return;
+                if (chainMode || chainStageActive || store.Chapters.Count == 0) return;
                 showDropdown = !showDropdown;
                 Render();
                 Mark("WORLD-04-CHAPTER-DROPDOWN");
@@ -405,23 +404,6 @@ namespace ProjectX.UI
                 formationControl.transform.GetSiblingIndex() > firstStarBox.transform.GetSiblingIndex())
                 formationControl.transform.SetSiblingIndex(firstStarBox.transform.GetSiblingIndex());
             Bind(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", () => { openAchievement(); Mark("WORLD-25-MAIN-ACHIEVEMENT"); }, false, true);
-            Transform achievementTemplate = Find(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu")?.transform;
-            if (achievementTemplate != null)
-            {
-                chapterAchievementEntry = UnityEngine.Object.Instantiate(achievementTemplate.gameObject, worldView.GameObject.transform, false).transform;
-                chapterAchievementEntry.name = "RuntimeWorldAchievementEntry";
-                RectTransform rect = (RectTransform)chapterAchievementEntry;
-                rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
-                rect.pivot = new Vector2(.5f, .5f);
-                rect.anchoredPosition = new Vector2(-75f, 170f);
-                rect.localScale = Vector3.one;
-                GameObject hitObject = chapterAchievementEntry.Find("RuntimeHitSurface")?.gameObject ?? chapterAchievementEntry.gameObject;
-                Button button = hitObject.GetComponent<Button>() ?? hitObject.AddComponent<Button>();
-                button.targetGraphic = hitObject.GetComponent<Graphic>();
-                if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
-                button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() => { openAchievement(); Mark("WORLD-25-MAIN-ACHIEVEMENT"); });
-            }
             Bind(mapView, "Layer/Panel_youxia/Button_youlisanjie", () => { openYouLi(); Mark("WORLD-34-YOULI-ENTRY"); }, false, true);
             SetButtonLabel(detailView, $"{DetailRoot}/Image_bg/Panel_4/Button_2", "挑战");
             SetButtonLabel(detailView, $"{DetailRoot}/Image_bg/Panel_1/Buzhen", "布 阵");
@@ -475,7 +457,7 @@ namespace ProjectX.UI
             showChapters = true;
             // 原版 NormalFuBenUI:GotChapterList → ShowCurPage()：每次拿到章节列表
             // 都把页码定位到「当前章节」所在页（每页 5 章）。
-            // 这里优先用「上次挑战的章节」，让玩家回到上次打的地方。
+            // The caller supplies authoritative current progress for a new entry.
             chapterPageIndex = ChapterPageIndexFor(preferredChapterId != 0
                 ? preferredChapterId : store.CurrentChapterId);
             Render();
@@ -537,6 +519,11 @@ namespace ProjectX.UI
         public void SetChainMode(bool enabled)
         {
             chainMode = enabled;
+            if (enabled)
+            {
+                pendingChapterRewards = 0;
+                showChapterRewards = false;
+            }
             if (!enabled) chainStageActive = false;
             SetActive(mapView, "bg", enabled);
             ApplyChainEntryVisibility();
@@ -597,7 +584,7 @@ namespace ProjectX.UI
         }
 
         // 类型 1：全显；类型 2（chainMode）：Panel_1 只留 队伍(duiwu)/阵容(btn_zhenrong)，
-        // Panel_youxia / Panel_zuoshang / Popup 隐藏（用户口径 2026-09-17）。
+        // Panel_youxia / 章节下拉按钮 / Popup 隐藏；Panel_zuoshang 保留章节标题。
         // C13：详情面板「扫荡 / 重置」类型 2 继续隐藏。
         // bg/Panel_2/ListView_1 = 类型 1/2 共用的奖励条，两种模式都显示。
         private void ApplyChainEntryVisibility()
@@ -620,12 +607,6 @@ namespace ProjectX.UI
 
         public void Render()
         {
-            if (chapterAchievementEntry != null)
-            {
-                chapterAchievementEntry.gameObject.SetActive(chainMode && showChapters && !showDetail);
-                RedDotVisual.Set(chapterAchievementEntry, Enumerable.Range(1, 6).Any(store.CanClaimAchievement), redDotTemplate);
-                chapterAchievementEntry.SetAsLastSibling();
-            }
             // 布点层（kapaiguaiwuLayer）：类型 1 常显；类型 2 仅在连战进行中显示
             stageView.GameObject.SetActive(!showChapters && (!chainMode || chainStageActive || showChapterRewards));
             // chapterPage 常驻显示（prefab 默认关闭，这里恒定激活）：自带全屏章节底图 +
@@ -639,7 +620,7 @@ namespace ProjectX.UI
             // Panel_1（宝箱/星星/排行/队伍/阵容）默认打开：类型 2 由 ApplyChainEntryVisibility
             // 只收起其子节点（Box/星星/排行），根节点常开
             SetActive(mapView, "Layer/Panel_1", true);
-            bool chapterDropdownAvailable = !chainStageActive && store.Chapters.Count > 0;
+            bool chapterDropdownAvailable = !chainMode && !chainStageActive && store.Chapters.Count > 0;
             SetActive(mapView, "Layer/Panel_zuoshang/Button_xiala", chapterDropdownAvailable);
             if (!chapterDropdownAvailable) showDropdown = false;
             chapterDropdown.SetActive(!showDetail && showDropdown);
@@ -757,6 +738,7 @@ namespace ProjectX.UI
 
         private void OpenChapterRewardSlot(int slot)
         {
+            if (chainMode) return;
             int chapterIndex = chapterPageStart + slot;
             if (chapterIndex < 0 || chapterIndex >= store.Chapters.Count) return;
             WorldChapterRecord chapter = store.Chapters[chapterIndex];
@@ -836,11 +818,12 @@ namespace ProjectX.UI
                 bool selected = chapter.Id == (store.SelectedChapterId > 0
                     ? store.SelectedChapterId : store.CurrentChapterId);
                 SetText(worldView, root + "/Label/Text", chapter.Name);
-                SetText(worldView, root + "/Label/Text/xuhao", (chapter.Id % 1000).ToString());
+                SetText(worldView, root + "/Label/xuhao", (chapter.Id % 1000).ToString());
                 SetText(worldView, root + "/Text_xing", $"{chapter.OwnedStars}/{chapter.MaximumStars}");
                 SetText(worldView, root + "/suo/lock", string.Empty);
                 SetActive(worldView, root + "/Label", unlocked);
-                SetActive(worldView, root + "/Text_xing", unlocked);
+                SetActive(worldView, root + "/Text_xing", !chainMode && unlocked);
+                if (chainMode) SetActive(worldView, root + "/Label/Image_bg", false);
                 SetActive(worldView, root + "/suo", !unlocked);
                 SetActive(worldView, root + "/HeadBg", selected);
                 Image portrait = Find(worldView, root + "/HeadBg/Icon")?.GetComponent<Image>();
@@ -850,12 +833,12 @@ namespace ProjectX.UI
                     portrait.enabled = portrait.sprite != null;
                     portrait.preserveAspect = true;
                 }
-                SetActive(worldView, root + "/Finish", unlocked && !current
+                SetActive(worldView, root + "/Finish", !chainMode && unlocked && !current
                     && chapter.OwnedStars < chapter.MaximumStars);
-                SetActive(worldView, root + "/perfect", unlocked && chapter.MaximumStars > 0
+                SetActive(worldView, root + "/perfect", !chainMode && unlocked && chapter.MaximumStars > 0
                     && chapter.OwnedStars >= chapter.MaximumStars);
-                SetActive(worldView, root + "/boxBg", chapter.ClaimedBoxes > 0);
-                SetActive(worldView, root + "/boxBg/Prompt", chapter.ClaimedBoxes > 0);
+                SetActive(worldView, root + "/boxBg", !chainMode && chapter.ClaimedBoxes > 0);
+                SetActive(worldView, root + "/boxBg/Prompt", !chainMode && chapter.ClaimedBoxes > 0);
             }
 
             SetActive(worldView, "Image_qipao_L", false);

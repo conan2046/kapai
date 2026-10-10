@@ -484,7 +484,7 @@ local function readBattleResult(message)
     for _ = 1, rewardCount do
         local reward = { readReward(message) }
         if reward[3] > 0 then visibleRewardCount = visibleRewardCount + 1 end
-        Bridge:AddRewardRecord(reward[1], reward[2], reward[3], reward[4], reward[5], reward[6])
+        Bridge:AddWorldRewardRecord(reward[1], reward[2], reward[3], reward[4], reward[5], reward[6])
     end
     if message.Remaining ~= 0 then fail("World/320 op=8 unread bytes: " .. tostring(message.Remaining)); return end
     Bridge:ApplyWorldBattleResult(foughtCount, foughtStageId, unlockedChapterId, unlockedStageId,

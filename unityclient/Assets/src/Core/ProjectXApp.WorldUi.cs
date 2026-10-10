@@ -427,6 +427,13 @@ namespace ProjectX.Core
             if (worldBoxTitleCloseInteractionButton != null) worldBoxTitleCloseInteractionButton.gameObject.SetActive(visible);
         }
 
+        public void AddWorldRewardRecord(int type, double id, double amount, string name, int picture, int quality)
+        {
+            if (type == 60002 && HeroCatalog.TryGet(checked((int)id), out HeroDefinition hero))
+                AddRewardRecord(type, id, amount, hero.Name, hero.Picture, hero.Quality);
+            else AddRewardRecord(type, id, amount, name, picture, quality);
+        }
+
         private RewardRecord DescribeWorldConfiguredReward(WorldConfiguredReward configured)
         {
             uint amount = checked((uint)Math.Max(0, configured.Amount));
