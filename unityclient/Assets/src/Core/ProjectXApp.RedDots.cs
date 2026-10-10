@@ -67,12 +67,16 @@ namespace ProjectX.Core
         private void DisposePlayerRedDots()
         {
             if (!playerRedDotsSubscribed) return;
-            services.Player.Changed -= RefreshPlayerRedDots;
-            services.Currencies.Changed -= RefreshPlayerRedDots;
-            services.Bag.Changed -= RefreshPlayerRedDots;
-            services.JingJie.Changed -= RefreshPlayerRedDots;
-            services.Mails.Changed -= RefreshPlayerRedDots;
-            redDots.Changed -= RenderPlayerRedDots;
+            // Domain reload can preserve subscription flags without the service reference.
+            if (services != null)
+            {
+                services.Player.Changed -= RefreshPlayerRedDots;
+                services.Currencies.Changed -= RefreshPlayerRedDots;
+                services.Bag.Changed -= RefreshPlayerRedDots;
+                services.JingJie.Changed -= RefreshPlayerRedDots;
+                services.Mails.Changed -= RefreshPlayerRedDots;
+            }
+            if (redDots != null) redDots.Changed -= RenderPlayerRedDots;
             playerRedDotsSubscribed = false;
             onMailBackgroundRefresh?.Dispose();
             onMailBackgroundRefresh = null;

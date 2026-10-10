@@ -42,7 +42,7 @@ namespace ProjectX.Core
             if (IsShopOpen) EnsureShopPresenter();
         }
 
-        private uint shopExpiryRequested;
+        private float shopRedDotRetryAt;
         private bool shopSnapshotNeedsTime;
         public bool IsSoulShopReminderOpen() => FunctionRouteCatalog.CanOpen(15)
             && services.Player.Level >= FunctionUnlockCatalog.Resolve(15).OpenLevel;
@@ -64,17 +64,17 @@ namespace ProjectX.Core
         }
         private void TickShopRedDots()
         {
-            if (shopSnapshotNeedsTime && services.ServerTime.IsSynchronized && services.GameplayShops.PendingOp == 0)
-            {
-                shopSnapshotNeedsTime = false;
-                using (var refresh = services.Lua.GetFunction("OnShopRedDotRefresh")) InvokeLuaOrFail(refresh, "Shop.TimeSynchronized");
-            }
-            if (services.GameplayShops.PendingOp == 0 && services.GameplayShops.TryGet(2, out var page)
+            bool needsTimeSnapshot = shopSnapshotNeedsTime && services.ServerTime.IsSynchronized;
+            bool needsRecoverySnapshot = services.GameplayShops.TryGet(2, out var page)
                 && page.FreeRefreshTimes == 0 && page.RefreshDeadlineUnix > 0
-                && services.ServerTime.UnixSeconds >= page.RefreshDeadlineUnix && shopExpiryRequested != page.RefreshDeadlineUnix)
+                && services.ServerTime.UnixSeconds >= page.RefreshDeadlineUnix;
+            if (services.GameplayShops.PendingOp == 0 && UnityEngine.Time.unscaledTime >= shopRedDotRetryAt
+                && (needsTimeSnapshot || needsRecoverySnapshot))
             {
-                shopExpiryRequested = page.RefreshDeadlineUnix;
-                using (var refresh = services.Lua.GetFunction("OnShopRedDotRefresh")) InvokeLuaOrFail(refresh, "Shop.FreeRefreshRecovery");
+                // Only an authoritative snapshot clears the need to refresh; failed queries retry with backoff.
+                shopRedDotRetryAt = UnityEngine.Time.unscaledTime + 5f;
+                using (var refresh = services.Lua.GetFunction("OnShopRedDotRefresh"))
+                    InvokeLuaOrFail(refresh, needsTimeSnapshot ? "Shop.TimeSynchronized" : "Shop.FreeRefreshRecovery");
             }
             RefreshShopRedDots();
         }

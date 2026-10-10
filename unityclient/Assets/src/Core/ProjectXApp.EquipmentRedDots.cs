@@ -76,9 +76,15 @@ namespace ProjectX.Core
         private void DisposeEquipmentRedDots()
         {
             if (!equipmentRedDotsSubscribed) return;
-            services.HeroEquipment.Changed -= RefreshEquipmentRedDots; services.FaBao.Changed -= RefreshEquipmentRedDots;
-            services.Bag.Changed -= RefreshEquipmentRedDots; services.Currencies.Changed -= RefreshEquipmentRedDots;
-            services.Player.Changed -= RefreshEquipmentRedDots; equipmentRedDotsSubscribed = false;
+            if (services != null)
+            {
+                services.HeroEquipment.Changed -= RefreshEquipmentRedDots;
+                services.FaBao.Changed -= RefreshEquipmentRedDots;
+                services.Bag.Changed -= RefreshEquipmentRedDots;
+                services.Currencies.Changed -= RefreshEquipmentRedDots;
+                services.Player.Changed -= RefreshEquipmentRedDots;
+            }
+            equipmentRedDotsSubscribed = false;
             equipmentDotPendingUid = 0; equipmentDotPendingKind = 0; equipmentDotPendingFragment = 0;
         }
     }

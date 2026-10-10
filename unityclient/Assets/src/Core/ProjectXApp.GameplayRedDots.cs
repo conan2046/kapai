@@ -182,18 +182,21 @@ namespace ProjectX.Core
         private void DisposeGameplayRedDots()
         {
             if (!gameplayRedDotsSubscribed) return;
-            services.Gameplay.Changed -= RefreshGameplayRedDots;
-            services.YouLi.Changed -= RefreshGameplayRedDots;
-            services.MoneyTree.Changed -= RefreshGameplayRedDots;
-            services.FengShenStory.Changed -= RefreshGameplayRedDots;
-            services.Currencies.Changed -= RefreshGameplayRedDots;
-            services.XunBao.Changed -= RefreshGameplayRedDots;
-            services.Bag.Changed -= RefreshGameplayRedDots;
-            services.Tasks.Changed -= RefreshGameplayRedDots;
-            services.Player.Changed -= RefreshGameplayRedDots;
-            services.HappyWheel.Changed -= RefreshGameplayRedDots;
-            services.Fish.Changed -= RefreshGameplayRedDots;
-            services.GameplayShops.Changed -= RefreshShopRedDots;
+            if (services != null)
+            {
+                services.Gameplay.Changed -= RefreshGameplayRedDots;
+                services.YouLi.Changed -= RefreshGameplayRedDots;
+                services.MoneyTree.Changed -= RefreshGameplayRedDots;
+                services.FengShenStory.Changed -= RefreshGameplayRedDots;
+                services.Currencies.Changed -= RefreshGameplayRedDots;
+                services.XunBao.Changed -= RefreshGameplayRedDots;
+                services.Bag.Changed -= RefreshGameplayRedDots;
+                services.Tasks.Changed -= RefreshGameplayRedDots;
+                services.Player.Changed -= RefreshGameplayRedDots;
+                services.HappyWheel.Changed -= RefreshGameplayRedDots;
+                services.Fish.Changed -= RefreshGameplayRedDots;
+                services.GameplayShops.Changed -= RefreshShopRedDots;
+            }
             gameplayRedDotsSubscribed = false;
         }
     }

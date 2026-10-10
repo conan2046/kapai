@@ -148,13 +148,16 @@ namespace ProjectX.Core
         private void DisposeHeroRedDots()
         {
             if (!heroRedDotsSubscribed) return;
-            redDots.Changed -= RenderHeroRedDots;
-            services.Bag.Changed -= RefreshHeroRedDots;
-            services.Heroes.Changed -= RefreshHeroRedDots;
-            services.Player.Changed -= RefreshHeroRedDots;
-            services.Currencies.Changed -= RefreshHeroRedDots;
-            services.Formation.Changed -= RefreshHeroRedDots;
-            services.HeroBook.Changed -= RefreshHeroRedDots;
+            if (redDots != null) redDots.Changed -= RenderHeroRedDots;
+            if (services != null)
+            {
+                services.Bag.Changed -= RefreshHeroRedDots;
+                services.Heroes.Changed -= RefreshHeroRedDots;
+                services.Player.Changed -= RefreshHeroRedDots;
+                services.Currencies.Changed -= RefreshHeroRedDots;
+                services.Formation.Changed -= RefreshHeroRedDots;
+                services.HeroBook.Changed -= RefreshHeroRedDots;
+            }
             heroRedDotsSubscribed = false;
             onHeroRedDotRefresh?.Dispose();
             onHeroRedDotRefresh = null;

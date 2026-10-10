@@ -38,7 +38,11 @@ namespace ProjectX.Core
         private void DisposeWorldRedDots()
         {
             if (!worldRedDotsSubscribed) return;
-            services.World.Changed -= RefreshWorldRedDots; services.Player.Changed -= RefreshWorldRedDots;
+            if (services != null)
+            {
+                services.World.Changed -= RefreshWorldRedDots;
+                services.Player.Changed -= RefreshWorldRedDots;
+            }
             worldRedDotsSubscribed = false;
         }
     }

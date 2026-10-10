@@ -184,17 +184,18 @@ local function fail(detail)
 end
 
 local function finishPreload()
-    if M.preloadMapReady and M.preloadAchievementReady and M.boxSnapshotsPending == 0 then M.preloadPending = false end
+    if M.preloadMapComplete and M.preloadAchievementComplete and M.boxSnapshotsPending == 0 then M.preloadPending = false end
 end
 function M.preload()
     if M.preloadPending then return end
-    M.preloadPending, M.preloadMapReady, M.preloadAchievementReady = true, false, false
+    M.preloadPending, M.preloadMapComplete, M.preloadAchievementComplete = true, false, false
     requestWorld(true)
     requestAchievement()
 end
 function M.resetRedDotRequests()
     M.worldRequests, M.chapterRequests = {}, {}
     M.boxSnapshotsPending, M.preloadPending = 0, false
+    M.preloadMapComplete, M.preloadAchievementComplete = false, false
     M.pendingBox, M.pendingAchievement = nil, nil
     Bridge:SetWorldBoxPending(0, 0)
     Bridge:SetWorldAchievementPending(0)
@@ -297,7 +298,13 @@ end
 local function readWorld(message)
     local mapType = message:ReadByte()
     local success = message:ReadByte()
-    if success == 0 then fail("World/320 op=1 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown")); return end
+    local snapshotOnly = table.remove(M.worldRequests, 1) == true
+    if snapshotOnly then M.preloadMapComplete = true end
+    if success == 0 then
+        finishPreload()
+        fail("World/320 op=1 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown"))
+        return
+    end
     local count = message:ReadWord()
     Bridge:BeginWorldChapterList(mapType, count)
     for _ = 1, count do
@@ -320,14 +327,16 @@ local function readWorld(message)
     end
     -- 龙崖改造：模式下发（方案甲）—— op=1 载荷末尾的 fuben_AB，2 = 龙崖副本模式
     M.chainMode = message.Remaining > 0 and message:ReadByte() == 2 or false
-    if message.Remaining ~= 0 then fail("World/320 op=1 unread bytes: " .. tostring(message.Remaining)); return end
+    if message.Remaining ~= 0 then
+        finishPreload()
+        fail("World/320 op=1 unread bytes: " .. tostring(message.Remaining))
+        return
+    end
     -- 注意：必须在 EndWorldChapterList（内部 EnsureWorldPresenter）之后下发模式，
     -- 否则 WorldPresenter 尚未创建，模式会被丢掉。
-    local snapshotOnly = table.remove(M.worldRequests, 1) == true
     Bridge:EndWorldChapterList(currentChapter, currentStage, snapshotOnly)
     Bridge:SetWorldChainMode(M.chainMode)
     if snapshotOnly then
-        M.preloadMapReady = true
         local chapters = Bridge:GetWorldBoxSnapshotChapterIds()
         for index = 0, chapters.Length - 1 do requestChapter(chapters[index], true) end
         finishPreload()
@@ -348,7 +357,11 @@ local function readChapter(message)
     local success = message:ReadByte()
     local snapshotOnly = table.remove(M.chapterRequests[chapterId] or {}, 1) == true
     if snapshotOnly then M.boxSnapshotsPending = math.max(0, M.boxSnapshotsPending - 1) end
-    if success == 0 then fail("World/320 op=2 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown")); return end
+    if success == 0 then
+        finishPreload()
+        fail("World/320 op=2 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown"))
+        return
+    end
     local chapterName = message:ReadString()
     local count = message:ReadByte()
     Bridge:BeginWorldStageList(mapType, chapterId, chapterName, count)
@@ -383,7 +396,11 @@ local function readChapter(message)
         local state = message:ReadByte()
         Bridge:AddWorldStarBox(requiredStars, boxId, state)
     end
-    if message.Remaining ~= 0 then fail("World/320 op=2 unread bytes: " .. tostring(message.Remaining)); return end
+    if message.Remaining ~= 0 then
+        finishPreload()
+        fail("World/320 op=2 unread bytes: " .. tostring(message.Remaining))
+        return
+    end
     Bridge:EndWorldStageList(snapshotOnly)
     if snapshotOnly then finishPreload(); return end
     if M.validationStage == "await_isolation_chapter" then
@@ -583,12 +600,20 @@ function M.onPacket(command, message)
     elseif op == 28 then readChainLose(message)
     elseif op == 11 then
         local success = message:ReadByte()
-        if success == 0 then fail("World/320 op=11 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown")); return true end
+        M.preloadAchievementComplete = true
+        if success == 0 then
+            finishPreload()
+            fail("World/320 op=11 failed: " .. (message.Remaining > 0 and message:ReadString() or "unknown"))
+            return true
+        end
         local orderType = message:ReadByte()
         local bitMap = message:ReadByte()
-        if message.Remaining ~= 0 then fail("World/320 op=11 unread bytes: " .. tostring(message.Remaining)); return true end
+        if message.Remaining ~= 0 then
+            finishPreload()
+            fail("World/320 op=11 unread bytes: " .. tostring(message.Remaining))
+            return true
+        end
         Bridge:SetWorldAchievementState(orderType, bitMap)
-        M.preloadAchievementReady = true
         finishPreload()
     elseif op == 12 then
         local index = message:ReadByte()
