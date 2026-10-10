@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,7 +21,7 @@ namespace ProjectX.UI
         private readonly SinglePlayerSaveService saves;
         private readonly IUiResourceProvider resources;
         private readonly Action<int, bool> playSlot;
-        private readonly Action<int> saveSlot;
+        private readonly Func<int, Task> saveSlot;
         private readonly Action close;
         private readonly Action<string, string, Action> confirm;
         private readonly Action<string> showError;
@@ -29,9 +30,11 @@ namespace ProjectX.UI
         private IReadOnlyList<SinglePlayerSaveSlot> slots = Array.Empty<SinglePlayerSaveSlot>();
         private SinglePlayerSaveMenuMode mode;
         private int selectedSlotId;
+        private bool saving;
+        private bool disposed;
 
         public OldMemoryPresenter(UnityUiView view, SinglePlayerSaveService saves, IUiResourceProvider resources,
-            Action<int, bool> playSlot, Action<int> saveSlot, Action close, Action<string, string, Action> confirm,
+            Action<int, bool> playSlot, Func<int, Task> saveSlot, Action close, Action<string, string, Action> confirm,
             Action<string> showError, Action<string> setStatus)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
@@ -52,9 +55,11 @@ namespace ProjectX.UI
 
         public bool IsVisible => view.GameObject != null && view.GameObject.activeSelf;
         public SinglePlayerSaveMenuMode Mode => mode;
+        public bool IsSaving => saving;
 
         public void Show(SinglePlayerSaveMenuMode value)
         {
+            if (saving || disposed) return;
             mode = value;
             slots = saves.GetSlots();
             selectedSlotId = ChooseInitialSlot(slots, value);
@@ -73,7 +78,7 @@ namespace ProjectX.UI
 
         public void Hide() => view.SetVisible(false);
 
-        public void Dispose() { }
+        public void Dispose() { disposed = true; }
 
         private void RenderSlots()
         {
@@ -144,17 +149,31 @@ namespace ProjectX.UI
 
         private void RequestSave(SinglePlayerSaveSlot slot)
         {
+            if (saving || disposed) return;
             SelectSlot(slot.SlotId);
-            Action save = () =>
+            Action save = async () =>
             {
+                if (saving || disposed || !IsVisible || mode != SinglePlayerSaveMenuMode.SaveCurrent) return;
+                saving = true;
+                SetBusy(true);
                 try
                 {
-                    saveSlot(slot.SlotId);
+                    await saveSlot(slot.SlotId);
+                    if (disposed || !IsVisible) return;
                     slots = saves.GetSlots();
                     RenderSlots();
                     ShowSlots();
                 }
-                catch (Exception exception) { showError(exception.Message); }
+                catch (Exception exception) { if (!disposed && IsVisible) showError(exception.Message); }
+                finally
+                {
+                    saving = false;
+                    if (!disposed && IsVisible)
+                    {
+                        SetBusy(false);
+                        RenderSlots();
+                    }
+                }
             };
             if (slot.Exists)
             {
@@ -166,11 +185,12 @@ namespace ProjectX.UI
 
         private void RequestPlay(SinglePlayerSaveSlot slot)
         {
+            if (saving || disposed) return;
             SelectSlot(slot.SlotId);
             if (mode == SinglePlayerSaveMenuMode.NewGame)
             {
                 confirm("重新开始", $"存档 {slot.SlotId:00} 的当前进度将被覆盖，确定开始新的回忆吗？",
-                    () => playSlot(slot.SlotId, true));
+                    () => { if (!saving && !disposed && IsVisible) playSlot(slot.SlotId, true); });
                 return;
             }
             if (slot.IsCorrupt)
@@ -204,9 +224,11 @@ namespace ProjectX.UI
 
         private void RequestDeleteSlot(SinglePlayerSaveSlot slot)
         {
+            if (saving || disposed) return;
             SelectSlot(slot.SlotId);
             confirm("删除存档", $"存档 {slot.SlotId:00} 将永久删除，确定继续吗？", () =>
             {
+                if (saving || disposed || !IsVisible) return;
                 try
                 {
                     saves.DeleteSlot(slot.SlotId);
@@ -244,8 +266,15 @@ namespace ProjectX.UI
 
         private void Close()
         {
+            if (saving || disposed) return;
             Hide();
             close();
+        }
+
+        private void SetBusy(bool busy)
+        {
+            foreach (Button button in view.GameObject.GetComponentsInChildren<Button>(true))
+                button.interactable = !busy;
         }
 
         private static string SlotPath(int slotId)

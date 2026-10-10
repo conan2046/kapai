@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using ProjectX.Data;
 using ProjectX.Diagnostics;
@@ -16,6 +17,12 @@ namespace ProjectX.Core
     public sealed partial class ProjectXApp
     {
         private bool intentionalLoginTransitionDisconnect;
+        private Task singlePlayerSaveTask = Task.CompletedTask;
+        private Task singlePlayerStopTask = Task.CompletedTask;
+        private bool applicationDestroyed;
+        private bool exitRequested;
+        private bool quitAfterShutdown;
+        private int singlePlayerPreparationVersion;
 
         private void HandleLoginClick() => InvokeLuaOrFail(onLoginClicked, "Login.OnLoginClicked");
         private void HandleRoleCreateClick() => InvokeLuaOrFail(onRoleCreateClicked, "Login.OnRoleCreateClicked");
@@ -81,6 +88,7 @@ namespace ProjectX.Core
 
         private void ReturnFromConnectionFailure()
         {
+            DisconnectForLoginTransition();
             if (singlePlayerTitleEnabled) StopSinglePlayerServer();
             ShowLoginUi();
             BindLoginClick(false);
@@ -88,6 +96,7 @@ namespace ProjectX.Core
 
         private void DisconnectForLoginTransition()
         {
+            InvalidateConnectionOperations();
             intentionalLoginTransitionDisconnect = true;
             try { services.Network.Disconnect(); }
             finally { intentionalLoginTransitionDisconnect = false; }
@@ -104,11 +113,13 @@ namespace ProjectX.Core
 
         private void HandleNetworkState(NetworkState state)
         {
+            if (applicationDestroyed || exitRequested) return;
             SetStatus($"Network: {state}");
         }
 
         private void HandleDisconnected(string reason)
         {
+            if (applicationDestroyed) return;
             if (CurrentAppState == AppState.Disconnected) return;
             bool preserveBagForScenario = false;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -196,10 +207,11 @@ namespace ProjectX.Core
         private async Task RunAutoReconnectAsync()
         {
             if (!services.Config.AutoReconnect) return;
+            CancellationToken token = connectionOperations.Token;
             autoReconnectRunning = true;
             try
             {
-                while (this && services.Network.State != NetworkState.Connected
+                while (OwnsConnectionOperation(token) && services.Network.State != NetworkState.Connected
                     && reconnectAttempts < services.Config.MaxReconnectAttempts)
                 {
                     reconnectAttempts++;
@@ -208,13 +220,14 @@ namespace ProjectX.Core
                         services.Config.ReconnectDelayMilliseconds * backoffMultiplier,
                         20000);
                     SetStatus($"Auto reconnect {reconnectAttempts}/{services.Config.MaxReconnectAttempts} in {delayMilliseconds} ms...");
-                    await Task.Delay(delayMilliseconds);
-                    if (!this || services.Network.State == NetworkState.Connected) return;
+                    await Task.Delay(delayMilliseconds, token);
+                    if (!OwnsConnectionOperation(token) || services.Network.State == NetworkState.Connected) return;
                     try
                     {
                         ShowLoading("auto-reconnect", "正在重新连接…", 25f);
                         SetStatus($"Auto reconnect {reconnectAttempts}/{services.Config.MaxReconnectAttempts}...");
-                        await services.Network.ReconnectAsync(services.Config.ConnectTimeoutSeconds);
+                        await services.Network.ReconnectAsync(services.Config.ConnectTimeoutSeconds, token);
+                        if (!OwnsConnectionOperation(token) || !services.Network.IsConnected) return;
                         reconnectAttempts = 0;
                         disconnectReason = null;
                         services.State.Change(AppState.LoadingRole, "Auto reconnect succeeded");
@@ -223,15 +236,17 @@ namespace ProjectX.Core
                     }
                     catch (Exception exception)
                     {
+                        if (!OwnsConnectionOperation(token)) return;
                         HideLoading("auto-reconnect");
                         disconnectReason = exception.Message;
                         SetStatus($"Auto reconnect {reconnectAttempts}/{services.Config.MaxReconnectAttempts} failed: {exception.Message}");
                     }
                 }
             }
+            catch (OperationCanceledException) { }
             finally
             {
-                autoReconnectRunning = false;
+                if (token == connectionOperations.Token) autoReconnectRunning = false;
             }
         }
 
@@ -467,6 +482,7 @@ namespace ProjectX.Core
 
         private void CloseOldMemoryMenu()
         {
+            if (oldMemoryPresenter?.IsSaving == true) return;
             SinglePlayerSaveMenuMode mode = oldMemoryPresenter?.Mode ?? SinglePlayerSaveMenuMode.Continue;
             oldMemoryPresenter?.Hide();
             if (services?.UiStack.Current == oldMemoryView) services.UiStack.Pop();
@@ -478,36 +494,52 @@ namespace ProjectX.Core
                 : "Single-player title ready.");
         }
 
-        private void SaveCurrentSinglePlayerSlot(int targetSlotId)
+        private Task SaveCurrentSinglePlayerSlot(int targetSlotId)
+        {
+            if (applicationDestroyed || exitRequested || !singlePlayerSaveTask.IsCompleted
+                || !singlePlayerStopTask.IsCompleted)
+                throw new InvalidOperationException("存档保存或关闭正在进行，请稍候。");
+            singlePlayerSaveTask = SaveCurrentSinglePlayerSlotAsync(targetSlotId);
+            return singlePlayerSaveTask;
+        }
+
+        private async Task SaveCurrentSinglePlayerSlotAsync(int targetSlotId)
         {
             if (activeSaveSlotId <= 0 || singlePlayerSaves?.ActiveSlotId != activeSaveSlotId
                 || localServerSupervisor?.IsReady != true || !services.Player.IsLoaded)
                 throw new InvalidOperationException("当前游戏尚未进入可保存状态。");
 
-            string stagingPath = singlePlayerSaves.CreateSnapshotStagingPath(targetSlotId);
+            LocalServerSupervisor supervisor = localServerSupervisor;
+            SinglePlayerSaveService saves = singlePlayerSaves;
+            int sourceSlotId = activeSaveSlotId;
+            uint roleId = services.Player.RoleId;
+            string roleName = services.Player.Name;
+            int model = services.Player.Model;
+            int level = services.Player.Level;
+            ulong power = services.Player.Power;
+            string stagingPath = saves.CreateSnapshotStagingPath(targetSlotId);
             try
             {
-                localServerSupervisor.CreateSnapshot(stagingPath);
-                if (targetSlotId == activeSaveSlotId)
+                await supervisor.CreateSnapshotAsync(stagingPath);
+                if (targetSlotId == sourceSlotId)
                 {
-                    singlePlayerSaves.DiscardSnapshotStaging(stagingPath);
-                    singlePlayerSaves.UpdatePlayer(activeSaveSlotId, services.Player.RoleId,
-                        services.Player.Name, services.Player.Model, services.Player.Level, services.Player.Power);
+                    saves.DiscardSnapshotStaging(stagingPath);
+                    saves.UpdatePlayer(sourceSlotId, roleId, roleName, model, level, power);
                 }
                 else
                 {
-                    singlePlayerSaves.CommitCurrentSnapshot(activeSaveSlotId, targetSlotId, stagingPath,
-                        services.Player.RoleId, services.Player.Name, services.Player.Model,
-                        services.Player.Level, services.Player.Power);
+                    saves.CommitCurrentSnapshot(sourceSlotId, targetSlotId, stagingPath,
+                        roleId, roleName, model, level, power);
                 }
-                SetStatus($"当前进度已保存到存档 {targetSlotId:00}。");
+                if (this && !applicationDestroyed && !exitRequested && localServerSupervisor == supervisor)
+                    SetStatus($"当前进度已保存到存档 {targetSlotId:00}。");
             }
             catch (Exception exception)
             {
-                try { singlePlayerSaves.DiscardSnapshotStaging(stagingPath); }
+                try { saves.DiscardSnapshotStaging(stagingPath); }
                 catch { }
                 ClientLog.Error("SinglePlayer", "Save current snapshot failed", exception.Message);
-                throw new InvalidOperationException("保存当前进度失败，请重试。");
+                throw new InvalidOperationException("保存当前进度失败，请重试。", exception);
             }
         }
 
@@ -519,13 +551,16 @@ namespace ProjectX.Core
 
         private void BeginSinglePlayerSlot(int slotId, bool startNew)
         {
-            if (localSaveServerStarting) return;
-            StartCoroutine(PrepareSinglePlayerSlotThenLogin(slotId, startNew));
+            if (localSaveServerStarting || applicationDestroyed || exitRequested || !singlePlayerSaveTask.IsCompleted
+                || localServerSupervisor != null) return;
+            StartCoroutine(PrepareSinglePlayerSlotThenLogin(slotId, startNew, ++singlePlayerPreparationVersion));
         }
 
-        private IEnumerator PrepareSinglePlayerSlotThenLogin(int slotId, bool startNew)
+        private IEnumerator PrepareSinglePlayerSlotThenLogin(int slotId, bool startNew, int version)
         {
             localSaveServerStarting = true;
+            while (!singlePlayerStopTask.IsCompleted) yield return null;
+            if (!this || applicationDestroyed || exitRequested || version != singlePlayerPreparationVersion) yield break;
             oldMemoryPresenter?.Hide();
             loginView?.SetVisible(false);
             Canvas canvas = FindObjectOfType<Canvas>();
@@ -554,24 +589,27 @@ namespace ProjectX.Core
                 ClientLog.Error("SinglePlayer", "Save preparation failed", exception.Message);
                 startupPresenter.Dispose();
                 startupPresenter = null;
-                activeSaveSlotId = 0;
-                localSaveServerStarting = false;
+                StopSinglePlayerServer();
                 ShowLoginUi();
                 BindLoginClick(false);
                 ShowLoginError("存档准备失败，请重试。");
                 yield break;
             }
-            while (!localServerSupervisor.IsTerminal)
+            LocalServerSupervisor preparedSupervisor = localServerSupervisor;
+            while (localServerSupervisor == preparedSupervisor && !preparedSupervisor.IsTerminal)
             {
-                localServerSupervisor.Tick();
+                preparedSupervisor.Tick();
                 yield return null;
             }
+            if (!this || applicationDestroyed || exitRequested || version != singlePlayerPreparationVersion
+                || localServerSupervisor != preparedSupervisor) yield break;
             if (!localServerSupervisor.IsReady)
             {
                 string detail = localServerSupervisor.Detail;
                 ClientLog.Error("SinglePlayer", "Save runtime preparation failed", detail ?? string.Empty);
-                localServerSupervisor.Dispose();
-                localServerSupervisor = null;
+                StopSinglePlayerServer();
+                while (!singlePlayerStopTask.IsCompleted) yield return null;
+                if (!this || applicationDestroyed || exitRequested) yield break;
                 startupPresenter.Dispose();
                 startupPresenter = null;
                 activeSaveSlotId = 0;
@@ -610,25 +648,53 @@ namespace ProjectX.Core
 
         private void StopSinglePlayerServer()
         {
-            singlePlayerSaves?.CompleteSession();
-            if (localServerSupervisor != null)
-            {
-                localServerSupervisor.Failed -= HandleLocalServerFailure;
-                localServerSupervisor.Dispose();
-                localServerSupervisor = null;
-            }
+            singlePlayerPreparationVersion++;
+            localSaveServerStarting = false;
+            if (!singlePlayerStopTask.IsCompleted) return;
+            LocalServerSupervisor supervisor = localServerSupervisor;
+            localServerSupervisor = null;
             activeSaveSlotId = 0;
             localSaveServerStarting = false;
+            if (supervisor != null) supervisor.Failed -= HandleLocalServerFailure;
+            singlePlayerStopTask = StopSinglePlayerServerAsync(supervisor, singlePlayerSaves, singlePlayerSaveTask);
         }
 
-        private void ExitApplication()
+        private static async Task StopSinglePlayerServerAsync(LocalServerSupervisor supervisor,
+            SinglePlayerSaveService saves, Task pendingSave)
         {
+            // Accepted saves finish their existing staging/commit transaction before shutdown.
+            try { await pendingSave; }
+            catch (Exception exception) { ClientLog.Error("SinglePlayer", "待完成的保存失败，继续关闭会话。", exception.ToString()); }
+            Exception[] errors = CleanupSequence.Run(() => saves?.CompleteSession());
+            try { if (supervisor != null) await supervisor.DisposeAsync(); }
+            catch (Exception exception) { ClientLog.Error("SinglePlayer", "本机服务关闭失败。", exception.ToString()); }
+            foreach (Exception error in errors)
+                ClientLog.Error("SinglePlayer", "结束存档会话时发生错误，已继续执行清理。", error.ToString());
+        }
+
+        private async void ExitApplication()
+        {
+            if (exitRequested) return;
+            exitRequested = true;
+            if (services != null) DisconnectForLoginTransition();
             StopSinglePlayerServer();
+            await singlePlayerStopTask;
+            // Even an already-finished shutdown must return from wantsToQuit before requesting quit again.
+            await Task.Yield();
+            if (!this || applicationDestroyed) return;
+            quitAfterShutdown = true;
 #if UNITY_EDITOR
             UnityEditor.EditorApplication.isPlaying = false;
 #else
             Application.Quit();
 #endif
+        }
+
+        private bool WaitForSinglePlayerShutdownBeforeQuit()
+        {
+            if (quitAfterShutdown || !singlePlayerTitleEnabled || applicationDestroyed) return true;
+            ExitApplication();
+            return false;
         }
 
         public void ShowRoleCreateUi()

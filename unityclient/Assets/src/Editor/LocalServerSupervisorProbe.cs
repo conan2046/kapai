@@ -32,7 +32,7 @@ namespace ProjectX.Editor
             public int residualKapai;
         }
 
-        public static void Run()
+        public static async void Run()
         {
             if (!Application.isBatchMode)
                 throw new InvalidOperationException("S6 supervisor probe requires batch mode; it must not close an interactive Unity Editor.");
@@ -63,6 +63,7 @@ namespace ProjectX.Editor
                     Require(missing.State == LocalServerState.Failed && missing.Detail.Contains("缺少本机游戏服务"),
                         "Missing-layout failure was not explicit.");
                     report.missingLayout = "Passed";
+                    await missing.DisposeAsync();
                 }
 
                 conflict = new TcpListener(IPAddress.Loopback, 8711);
@@ -73,6 +74,7 @@ namespace ProjectX.Editor
                     Require(blocked.State == LocalServerState.Failed && blocked.Detail.Contains("端口 8711"),
                         "Port-conflict failure was not explicit.");
                     report.portConflict = "Passed";
+                    await blocked.DisposeAsync();
                 }
                 conflict.Stop();
                 conflict = null;
@@ -98,11 +100,11 @@ namespace ProjectX.Editor
                 Require(adopted.State == LocalServerState.ReadyAdopted, "Second supervisor did not adopt the server.");
                 report.maximumConcurrentKapai = Math.Max(report.maximumConcurrentKapai, CountKapai());
                 Require(report.maximumConcurrentKapai == 1, "Repeated startup created duplicate kapai processes.");
-                adopted.Dispose();
+                await adopted.DisposeAsync();
                 adopted = null;
                 Require(CountKapai() == 1, "Adopted supervisor incorrectly stopped the owner process.");
                 report.repeatedStartup = "Passed";
-                owner.Dispose();
+                await owner.DisposeAsync();
                 Require(owner.GracefulShutdownCompleted, "Owning supervisor did not complete graceful shutdown.");
                 Require(File.Exists(owner.LogPath)
                         && File.ReadAllText(owner.LogPath).Contains("graceful shutdown requested by owning client"),
@@ -131,7 +133,7 @@ namespace ProjectX.Editor
                 Require(crashOwner.State == LocalServerState.Failed && crashOwner.Detail.Contains("异常退出"),
                     "Runtime crash was not surfaced explicitly.");
                 report.crashDetection = "Passed";
-                crashOwner.Dispose();
+                await crashOwner.DisposeAsync();
                 crashOwner = null;
                 WaitForNoKapai(8f);
 
@@ -149,9 +151,9 @@ namespace ProjectX.Editor
             finally
             {
                 conflict?.Stop();
-                adopted?.Dispose();
-                owner?.Dispose();
-                crashOwner?.Dispose();
+                if (adopted != null) await adopted.DisposeAsync();
+                if (owner != null) await owner.DisposeAsync();
+                if (crashOwner != null) await crashOwner.DisposeAsync();
                 EditorApplication.Exit(exitCode);
             }
         }

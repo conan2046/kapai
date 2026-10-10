@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ProjectX.Network
@@ -18,6 +19,8 @@ namespace ProjectX.Network
         private string lastHost;
         private int lastPort;
         private bool disposing;
+        private int connectionVersion;
+        private CancellationTokenSource pendingConnection;
 
         public event Action<ushort, LegacyTcpMessage> PacketReceived;
         public event Action<ProtocolPacketTrace> PacketObserved;
@@ -26,38 +29,69 @@ namespace ProjectX.Network
 
         public NetworkState State { get; private set; } = NetworkState.Idle;
         public bool IsConnected => State == NetworkState.Connected && client.IsConnected;
+        public int SessionVersion => connectionVersion;
 
-        public async Task ConnectAsync(string host, int port, int timeoutSeconds = 8)
+        public async Task ConnectAsync(string host, int port, int timeoutSeconds = 8,
+            CancellationToken cancellationToken = default)
         {
+            if (disposing) throw new ObjectDisposedException(nameof(NetworkService));
             if (State == NetworkState.Connecting) throw new InvalidOperationException("A connection attempt is already running.");
+            int version = ++connectionVersion;
+            var attempt = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            CancellationToken token = attempt.Token;
+            pendingConnection = attempt;
             lastHost = host;
             lastPort = port;
-            SetState(NetworkState.Connecting);
             try
             {
-                Task connectTask = client.ConnectAsync(host, port);
-                Task completed = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromSeconds(timeoutSeconds)));
+                SetState(NetworkState.Connecting);
+                Task connectTask = client.ConnectAsync(host, port, token);
+                Task completed = await Task.WhenAny(connectTask, Task.Delay(TimeSpan.FromSeconds(timeoutSeconds), token));
                 if (completed != connectTask)
                 {
+                    _ = ObserveConnectionAsync(connectTask);
+                    if (disposing || version != connectionVersion) throw new OperationCanceledException(token);
+                    attempt.Cancel();
                     client.Disconnect();
+                    cancellationToken.ThrowIfCancellationRequested();
                     throw new TimeoutException($"Connection timed out after {timeoutSeconds} seconds.");
                 }
                 await connectTask;
+                if (disposing || version != connectionVersion) throw new OperationCanceledException(token);
+                token.ThrowIfCancellationRequested();
                 SetState(NetworkState.Connected);
             }
             catch
             {
-                SetState(NetworkState.Faulted);
+                if (!disposing && version == connectionVersion)
+                {
+                    client.Disconnect();
+                    SetState(NetworkState.Faulted);
+                }
                 throw;
+            }
+            finally
+            {
+                if (pendingConnection == attempt) pendingConnection = null;
+                attempt.Cancel();
+                attempt.Dispose();
             }
         }
 
-        public Task ReconnectAsync(int timeoutSeconds = 8)
+        private static async Task ObserveConnectionAsync(Task task)
         {
+            try { await task; }
+            catch { /* The timeout/cancellation has already been reported to the caller. */ }
+        }
+
+        public Task ReconnectAsync(int timeoutSeconds = 8, CancellationToken cancellationToken = default)
+        {
+            if (disposing) throw new ObjectDisposedException(nameof(NetworkService));
+            if (State == NetworkState.Connecting) throw new InvalidOperationException("A connection attempt is already running.");
             if (string.IsNullOrEmpty(lastHost) || lastPort <= 0)
                 throw new InvalidOperationException("No previous endpoint is available for reconnect.");
-            client.Disconnect();
-            return ConnectAsync(lastHost, lastPort, timeoutSeconds);
+            CancelConnection();
+            return ConnectAsync(lastHost, lastPort, timeoutSeconds, cancellationToken);
         }
 
         public void Send(LegacyTcpMessage message)
@@ -70,13 +104,15 @@ namespace ProjectX.Network
 
         public void Tick()
         {
+            if (disposing) return;
             client.Pump((command, message, error) =>
             {
                 if (command != 0)
                 {
+                    int version = connectionVersion;
                     byte[] body = message.SnapshotPayload();
                     PacketObserved?.Invoke(new ProtocolPacketTrace(ProtocolPacketDirection.Received, command, body, FrameIncoming(command, body), DateTime.UtcNow));
-                    PacketReceived?.Invoke(command, message);
+                    if (!disposing && version == connectionVersion) PacketReceived?.Invoke(command, message);
                     return;
                 }
                 if (disposing) return;
@@ -88,8 +124,9 @@ namespace ProjectX.Network
 
         public void Disconnect(string reason = "Disconnected by client.")
         {
+            if (disposing) return;
             bool changed = State != NetworkState.Disconnected;
-            client.Disconnect();
+            CancelConnection();
             SetState(NetworkState.Disconnected);
             if (changed && !disposing)
                 Disconnected?.Invoke(reason);
@@ -97,16 +134,25 @@ namespace ProjectX.Network
 
         public void Dispose()
         {
+            if (disposing) return;
             disposing = true;
+            CancelConnection();
             client.Dispose();
             SetState(NetworkState.Idle);
+        }
+
+        private void CancelConnection()
+        {
+            connectionVersion++;
+            pendingConnection?.Cancel();
+            client.Disconnect();
         }
 
         private void SetState(NetworkState state)
         {
             if (State == state) return;
             State = state;
-            StateChanged?.Invoke(state);
+            if (!disposing) StateChanged?.Invoke(state);
         }
 
         private static byte[] FrameOutgoing(byte[] payload)

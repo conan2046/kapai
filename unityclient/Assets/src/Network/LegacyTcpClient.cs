@@ -14,21 +14,45 @@ namespace ProjectX.Network
 
         private readonly ConcurrentQueue<ReceivedPacket> received = new ConcurrentQueue<ReceivedPacket>();
         private readonly object sendLock = new object();
-        private TcpClient tcpClient;
-        private NetworkStream stream;
-        private CancellationTokenSource cancellation;
-        private Task receiveTask;
+        private Transport transport;
+        private bool disposed;
 
-        public bool IsConnected => tcpClient != null && tcpClient.Connected;
+        public bool IsConnected { get { lock (sendLock) return transport?.Stream != null && transport.Client.Connected; } }
 
-        public async Task ConnectAsync(string host, int port)
+        public async Task ConnectAsync(string host, int port, CancellationToken token = default)
         {
-            DisposeTransport();
-            tcpClient = new TcpClient { NoDelay = true };
-            await tcpClient.ConnectAsync(host, port);
-            stream = tcpClient.GetStream();
-            cancellation = new CancellationTokenSource();
-            receiveTask = ReceiveLoopAsync(cancellation.Token);
+            var attempt = new Transport();
+            lock (sendLock)
+            {
+                if (disposed) { attempt.Dispose(); throw new ObjectDisposedException(nameof(LegacyTcpClient)); }
+                DisposeTransport();
+                transport = attempt;
+            }
+            try
+            {
+                using (var linked = CancellationTokenSource.CreateLinkedTokenSource(token, attempt.Cancellation.Token))
+                using (linked.Token.Register(attempt.Client.Close))
+                {
+                    linked.Token.ThrowIfCancellationRequested();
+                    await attempt.Client.ConnectAsync(host, port).ConfigureAwait(false);
+                    lock (sendLock)
+                    {
+                        linked.Token.ThrowIfCancellationRequested();
+                        if (transport != attempt || disposed) throw new OperationCanceledException();
+                        attempt.Stream = attempt.Client.GetStream();
+                        attempt.ReceiveTask = ReceiveLoopAsync(attempt, attempt.Stream, attempt.Cancellation.Token);
+                    }
+                }
+            }
+            catch
+            {
+                lock (sendLock)
+                {
+                    if (transport == attempt) DisposeTransport();
+                    else attempt.Dispose();
+                }
+                throw;
+            }
         }
 
         public void Send(LegacyTcpMessage message)
@@ -57,12 +81,12 @@ namespace ProjectX.Network
 
             lock (sendLock)
             {
-                if (stream == null)
+                if (transport?.Stream == null)
                 {
                     throw new InvalidOperationException("TCP client is not connected.");
                 }
 
-                stream.Write(packet, 0, packet.Length);
+                transport.Stream.Write(packet, 0, packet.Length);
             }
         }
 
@@ -70,28 +94,29 @@ namespace ProjectX.Network
         {
             while (received.TryDequeue(out ReceivedPacket packet))
             {
+                lock (sendLock) { if (packet.Owner != transport || disposed) continue; }
                 handler(packet.Command, new LegacyTcpMessage(packet.Body), packet.Error);
             }
         }
 
         public void Disconnect()
         {
-            DisposeTransport();
+            lock (sendLock) DisposeTransport();
         }
 
         public void Dispose()
         {
-            DisposeTransport();
+            lock (sendLock) { disposed = true; DisposeTransport(); }
         }
 
-        private async Task ReceiveLoopAsync(CancellationToken token)
+        private async Task ReceiveLoopAsync(Transport owner, NetworkStream source, CancellationToken token)
         {
             byte[] header = new byte[HeaderSize];
             try
             {
                 while (!token.IsCancellationRequested)
                 {
-                    await ReadExactlyAsync(stream, header, HeaderSize, token);
+                    await ReadExactlyAsync(source, header, HeaderSize, token).ConfigureAwait(false);
                     uint bodyLengthValue = ReadUInt32(header, 0);
                     if (bodyLengthValue > MaxBodySize)
                     {
@@ -103,10 +128,10 @@ namespace ProjectX.Network
                     byte[] body = new byte[bodyLength];
                     if (bodyLength > 0)
                     {
-                        await ReadExactlyAsync(stream, body, bodyLength, token);
+                        await ReadExactlyAsync(source, body, bodyLength, token).ConfigureAwait(false);
                     }
 
-                    received.Enqueue(new ReceivedPacket(command, body));
+                    received.Enqueue(new ReceivedPacket(owner, command, body));
                 }
             }
             catch (OperationCanceledException)
@@ -119,7 +144,7 @@ namespace ProjectX.Network
             {
                 if (!token.IsCancellationRequested)
                 {
-                    received.Enqueue(new ReceivedPacket(0, Array.Empty<byte>(), exception));
+                    received.Enqueue(new ReceivedPacket(owner, 0, Array.Empty<byte>(), exception));
                 }
             }
         }
@@ -129,7 +154,7 @@ namespace ProjectX.Network
             int offset = 0;
             while (offset < count)
             {
-                int read = await source.ReadAsync(buffer, offset, count - offset, token);
+                int read = await source.ReadAsync(buffer, offset, count - offset, token).ConfigureAwait(false);
                 if (read == 0)
                 {
                     throw new EndOfStreamException("The game server closed the connection.");
@@ -141,16 +166,31 @@ namespace ProjectX.Network
 
         private void DisposeTransport()
         {
-            cancellation?.Cancel();
-            stream?.Dispose();
-            tcpClient?.Close();
-            cancellation?.Dispose();
-            cancellation = null;
-            stream = null;
-            tcpClient = null;
-            receiveTask = null;
+            Transport previous = transport;
+            transport = null;
+            previous?.Dispose();
             while (received.TryDequeue(out _))
             {
+            }
+        }
+
+        private sealed class Transport : IDisposable
+        {
+            public readonly TcpClient Client = new TcpClient { NoDelay = true };
+            public readonly CancellationTokenSource Cancellation = new CancellationTokenSource();
+            public NetworkStream Stream;
+            public Task ReceiveTask;
+            private int disposed;
+
+            public void Dispose()
+            {
+                if (Interlocked.Exchange(ref disposed, 1) != 0) return;
+                try { Cancellation.Cancel(); }
+                finally
+                {
+                    Client.Close();
+                    Cancellation.Dispose();
+                }
             }
         }
 
@@ -172,13 +212,15 @@ namespace ProjectX.Network
 
         private readonly struct ReceivedPacket
         {
-            public ReceivedPacket(ushort command, byte[] body, Exception error = null)
+            public ReceivedPacket(Transport owner, ushort command, byte[] body, Exception error = null)
             {
+                Owner = owner;
                 Command = command;
                 Body = body;
                 Error = error;
             }
 
+            public Transport Owner { get; }
             public ushort Command { get; }
             public byte[] Body { get; }
             public Exception Error { get; }

@@ -253,13 +253,21 @@ namespace ProjectX.Data
         public void CompleteSession()
         {
             if (sessionSlotId <= 0) return;
-            int seconds = Math.Max(0, (int)(DateTime.UtcNow - sessionStartedUtc).TotalSeconds);
-            string metadataPath = Path.Combine(GetSlotDirectory(sessionSlotId), MetadataName);
-            SinglePlayerSaveMetadata metadata = ReadMetadata(metadataPath, sessionSlotId, out _) ?? NewMetadata(sessionSlotId);
-            metadata.totalPlaySeconds = Math.Max(0L, metadata.totalPlaySeconds + seconds);
-            metadata.updatedUtc = DateTime.UtcNow.ToString("o");
-            WriteMetadata(metadataPath, metadata);
-            sessionSlotId = 0;
+            try
+            {
+                int seconds = Math.Max(0, (int)(DateTime.UtcNow - sessionStartedUtc).TotalSeconds);
+                string metadataPath = Path.Combine(GetSlotDirectory(sessionSlotId), MetadataName);
+                SinglePlayerSaveMetadata metadata = ReadMetadata(metadataPath, sessionSlotId, out _) ?? NewMetadata(sessionSlotId);
+                metadata.totalPlaySeconds = Math.Max(0L, metadata.totalPlaySeconds + seconds);
+                metadata.updatedUtc = DateTime.UtcNow.ToString("o");
+                WriteMetadata(metadataPath, metadata);
+            }
+            finally
+            {
+                // A failed metadata write must not keep an ended session active or
+                // charge its elapsed time again during the subsequent OnDestroy.
+                sessionSlotId = 0;
+            }
         }
 
         private void TouchMetadata(int slotId)

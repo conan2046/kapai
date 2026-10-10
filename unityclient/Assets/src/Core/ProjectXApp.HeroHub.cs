@@ -193,7 +193,7 @@ namespace ProjectX.Core
                 return;
             }
             bool showBag = pendingHeroEntry == HeroEntry.Bag;
-            if (heroHubOpen && heroCultivationView?.GameObject.activeInHierarchy != true
+            if (ShouldPresentHeroHubFromSnapshot && heroCultivationView?.GameObject.activeInHierarchy != true
                 && heroLevelUpView?.GameObject.activeInHierarchy != true)
             {
                 heroEntryRequestPending = false;
@@ -204,9 +204,9 @@ namespace ProjectX.Core
             bool explicitEntry = heroEntryRequestPending;
             heroEntryRequestPending = false;
             bool heroPageVisible = IsHeroOpen;
-            bool hasVisibleHeroSubview = formationPopupView?.GameObject.activeSelf == true
-                || heroCultivationView?.GameObject.activeSelf == true
-                || heroLevelUpView?.GameObject.activeSelf == true;
+            bool hasVisibleHeroSubview = formationPopupView?.GameObject.activeInHierarchy == true
+                || heroCultivationView?.GameObject.activeInHierarchy == true
+                || heroLevelUpView?.GameObject.activeInHierarchy == true;
             if (!explicitEntry && !heroPageVisible && !hasVisibleHeroSubview)
             {
                 SetStatus($"Hero state synchronized without navigation: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
@@ -262,6 +262,10 @@ namespace ProjectX.Core
 
         private HeroHubTab heroHubTab = HeroHubTab.Formation;
         private bool heroHubOpen;
+
+        // A retained hub/tab request is not permission for a background reply to steal another page.
+        private bool ShouldPresentHeroHubFromSnapshot =>
+            heroHubOpen && (heroEntryRequestPending || IsHeroOpen);
 
         private void RequestHeroHub(HeroHubTab tab)
         {

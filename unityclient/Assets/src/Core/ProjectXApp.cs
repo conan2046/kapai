@@ -741,7 +741,9 @@ namespace ProjectX.Core
 #endif
         public bool IsRewardVisible => rewardPresenter?.IsVisible ?? false;
         public int RewardCount => services?.Rewards.Count ?? 0;
-        public bool IsHeroOpen => oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView;
+        // Player-hub tabs share this frame; their visibility does not grant Hero snapshot ownership.
+        public bool IsHeroOpen => oneLevelFrameView != null && services?.UiStack.Current == oneLevelFrameView
+            && !IsJingJieOpen;
         private bool IsHeroEquipmentSurfaceVisible => heroEquipmentListView?.GameObject.activeSelf == true
             || heroEquipmentDetailView?.GameObject.activeSelf == true
             || heroEquipmentChangeView?.GameObject.activeSelf == true

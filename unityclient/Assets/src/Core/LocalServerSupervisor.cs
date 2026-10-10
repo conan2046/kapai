@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using ProjectX.Diagnostics;
 using UnityEngine;
 
@@ -38,6 +39,8 @@ namespace ProjectX.Core
             new ConcurrentQueue<Tuple<string, bool>>();
         private readonly object snapshotSync = new object();
         private readonly AutoResetEvent snapshotCompleted = new AutoResetEvent(false);
+        private readonly SemaphoreSlim operationGate = new SemaphoreSlim(1, 1);
+        private Task shutdownTask;
         private Process process;
         private Semaphore ownershipLease;
         private bool leaseHeld;
@@ -120,6 +123,7 @@ namespace ProjectX.Core
 
         public void Start()
         {
+            if (disposed) throw new ObjectDisposedException(nameof(LocalServerSupervisor));
             if (State != LocalServerState.NotStarted) return;
             if (!ValidateLayout(out string layoutError))
             {
@@ -254,7 +258,13 @@ namespace ProjectX.Core
 
         public void CreateSnapshot(string destinationPath)
         {
-            if (disposed || !IsReady || !ownsProcess || process == null || SafeHasExited(process))
+            if (disposed) throw new ObjectDisposedException(nameof(LocalServerSupervisor));
+            CreateSnapshotCore(destinationPath);
+        }
+
+        private void CreateSnapshotCore(string destinationPath)
+        {
+            if (!IsReady || !ownsProcess || process == null || SafeHasExited(process))
                 throw new InvalidOperationException("本机游戏服务未处于可保存状态。");
             if (string.IsNullOrWhiteSpace(destinationPath))
                 throw new ArgumentException("SQLite 快照路径不能为空。", nameof(destinationPath));
@@ -299,10 +309,51 @@ namespace ProjectX.Core
             }
         }
 
-        public void Dispose()
+        public async Task CreateSnapshotAsync(string destinationPath)
         {
-            if (disposed) return;
+            await operationGate.WaitAsync();
+            try
+            {
+                if (disposed) throw new ObjectDisposedException(nameof(LocalServerSupervisor));
+                await Task.Run(() => CreateSnapshotCore(destinationPath));
+            }
+            finally { operationGate.Release(); }
+        }
+
+        public void Dispose() => _ = DisposeAsync();
+
+        public Task DisposeAsync()
+        {
+            if (shutdownTask != null) return shutdownTask;
             disposed = true;
+            shutdownTask = ShutdownAsync();
+            return shutdownTask;
+        }
+
+        private async Task ShutdownAsync()
+        {
+            await operationGate.WaitAsync();
+            try
+            {
+                await Task.Run(StopOwnedProcess);
+            }
+            finally
+            {
+                // This continuation retains the caller's Unity context; worker code only queues logs.
+                Exception[] errors = ProjectX.Foundation.CleanupSequence.Run(
+                    DrainProcessLines,
+                    () => { logWriter?.Dispose(); logWriter = null; },
+                    () => { process?.Dispose(); process = null; },
+                    ReleaseOwnership);
+                State = LocalServerState.Stopped;
+                operationGate.Release();
+                foreach (Exception error in errors)
+                    ClientLog.Warning("LocalServer", "回收本机游戏服务失败。", error.ToString());
+            }
+        }
+
+        private void StopOwnedProcess()
+        {
             if (ownsProcess && process != null && !SafeHasExited(process))
             {
                 try
@@ -313,21 +364,33 @@ namespace ProjectX.Core
                     if (GracefulShutdownCompleted) process.WaitForExit();
                     if (!GracefulShutdownCompleted)
                     {
-                        ClientLog.Warning("LocalServer", "本机游戏服务优雅退出超时，执行强制回收。", $"pid={process.Id}");
+                        processLines.Enqueue(Tuple.Create($"本机游戏服务优雅退出超时，执行强制回收。pid={process.Id}", true));
                         process.Kill();
                         process.WaitForExit(3000);
                     }
                 }
                 catch (Exception exception)
                 {
-                    ClientLog.Warning("LocalServer", "回收本机游戏服务失败。", exception.Message);
+                    processLines.Enqueue(Tuple.Create("回收本机游戏服务失败。" + exception, true));
+                    try
+                    {
+                        if (!SafeHasExited(process))
+                        {
+                            process.Kill();
+                            if (!process.WaitForExit(3000))
+                                processLines.Enqueue(Tuple.Create("本机游戏服务强制回收超时。", true));
+                        }
+                    }
+                    catch (Exception cleanupError)
+                    {
+                        processLines.Enqueue(Tuple.Create("强制回收本机游戏服务失败。" + cleanupError, true));
+                    }
                 }
             }
-            DrainProcessLines();
-            logWriter?.Dispose();
-            logWriter = null;
-            process?.Dispose();
-            process = null;
+        }
+
+        private void ReleaseOwnership()
+        {
             if (leaseHeld)
             {
                 try { ownershipLease?.Release(); }
@@ -336,7 +399,6 @@ namespace ProjectX.Core
             }
             ownershipLease?.Dispose();
             ownershipLease = null;
-            State = LocalServerState.Stopped;
         }
 
         private bool ValidateLayout(out string error)

@@ -31,6 +31,7 @@ namespace ProjectX.Core
 
         private void InitializeApplication(AppLaunchOptions launchOptions)
         {
+            Application.wantsToQuit += WaitForSinglePlayerShutdownBeforeQuit;
             try
             {
                 Canvas canvas = FindObjectOfType<Canvas>();
@@ -237,6 +238,34 @@ namespace ProjectX.Core
         }
 
         private void OnDestroy()
+        {
+            applicationDestroyed = true;
+            Application.wantsToQuit -= WaitForSinglePlayerShutdownBeforeQuit;
+            InvalidateConnectionOperations();
+            if (services != null)
+            {
+                services.Network.StateChanged -= HandleNetworkState;
+                services.Network.Disconnected -= HandleDisconnected;
+            }
+            try { DisposeApplicationUi(); }
+            catch (Exception exception)
+            {
+                ClientLog.Error("Core", "UI cleanup failed; continuing runtime shutdown", exception.ToString());
+            }
+            finally
+            {
+                Exception[] errors = CleanupSequence.Run(
+                    StopSinglePlayerServer,
+                    () => services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed"),
+                    () => services?.Network.Dispose(),
+                    () => services?.Dispose());
+                if (Instance == this) Instance = null;
+                foreach (Exception error in errors)
+                    ClientLog.Error("Core", "Runtime shutdown step failed", error.ToString());
+            }
+        }
+
+        private void DisposeApplicationUi()
         {
             if (powerChangedPopupObject != null) Destroy(powerChangedPopupObject);
             powerChangedPopupObject = null;
@@ -470,16 +499,6 @@ namespace ProjectX.Core
             oldMemoryPresenter?.Dispose();
             loginPresenter?.Dispose();
             noticePresenter?.Dispose();
-            singlePlayerSaves?.CompleteSession();
-            services?.State.Change(AppState.ShuttingDown, "ProjectXApp destroyed");
-            services?.Dispose();
-            if (localServerSupervisor != null)
-            {
-                localServerSupervisor.Failed -= HandleLocalServerFailure;
-                localServerSupervisor.Dispose();
-                localServerSupervisor = null;
-            }
-            if (Instance == this) Instance = null;
         }
 
 
