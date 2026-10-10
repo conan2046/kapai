@@ -1,6 +1,6 @@
 local Protocol = require("Protocol")
 
-local M = { level = 0 }
+local M = { level = 0, pendingHeroId = nil }
 
 local function send(operation, heroId)
     local message = Protocol.newMessage(Protocol.HERO_BOOK)
@@ -14,11 +14,25 @@ function M.open()
     Bridge:SetStatus("HeroBook/322 snapshot requested.")
 end
 
+function M.preload()
+    if Bridge:IsHeroBookUnlocked() then send(1) end
+end
+
+local function finishPending(heroId)
+    if M.pendingHeroId == heroId then
+        M.pendingHeroId = nil
+        Bridge:SetHeroBookPending(heroId, false)
+    end
+end
+
 function M.upgrade(heroId)
     if heroId == nil or heroId <= 0 then
         Bridge:ShowToast("请选择神将", 2)
         return
     end
+    if M.pendingHeroId ~= nil or not Bridge:CanUpgradeHeroBook(heroId) then return end
+    M.pendingHeroId = heroId
+    Bridge:SetHeroBookPending(heroId, true)
     send(2, heroId)
     Bridge:SetStatus("HeroBook/322 upgrade requested: hero=" .. tostring(heroId) .. ".")
 end
@@ -62,6 +76,7 @@ function M.onPacket(command, message)
         local success = message:ReadByte()
         if success == 0 then
             Bridge:EndHeroBookUpgrade(heroId, 0, 0, M.level, false, message:ReadString())
+            finishPending(heroId)
             return true
         end
         local star = message:ReadByte()
@@ -79,10 +94,12 @@ function M.onPacket(command, message)
         if message.Remaining ~= 0 then
             Bridge:EndHeroBookUpgrade(heroId, star, addedScore, bookLevel, false,
                 "图鉴升级响应数据不完整")
+            finishPending(heroId)
             return true
         end
         M.level = math.max(M.level, bookLevel)
         Bridge:EndHeroBookUpgrade(heroId, star, addedScore, bookLevel, true, "")
+        finishPending(heroId)
         return true
     end
     Bridge:SetStatus("Unhandled HeroBook/322 op=" .. tostring(operation) .. ".")
@@ -91,6 +108,8 @@ end
 
 function M.reset()
     M.level = 0
+    M.pendingHeroId = nil
+    Bridge:SetHeroBookPending(0, false)
 end
 
 return M

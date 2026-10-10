@@ -9,11 +9,18 @@ local function send(op, extra)
     if extra ~= nil then message:WriteByte(extra) end
     Bridge:Send(message)
     M.pending = op
+    Bridge:SetMonopolyReminderPending(true)
+end
+
+function M.preload()
+    if not Bridge:IsGameplayReminderOpen(21) or M.pending ~= 0 then return end
+    local message=Protocol.newMessage(CMD);message:WriteByte(34);Bridge:Send(message)
 end
 
 function M.onClick(functionId)
     M.pending = 0
     M.functionId = functionId
+    M.openRequested = true
     send(15)
 end
 
@@ -29,6 +36,9 @@ function M.close()
     message:WriteByte(24)
     Bridge:Send(message)
     M.pending = 0
+    M.openRequested = false
+    M.functionId = 0
+    Bridge:SetMonopolyReminderPending(false)
     Bridge:CloseMonopolyFromServer()
 end
 
@@ -49,8 +59,18 @@ function M.onPacket(command, message)
     if command ~= CMD then return false end
     local start = message.Position
     local op = message:ReadByte()
+    if op == 34 then
+        local version=message:ReadByte()
+        if version~=1 then Bridge:Fail("Monopoly reminder version mismatch");return true end
+        local entries,rolls=message:ReadUInt(),message:ReadUInt()
+        local state,hasBoard=message:ReadByte(),message:ReadByte()~=0
+        if message.Remaining~=0 then Bridge:Fail("Monopoly reminder trailing bytes");return true end
+        Bridge:SetMonopolyReminderState(entries,rolls,state,hasBoard)
+        return true
+    end
     if op >= 25 then message.Position = start; return false end
     M.pending = 0
+    Bridge:SetMonopolyReminderPending(false)
 
     if op == 0 then
         Bridge:RejectMonopolyEntry("今日次数已用完")
@@ -58,7 +78,7 @@ function M.onPacket(command, message)
         -- The local server can restore an unfinished board during login before
         -- the player has selected function 21.  Consume that authoritative
         -- packet, but do not open/fail an unrelated module with functionId=0.
-        if M.functionId ~= 0 then Bridge:ShowMonopoly(M.functionId) end
+        if M.openRequested and M.functionId ~= 0 then Bridge:ShowMonopoly(M.functionId);M.openRequested=false end
         local timediff = message:ReadUInt()
         local exp, coin, gold = message:ReadUInt(), message:ReadUInt(), message:ReadUInt()
         local rollMax, rollUse = message:ReadUInt(), message:ReadUInt()
@@ -138,8 +158,9 @@ function M.onPacket(command, message)
     else
         Bridge:Fail("Monopoly/213 unsupported single-player op=" .. tostring(op) .. ".")
     end
+    M.preload()
     return true
 end
 
-function M.reset() M.pending = 0; Bridge:ClearMonopolyState() end
+function M.reset() M.pending = 0;M.functionId=0;M.openRequested=false; Bridge:ClearMonopolyState() end
 return M

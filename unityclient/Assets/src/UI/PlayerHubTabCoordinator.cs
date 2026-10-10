@@ -22,6 +22,7 @@ namespace ProjectX.UI
         private static readonly string[] Labels = { "境界", "背包", "邮件", "系统" };
         private readonly UnityUiView frameView;
         private readonly Action<PlayerHubTab> onSelected;
+        private Transform[] activeTabs;
 
         public PlayerHubTabCoordinator(UnityUiView frameView, Action<PlayerHubTab> onSelected)
         {
@@ -49,6 +50,7 @@ namespace ProjectX.UI
                 EnsureRuntimeTab(panel, "Button3_Runtime", first, -200f),
                 EnsureRuntimeTab(panel, "Button4_Runtime", first, -300f)
             };
+            activeTabs = tabs;
             int selectedIndex = (int)selected;
             for (int index = 0; index < tabs.Length; index++)
             {
@@ -75,6 +77,13 @@ namespace ProjectX.UI
 
             CurrentTab = selected;
             VisibleTabCount = tabs.Length;
+        }
+
+        public void SetRedDots(Func<PlayerHubTab, bool> isVisible, Transform template)
+        {
+            if (activeTabs == null) return;
+            for (int index = 0; index < activeTabs.Length; index++)
+                RedDotVisual.Set(activeTabs[index], isVisible((PlayerHubTab)index), template);
         }
 
         private static void EnsureTabHierarchyOrder(Transform panel, Transform[] tabs)

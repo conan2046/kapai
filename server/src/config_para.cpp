@@ -187,17 +187,29 @@ void CParaMgr::ReadKunLunBuy(string& val)
 void CParaMgr::ReadXiuLianAttr(string& val)
 {
 	rapidjson::Document d;
-	rapidjson::Value& arrt = (rapidjson::Value&)d.Parse(val.c_str());
-	if (!arrt.IsArray())
-		return;
+	d.Parse(val.c_str());
+	// Formal config type "arrays" may store comma-separated array fragments.
+	// Accept both that representation and an already wrapped JSON array.
+	if (d.HasParseError() || !d.IsArray() || (d.Size() > 0 && !d[0].IsArray()))
+	{
+		string wrapped = "[" + val + "]";
+		d.Parse(wrapped.c_str());
+	}
 	CHeroCfgManager::g_xiuLianAttrAdd.clear();
+	if (d.HasParseError() || !d.IsArray())
+		return;
+	rapidjson::Value& arrt = (rapidjson::Value&)d;
+	U8tU16Map parsed;
 	for (uint8 i = 0; i < arrt.Size(); ++i)
 	{
 		const rapidjson::Value &sarr = arrt[i];
-		if (!sarr.IsArray() || sarr.Size() < 2)
+		if (!sarr.IsArray() || sarr.Size() < 2 || !sarr[0].IsInt() || !sarr[1].IsInt()
+			|| sarr[0].GetInt() <= 0 || sarr[0].GetInt() > 255
+			|| sarr[1].GetInt() < 0 || sarr[1].GetInt() > 255)
 			return;
 		uint8 atype = sarr[0].GetInt();
 		uint8 avlue = sarr[1].GetInt();
-		CHeroCfgManager::g_xiuLianAttrAdd[atype] = avlue;
+		parsed[atype] = avlue;
 	}
+	CHeroCfgManager::g_xiuLianAttrAdd.swap(parsed);
 }

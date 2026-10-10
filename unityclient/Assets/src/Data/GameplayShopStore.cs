@@ -7,12 +7,12 @@ namespace ProjectX.Data
     public sealed class GameplayShopPage
     {
         public GameplayShopPage(byte type, ushort refreshTimes, byte freeRefreshTimes,
-            ushort refreshRemainingSeconds, uint serverUnixSeconds, IEnumerable<ShopRecord> items)
+            ushort refreshRemainingSeconds, uint serverUnixSeconds, IEnumerable<ShopRecord> items, uint absoluteDeadline = 0)
         {
             Type = type;
             RefreshTimes = refreshTimes;
             FreeRefreshTimes = freeRefreshTimes;
-            RefreshDeadlineUnix = refreshRemainingSeconds > 0 && serverUnixSeconds > 0
+            RefreshDeadlineUnix = absoluteDeadline > 0 ? absoluteDeadline : refreshRemainingSeconds > 0 && serverUnixSeconds > 0
                 ? serverUnixSeconds + refreshRemainingSeconds
                 : 0;
             Items = (items ?? Array.Empty<ShopRecord>())
@@ -34,6 +34,10 @@ namespace ProjectX.Data
         private readonly Dictionary<byte, GameplayShopPage> pages = new Dictionary<byte, GameplayShopPage>();
 
         public event Action Changed;
+        public int PendingOp { get; private set; }
+        public void SetPending(int op) { PendingOp = op; Changed?.Invoke(); }
+        public bool HasFreeSoulRefresh => PendingOp != 3 && pages.TryGetValue(2, out GameplayShopPage page)
+            && page.Items.Count > 0 && page.FreeRefreshTimes > 0;
         public int PageCount => pages.Count;
         public IReadOnlyCollection<byte> LoadedTypes => pages.Keys.OrderBy(type => type).ToArray();
 
@@ -76,7 +80,7 @@ namespace ProjectX.Data
             }
             if (!found) return false;
             pages[type] = new GameplayShopPage(page.Type, page.RefreshTimes, page.FreeRefreshTimes,
-                RemainingSeconds(page.RefreshDeadlineUnix), 0, values);
+                RemainingSeconds(page.RefreshDeadlineUnix), 0, values, page.RefreshDeadlineUnix);
             Changed?.Invoke();
             return true;
         }
@@ -101,6 +105,7 @@ namespace ProjectX.Data
         public void Clear()
         {
             pages.Clear();
+            PendingOp = 0;
             Changed?.Invoke();
         }
 

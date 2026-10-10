@@ -315,6 +315,13 @@ end
 
 function M.onPacket(command, message)
     if command ~= Protocol.SHOP then return false end
+    if message.Remaining >= 2 then
+        local position=message.Position
+        message:ReadByte()
+        local shopType=message:ReadByte()
+        message.Position=position
+        if shopType~=1 then return true end -- no excluded shop may populate the retained mall
+    end
     if message.Remaining < 1 then
         failMalformed("header", M.pendingOp == 1)
         return true

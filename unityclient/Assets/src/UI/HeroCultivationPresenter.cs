@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 using ProjectX.Data;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -28,6 +29,7 @@ namespace ProjectX.UI
         private readonly FormationStore formation;
         private readonly BagStore bag;
         private readonly PlayerStore player;
+        private readonly CurrencyStore currencies;
         private readonly IUiResourceProvider resources;
         private readonly Action<int, int, int> levelAction;
         private readonly Action<int, int> autoLevelAction, cultivateAction;
@@ -41,6 +43,9 @@ namespace ProjectX.UI
         private readonly Dictionary<RectTransform, float> descriptionContainerBaseHeights = new Dictionary<RectTransform, float>();
         private readonly Dictionary<RectTransform, Vector2> talentTemplateBasePositions = new Dictionary<RectTransform, Vector2>();
         private readonly HeroCultivationConfig config = new HeroCultivationConfig();
+        private static HeroCultivationConfig levelRuleConfig;
+        private static readonly int[] LevelItems = { 834, 835, 836, 837 };
+        private readonly Transform redDotTemplate;
         private int heroId, page, levelItemId = 834, cultivationCount = 1, helpPage, helpSelectedLevel = 1;
         private bool subscribed;
 
@@ -52,9 +57,12 @@ namespace ProjectX.UI
             Action<int, int, int> levelAction, Action<int, int> autoLevelAction,
             Action<int> breakAction, Action<int, int> cultivateAction, Action<int> starAction,
             Action<int> activateAction, Action close, Action<string> toast,
-            Action<Transform, int> showModel, Action<int> selectHero)
+            Action<Transform, int> showModel, Action<int> selectHero, Transform redDotTemplate = null,
+            CurrencyStore currencies = null)
         {
             this.frame = frame; this.shell = shell; this.level = level; this.autoLevel = autoLevel;
+            this.redDotTemplate = redDotTemplate;
+            this.currencies = currencies;
             this.star = star; this.breakUp = breakUp; this.cultivate = cultivate; this.info = info;
             this.talent = talent; this.helpFirst = helpFirst; this.helpSecond = helpSecond;
             this.attributes = attributes; this.number = number;
@@ -69,9 +77,54 @@ namespace ProjectX.UI
             heroes.Changed += HandleChanged;
             formation.Changed += HandleChanged;
             bag.Changed += HandleChanged;
+            player.Changed += HandleChanged;
+            if (currencies != null) currencies.Changed += HandleChanged;
             subscribed = true;
             Hide();
         }
+
+        public static bool CanLevelUp(HeroRecord hero, PlayerStore player, BagStore bag,
+            bool authoritative, int itemId = 0)
+        {
+            if (hero.Id <= 0) return false;
+            var rules = levelRuleConfig ?? (levelRuleConfig = new HeroCultivationConfig());
+            int openLevel = FunctionUnlockCatalog.Resolve(1060).OpenLevel;
+            return LevelItems.Any(id => (itemId == 0 || itemId == id)
+                && HeroLevelEligibility.CanFeed(hero.Level, player.Level, openLevel,
+                    bag.GetTotalQuantityByItemId(id), rules.GetItemExperience(id), authoritative,
+                    rules.GetExperienceCap(hero.Level, 0) > 0))
+                || itemId == 0 && CanAutoLevelUp(hero, hero.Level + 1, player, bag, authoritative);
+        }
+
+        public static bool CanAutoLevelUp(HeroRecord hero, int target, PlayerStore player,
+            BagStore bag, bool authoritative)
+        {
+            if (hero.Id <= 0) return false;
+            var rules = levelRuleConfig ?? (levelRuleConfig = new HeroCultivationConfig());
+            ulong available = 0;
+            foreach (int id in LevelItems)
+                available += (ulong)bag.GetTotalQuantityByItemId(id) * (uint)Math.Max(0, rules.GetItemExperience(id));
+            ulong required = rules.GetRequiredLevelExperience(hero.Level, hero.Experience, target, 0);
+            return HeroLevelEligibility.CanAutoLevel(hero.Level, target, player.Level,
+                FunctionUnlockCatalog.Resolve(1060).OpenLevel, required, available, authoritative,
+                rules.GetExperienceCap(hero.Level, 0) > 0 && rules.GetExperienceCap(target - 1, 0) > 0);
+        }
+
+        public static bool CanBreakUp(HeroRecord hero, PlayerStore player, BagStore bag,
+            CurrencyStore currencies, bool authoritative) => HeroBreakCatalog.Shared.CanBreak(hero,
+                player.Level, FunctionUnlockCatalog.Resolve(1080).OpenLevel, bag, currencies, authoritative);
+
+        public static bool CanStarUp(HeroRecord hero, PlayerStore player, BagStore bag, bool authoritative)
+            => HeroStarCatalog.Shared.CanStarUp(hero, player.Level, FunctionUnlockCatalog.Resolve(1070).OpenLevel,
+                bag, authoritative);
+
+        private bool CanCultivate(HeroRecord hero) => CanLevelUp(hero, player, bag, heroes.HasAuthoritativeState)
+            || CanBreakUp(hero, player, bag, currencies, heroes.HasAuthoritativeState)
+            || CanStarUp(hero, player, bag, heroes.HasAuthoritativeState) || CanTrain(hero) || CanActivate(hero);
+
+        private bool CanTrain(HeroRecord hero) => HeroCultivationCatalog.Shared.CanTrain(hero, bag, heroes.HasAuthoritativeState);
+        private bool CanActivate(HeroRecord hero) => HeroCultivationCatalog.Shared.CanActivate(hero, bag, currencies,
+            heroes.HasAuthoritativeState);
 
         public void Show(int selectedHeroId)
         {
@@ -500,9 +553,10 @@ namespace ProjectX.UI
             breakUp.BindClick("Layer/shenjiangInfoUI/Info/tupo/btn_shengji", () => breakAction(heroId), true);
             cultivate.BindClick("Layer/shenjiangxiulian/Info/jichu/Button", OpenHelp, true);
             cultivate.BindClick("Layer/shenjiangxiulian/Info/cailiao/btn_Item_1", () => cultivateAction(heroId, 1), true);
-            cultivate.BindClick("Layer/shenjiangxiulian/Info/cailiao/btn_yjxl", () => cultivateAction(heroId, RemainingCultivation()), true);
+            cultivate.BindClick("Layer/shenjiangxiulian/Info/cailiao/btn_yjxl", () => RequestCultivation(RemainingCultivation()), true);
             cultivate.BindClick("Layer/shenjiangxiulian/Info/cailiao/btn_xl", OpenNumber, true);
-            cultivate.BindClick("Layer/shenjiangxiulian/Info/cailiao/btn_dxl", () => activateAction(heroId), true);
+            cultivate.BindClick("Layer/shenjiangxiulian/Info/cailiao/btn_dxl", () =>
+            { if (CanActivate(CurrentHero())) activateAction(heroId); else toast("未满足激活条件"); }, true);
             info.BindClick("Layer/shenjiangInfoUI/Info/ScrollView_1/jichu/Button", () => OpenAttributes(), true);
             info.BindClick("Layer/shenjiangInfoUI/Info/ScrollView_1/Skill/Item/Button", () => OpenTalent(false), true);
             talent.BindClick("Layer/bg/Btn_close", () => talent.SetVisible(false), true);
@@ -695,6 +749,22 @@ namespace ProjectX.UI
             if (HeroCatalog.TryGet(hero.Id, out HeroDefinition definition))
                 showModel(shell.FindNode("Layer/Node_3/Node")?.transform, definition.Picture);
             RenderLevel(); RenderStar(); RenderBreak(); RenderCultivate(); RenderInfo();
+            for (int index = 0; index < tabs.Count; index++)
+                RedDotVisual.Set(tabs[index], index == 0
+                    ? CanLevelUp(hero, player, bag, heroes.HasAuthoritativeState)
+                    : index == 1 ? CanStarUp(hero, player, bag, heroes.HasAuthoritativeState)
+                    : index == 2 ? CanBreakUp(hero, player, bag, currencies, heroes.HasAuthoritativeState)
+                    : index == 3 && (CanTrain(hero) || CanActivate(hero)), redDotTemplate);
+            int[] deployed = formation.CombatHeroes.Where(id => id > 0).ToArray();
+            int current = Array.IndexOf(deployed, heroId);
+            foreach (int direction in new[] { -1, 1 })
+            {
+                bool ready = deployed.Length > 1 && current >= 0
+                    && heroes.TryGet(deployed[(current + direction + deployed.Length) % deployed.Length], out HeroRecord next)
+                    && CanCultivate(next);
+                RedDotVisual.Set(shell.FindNode(direction < 0 ? "Layer/Node_3/Button_l" : "Layer/Node_3/Button_r")?.transform,
+                    ready, redDotTemplate);
+            }
         }
 
         private void RenderLevel()
@@ -720,7 +790,7 @@ namespace ProjectX.UI
                 SetText(level, root + "/Value_3", growth[i].ToString());
             }
             SetText(level, "Layer/shenjiangInfoUI/Info/cailiao/Level/Value", hero.Level.ToString());
-            uint maximum = config.GetExperienceCap(hero.Level, checked(hero.MaxExperience * 15u));
+            uint maximum = config.GetExperienceCap(hero.Level, hero.MaxExperience);
             SetText(level, "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/Value", $"{hero.Experience}/{maximum}");
             FitText(level, "Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/Value", 14);
             Image experience = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/ExpBar")?.GetComponent<Image>();
@@ -737,13 +807,22 @@ namespace ProjectX.UI
                 FitText(level, root + "/Text", 12);
                 SetMaterialIcon(level, root, resources.LoadItemIcon(pictures[i]),
                     $"HeroLevelMaterial{i + 1}", config.GetItemQuality(ids[i]));
+                RedDotVisual.Set(level.FindNode(root)?.transform,
+                    CanLevelUp(hero, player, bag, heroes.HasAuthoritativeState, ids[i]), redDotTemplate);
             }
+            Transform feed = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji")?.transform;
+            bool canFeed = CanLevelUp(hero, player, bag, heroes.HasAuthoritativeState, levelItemId);
+            if (feed?.GetComponent<Button>() != null) feed.GetComponent<Button>().interactable = canFeed;
+            RedDotVisual.Set(feed, canFeed, redDotTemplate);
+            RedDotVisual.Set(level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_yjShengji")?.transform,
+                CanAutoLevelUp(hero, hero.Level + 1, player, bag, heroes.HasAuthoritativeState), redDotTemplate);
         }
 
         private void RenderStar()
         {
             HeroRecord hero = CurrentHero();
-            uint[] increase = config.GetStarUpgrade(hero.Id, hero.Star + 1, hero.Level);
+            bool hasNext = HeroStarCatalog.Shared.TryGet(hero.Id, hero.Star + 1, out HeroStarDefinition next);
+            uint[] increase = hasNext ? config.GetStarUpgrade(hero.Id, hero.Star + 1, hero.Level) : new uint[4];
             uint[] ordered = { increase[0], increase[3], increase[1], increase[2] };
             for (int i = 0; i < ordered.Length; i++)
                 SetText(star, $"Layer/yingxiongshengxingUI/Info/jichu/Attribute_{i + 1}/Value", $"+{ordered[i]}");
@@ -767,26 +846,32 @@ namespace ProjectX.UI
                     skill.preserveAspect = true;
                 }
             }
-            int fragmentId = config.GetFragmentItem(hero.Id);
-            int cost = config.GetStarCost(hero.Star + 1, definition.Quality);
-            SetText(star, "Layer/yingxiongshengxingUI/Info/cailiao/Name", $"{hero.Name}碎片");
+            int fragmentId = HeroStarCatalog.Shared.GetFragmentItem(hero.Id);
+            int cost = next.Required;
+            SetText(star, "Layer/yingxiongshengxingUI/Info/cailiao/Name", hasNext ? $"{hero.Name}碎片" : "已满星");
             SetText(star, "Layer/yingxiongshengxingUI/Info/cailiao/Slider_Bg/Value",
-                $"{ItemQuantity(fragmentId)}/{cost}");
+                hasNext ? $"{ItemQuantity(fragmentId)}/{cost}" : ItemQuantity(fragmentId).ToString());
             SetMaterialIcon(star, "Layer/yingxiongshengxingUI/Info/cailiao/Icon",
                 resources.LoadItemIcon(config.GetItemPicture(fragmentId)), "HeroStarFragment",
                 config.GetItemQuality(fragmentId), iconScale: 1.2f);
+            bool ready = CanStarUp(hero, player, bag, heroes.HasAuthoritativeState);
+            Transform button = star.FindNode("Layer/yingxiongshengxingUI/Info/cailiao/Btn_shengxing")?.transform;
+            if (button?.GetComponent<Button>() != null) button.GetComponent<Button>().interactable = ready;
+            RedDotVisual.Set(button, ready, redDotTemplate);
+            RedDotVisual.Set(star.FindNode("Layer/yingxiongshengxingUI/Info/cailiao/Icon")?.transform, ready, redDotTemplate);
         }
 
         private void RenderBreak()
         {
             HeroRecord hero = CurrentHero();
-            BreakConfig next = config.GetBreak(hero.BreakLevel + 1);
+            bool hasNext = HeroBreakCatalog.Shared.TryGet(hero.Id, hero.BreakLevel + 1, out HeroBreakDefinition next);
+            next = next ?? new HeroBreakDefinition(0, 0, Array.Empty<int[]>());
             uint[] current = { hero.Attack, (uint)Math.Min(uint.MaxValue, hero.Health),
                 hero.PhysicalDefense, hero.MagicDefense };
             uint[] baseGrowth = config.GetBaseGrowth(hero.Id);
             uint[] growth = { baseGrowth[0], baseGrowth[3], baseGrowth[1], baseGrowth[2] };
             SetText(breakUp, "Layer/shenjiangInfoUI/Info/jichu/Level_1", $"突破+{hero.BreakLevel}");
-            SetText(breakUp, "Layer/shenjiangInfoUI/Info/jichu/Level_2", $"突破+{hero.BreakLevel + 1}");
+            SetText(breakUp, "Layer/shenjiangInfoUI/Info/jichu/Level_2", hasNext ? $"突破+{hero.BreakLevel + 1}" : "已满级");
             for (int i = 0; i < current.Length; i++)
             {
                 uint added = checked(growth[i] * (uint)Math.Max(0, next.AttributeMultiplier));
@@ -797,34 +882,44 @@ namespace ProjectX.UI
             }
             SetText(breakUp, "Layer/shenjiangInfoUI/Info/jichu/text_tianfu", "突破后解锁新的神将天赋");
             SetText(breakUp, "Layer/shenjiangInfoUI/Info/tupo/Name", "突破丹");
-            SetText(breakUp, "Layer/shenjiangInfoUI/Info/tupo/Value", $"{ItemQuantity(851)}/{next.ItemCost}");
+            SetText(breakUp, "Layer/shenjiangInfoUI/Info/tupo/Value", $"{ItemQuantity(851)}/{next.Cost(851)}");
             SetMaterialIcon(breakUp, "Layer/shenjiangInfoUI/Info/tupo/Item",
                 resources.LoadItemIcon(config.GetItemPicture(851)), "HeroBreakMaterial",
                 config.GetItemQuality(851));
             SetText(breakUp, "Layer/shenjiangInfoUI/Info/tupo/cailiao/Value", next.RequiredLevel.ToString());
-            SetText(breakUp, "Layer/shenjiangInfoUI/Info/tupo/xiaohao/Num", next.GoldCost.ToString());
+            SetText(breakUp, "Layer/shenjiangInfoUI/Info/tupo/xiaohao/Num", next.Cost(60000).ToString());
+            bool ready = CanBreakUp(hero, player, bag, currencies, heroes.HasAuthoritativeState);
+            Transform button = breakUp.FindNode("Layer/shenjiangInfoUI/Info/tupo/btn_shengji")?.transform;
+            if (button?.GetComponent<Button>() != null) button.GetComponent<Button>().interactable = ready;
+            RedDotVisual.Set(button, ready, redDotTemplate);
+            RedDotVisual.Set(breakUp.FindNode("Layer/shenjiangInfoUI/Info/tupo/Item")?.transform, ready, redDotTemplate);
         }
 
         private void RenderCultivate()
         {
             HeroRecord hero = CurrentHero();
-            TrainingConfig next = config.GetTraining(hero.CultivationLevel + 1);
-            bool maximumLevel = next.RequiredLevel <= 0;
+            HeroCultivationCatalog catalog = HeroCultivationCatalog.Shared;
+            bool maximumLevel = !catalog.TryGetNext(hero, out HeroCultivationDefinition next);
             GameObject materials = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao");
             GameObject maximum = cultivate.FindNode("Layer/shenjiangxiulian/Info/manji");
             if (materials != null) materials.SetActive(!maximumLevel);
             if (maximum != null) maximum.SetActive(maximumLevel);
             if (maximumLevel) return;
-            bool readyToActivate = hero.CultivationAttack >= next.RequiredCount
-                && hero.CultivationPhysicalDefense >= next.RequiredCount
-                && hero.CultivationMagicDefense >= next.RequiredCount
-                && hero.CultivationHealth >= next.RequiredCount;
+            bool readyToActivate = catalog.Remaining(hero) == 0;
             GameObject oneKey = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_yjxl");
             GameObject quantity = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_xl");
             GameObject activate = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_dxl");
             if (oneKey != null) oneKey.SetActive(!readyToActivate);
             if (quantity != null) quantity.SetActive(!readyToActivate);
             if (activate != null) activate.SetActive(readyToActivate);
+            bool canTrain = CanTrain(hero), canActivate = CanActivate(hero);
+            foreach (GameObject action in new[] { oneKey, quantity, activate })
+            {
+                if (action == null) continue;
+                bool ready = action == activate ? canActivate : canTrain;
+                if (action.GetComponent<Button>() != null) action.GetComponent<Button>().interactable = ready;
+                RedDotVisual.Set(action.transform, ready, redDotTemplate);
+            }
             SetText(cultivate, "Layer/shenjiangxiulian/Info/jichu/Image_bg/txt_2", next.Name);
             SetText(cultivate, "Layer/shenjiangxiulian/Info/jichu/txt_3", "攻击、物防、法防、生命属性提升");
             SetText(cultivate, "Layer/shenjiangxiulian/Info/jichu/txt_4", "完成本阶修炼后激活天命加成");
@@ -833,16 +928,30 @@ namespace ProjectX.UI
                 hero.CultivationMagicDefense, hero.CultivationHealth };
             for (int i = 0; i < values.Length; i++)
             {
-                int amount = next.AttributeUnit[i];
+                int amount = catalog.GetAttributeUnit(i + 1);
                 string root = $"Layer/shenjiangxiulian/Info/jichu/att_{i + 1}";
                 SetText(cultivate, root + "/bg_Bar/Value", $"{values[i] * amount}/{next.RequiredCount * amount}");
                 SetText(cultivate, root + "/Value_1", amount.ToString());
             }
-            SetText(cultivate, "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1/Value_1",
-                ItemQuantity(852).ToString());
+            int materialId = readyToActivate ? next.ActivationCosts.FirstOrDefault(c => c[0] < 60000)?[0]
+                ?? catalog.TrainingItemId : catalog.TrainingItemId;
+            int materialCost = readyToActivate ? next.ActivationCosts.Where(c => c[0] == materialId).Sum(c => c[2]) : 0;
+            SetText(cultivate, "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1/Value_1", readyToActivate
+                ? $"{ItemQuantity(materialId)}/{materialCost}" : ItemQuantity(materialId).ToString());
             SetMaterialIcon(cultivate, "Layer/shenjiangxiulian/Info/cailiao/btn_Item_1",
-                resources.LoadItemIcon(config.GetItemPicture(852)), "HeroCultivationMaterial",
-                config.GetItemQuality(852), iconScale: 1.2f);
+                resources.LoadItemIcon(config.GetItemPicture(materialId)), "HeroCultivationMaterial",
+                config.GetItemQuality(materialId), iconScale: 1.2f);
+            Text materialQuantity = cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_Item_1/Value_1")
+                ?.GetComponent<Text>();
+            if (materialQuantity != null)
+            {
+                materialQuantity.alignment = TextAnchor.LowerRight;
+                materialQuantity.color = Color.white;
+                materialQuantity.raycastTarget = false;
+                materialQuantity.transform.SetAsLastSibling();
+            }
+            RedDotVisual.Set(cultivate.FindNode("Layer/shenjiangxiulian/Info/cailiao/btn_Item_1")?.transform,
+                readyToActivate ? canActivate : canTrain, redDotTemplate);
         }
 
         private void RenderInfo()
@@ -877,13 +986,17 @@ namespace ProjectX.UI
                 hero.BreakLevel > 0 ? $"已激活突破+{hero.BreakLevel}天赋" : "突破后解锁天赋");
         }
 
-        private int ItemQuantity(int itemId) => bag.Items.Where(item => item.ItemId == itemId).Sum(item => item.Quantity);
+        private int ItemQuantity(int itemId) => bag.GetTotalQuantityByItemId(itemId);
         private int RemainingCultivation()
         {
-            HeroRecord hero = CurrentHero();
-            int completed = hero.CultivationAttack + hero.CultivationPhysicalDefense
-                + hero.CultivationMagicDefense + hero.CultivationHealth;
-            return Mathf.Clamp(ItemQuantity(852), 1, Math.Max(1, 400 - completed));
+            return HeroCultivationCatalog.Shared.AvailableCount(CurrentHero(), bag);
+        }
+
+        private void RequestCultivation(int requested)
+        {
+            int count = Math.Min(requested, RemainingCultivation());
+            if (!CanTrain(CurrentHero()) || count <= 0) { toast("未满足修炼条件"); return; }
+            cultivateAction(heroId, count);
         }
 
         private void OpenAutoLevel()
@@ -1017,10 +1130,10 @@ namespace ProjectX.UI
             for (int i = 0; i < itemIds.Length; i++)
                 availableExperience += (ulong)ItemQuantity(itemIds[i]) * (uint)config.GetItemExperience(itemIds[i]);
             int attainableLevel = config.GetAttainableLevel(hero.Level, hero.Experience,
-                availableExperience, player.Level, checked(hero.MaxExperience * 15u));
+                availableExperience, player.Level, hero.MaxExperience);
             int targetLevel = Math.Min(requestedLevel, attainableLevel);
             ulong requiredExperience = config.GetRequiredLevelExperience(hero.Level, hero.Experience,
-                targetLevel, checked(hero.MaxExperience * 15u));
+                targetLevel, hero.MaxExperience);
 
             for (int i = 0; i < itemIds.Length; i++)
             {
@@ -1038,6 +1151,10 @@ namespace ProjectX.UI
                 requiredExperience = covered >= requiredExperience ? 0 : requiredExperience - covered;
             }
             SetText(autoLevel, "Layer/bg/Text_3_", targetLevel.ToString());
+            Transform confirm = autoLevel.FindNode("Layer/bg/Button")?.transform;
+            bool ready = CanAutoLevelUp(hero, requestedLevel, player, bag, heroes.HasAuthoritativeState);
+            if (confirm?.GetComponent<Button>() != null) confirm.GetComponent<Button>().interactable = ready;
+            RedDotVisual.Set(confirm, ready, redDotTemplate);
         }
 
         private void OpenNumber()
@@ -1066,7 +1183,7 @@ namespace ProjectX.UI
         {
             number.SetVisible(false);
             if (cultivationCount <= 0) { toast("请输入修炼次数"); return; }
-            cultivateAction(heroId, cultivationCount);
+            RequestCultivation(cultivationCount);
         }
 
         private void OpenTalent(bool breakTalent)
@@ -1833,24 +1950,22 @@ namespace ProjectX.UI
                 {
                     uint cap = GetExperienceCap(level, level == currentLevel ? currentLevelFallback : 0u);
                     if (cap == 0) return 0;
-                    required += level == currentLevel && currentExperience < cap
-                        ? cap - currentExperience : level == currentLevel ? 0u : cap;
+                    required += cap;
                 }
-                return required;
+                return required > currentExperience ? required - currentExperience : 0;
             }
 
             public int GetAttainableLevel(int currentLevel, uint currentExperience,
                 ulong availableExperience, int levelLimit, uint currentLevelFallback)
             {
                 int level = currentLevel;
+                ulong budget = availableExperience + currentExperience;
                 while (level < levelLimit)
                 {
                     uint cap = GetExperienceCap(level, level == currentLevel ? currentLevelFallback : 0u);
                     if (cap == 0) break;
-                    ulong needed = level == currentLevel && currentExperience < cap
-                        ? cap - currentExperience : level == currentLevel ? 0u : cap;
-                    if (availableExperience < needed) break;
-                    availableExperience -= needed;
+                    if (budget < cap) break;
+                    budget -= cap;
                     level++;
                 }
                 return level;
@@ -2009,15 +2124,21 @@ namespace ProjectX.UI
 
             private void LoadExperienceCaps()
             {
-                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/World/exp_dat");
-                if (asset == null) return;
-                foreach (string entry in SplitLuaEntries(asset.text))
+                TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/hero-level-exp");
+                if (asset == null) throw new InvalidOperationException("Formal Unity hero experience config is missing.");
+                foreach (HeroLevelExperienceRow row in JsonConvert.DeserializeObject<HeroLevelExperienceRow[]>(asset.text)
+                    ?? Array.Empty<HeroLevelExperienceRow>())
                 {
-                    Match level = Regex.Match(entry, @"\blevel\s*=\s*(\d+)");
-                    Match cap = Regex.Match(entry, @"\bexp_hero\s*=\s*(\d+)");
-                    if (level.Success && cap.Success)
-                        experienceCaps[int.Parse(level.Groups[1].Value)] = uint.Parse(cap.Groups[1].Value);
+                    if (row.Level <= 0 || experienceCaps.ContainsKey(row.Level))
+                        throw new InvalidOperationException("Invalid formal Unity hero experience level.");
+                    experienceCaps[row.Level] = row.Experience;
                 }
+            }
+
+            private sealed class HeroLevelExperienceRow
+            {
+                [JsonProperty("level")] public int Level { get; set; }
+                [JsonProperty("exp_hero")] public uint Experience { get; set; }
             }
 
             private void LoadItemPictures()
@@ -2101,6 +2222,8 @@ namespace ProjectX.UI
             if (!subscribed) return;
             CloseHelp();
             heroes.Changed -= HandleChanged; formation.Changed -= HandleChanged; bag.Changed -= HandleChanged;
+            player.Changed -= HandleChanged;
+            if (currencies != null) currencies.Changed -= HandleChanged;
             subscribed = false;
         }
     }

@@ -37,10 +37,12 @@ namespace ProjectX.Data
         private readonly Dictionary<uint, MailRecord> records = new Dictionary<uint, MailRecord>();
         private readonly Dictionary<uint, MailRecord> history = new Dictionary<uint, MailRecord>();
         private uint accountId;
+        private bool unreadHint;
 
         public event Action Changed;
         public int Count => records.Count;
         public bool HasUnread => records.Values.Any(item => !item.IsRead);
+        public bool HasUnreadPrompt => unreadHint || HasUnread;
         public bool HasClaimable => records.Values.Any(item => !item.IsRead && item.HasAttachments);
         public bool HasHistory => history.Count > 0;
         public IReadOnlyList<MailRecord> Items => records.Values
@@ -54,6 +56,7 @@ namespace ProjectX.Data
             accountId = value;
             records.Clear();
             history.Clear();
+            unreadHint = false;
             if (accountId != 0) LoadHistory();
             foreach (MailRecord item in history.Values) records[item.Id] = item;
             Changed?.Invoke();
@@ -61,11 +64,19 @@ namespace ProjectX.Data
 
         public void Replace(IEnumerable<MailRecord> values)
         {
+            unreadHint = false;
             records.Clear();
             foreach (MailRecord value in values ?? Array.Empty<MailRecord>())
                 records[value.Id] = value;
             foreach (MailRecord value in history.Values)
                 records[value.Id] = value;
+            Changed?.Invoke();
+        }
+
+        public void SetUnreadHint(bool visible)
+        {
+            if (unreadHint == visible) return;
+            unreadHint = visible;
             Changed?.Invoke();
         }
 
@@ -106,6 +117,7 @@ namespace ProjectX.Data
 
         public void Clear()
         {
+            unreadHint = false;
             records.Clear();
             history.Clear();
             accountId = 0;

@@ -16,7 +16,8 @@ local M = {
     drawClosureRequested = false,
     drawHeaderRequested = false,
     xunBaoHeaderRequested = false,
-    equipmentSnapshotCallback = nil
+    equipmentSnapshotCallback = nil,
+    redDotRequested = false
 }
 
 local function clean(value)
@@ -87,6 +88,11 @@ function M.onClick()
     Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
 end
 
+function M.requestRedDotSnapshot()
+    M.redDotRequested = true
+    Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
+end
+
 function M.requestXunBaoTokenSnapshot()
     M.xunBaoTokenRequested = true
     Bridge:Send(Protocol.newMessage(Protocol.ROLE_PACKAGE))
@@ -124,6 +130,7 @@ function M.requestEquipmentSnapshot(callback)
 end
 
 function M.onDisconnected()
+    M.redDotRequested = false
     M.requested = false
     M.awaitingSort = false
     M.xunBaoTokenRequested = false
@@ -189,15 +196,20 @@ end
 function M.onPacket(command, message)
     if command == Protocol.ROLE_PACKAGE and (M.requested or M.xunBaoTokenRequested or M.happyWheelKeyRequested
         or M.drawClosureRequested or M.drawHeaderRequested or M.xunBaoHeaderRequested
-        or M.equipmentSnapshotCallback ~= nil) then
+        or M.equipmentSnapshotCallback ~= nil or M.redDotRequested) then
         -- Draw and equipment use /8 only as authoritative counts for their own
         -- surfaces. Those background snapshots must update the store without
         -- opening the ordinary item bag or reconfiguring the shared OneLevelLayer.
         local headerOnly = M.happyWheelKeyRequested or M.drawHeaderRequested or M.xunBaoHeaderRequested
+            or M.redDotRequested
             or M.equipmentSnapshotCallback ~= nil
             or Bridge:IsDrawActive()
         local serverCount = readFullPackage(message, true, headerOnly)
         local renderedCount = Bridge:GetBagCount()
+        if M.redDotRequested then
+            M.redDotRequested = false
+            return true
+        end
         if M.xunBaoTokenRequested then
             M.xunBaoTokenRequested = false
             return true

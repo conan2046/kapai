@@ -25,6 +25,18 @@ namespace ProjectX.Core
         private uint pendingMonopolyBattleStars;
         private string pendingMonopolyBattleRewards = string.Empty;
         private bool monopolyBattlePlaybackActive, monopolyBattlePlaybackReturned;
+        private bool monopolyReminderAuthority, monopolyReminderPending, monopolyReminderHasBoard;
+        private uint monopolyReminderEntries, monopolyReminderRolls;
+        private int monopolyReminderEvent;
+        public void SetMonopolyReminderState(double entries,double rolls,int eventState,bool hasBoard)
+        {
+            monopolyReminderAuthority = true;
+            monopolyReminderEntries = checked((uint)entries); monopolyReminderRolls = checked((uint)rolls);
+            monopolyReminderEvent = eventState; monopolyReminderHasBoard = hasBoard;
+            RefreshGameplayRedDots();
+        }
+        public void SetMonopolyReminderPending(bool pending)
+        { monopolyReminderPending = pending; RefreshGameplayRedDots(); }
 
         private bool IsMonopolyOpen => monopolyView != null && monopolyView.GameObject != null
             && services?.UiStack.Current == monopolyView;
@@ -180,6 +192,8 @@ namespace ProjectX.Core
         public void ShowMonopolyGuard() => ShowMonopolyGuardConfirmation();
         public void ClearMonopolyState()
         {
+            monopolyReminderAuthority = monopolyReminderPending = monopolyReminderHasBoard = false;
+            monopolyReminderEntries = monopolyReminderRolls = 0; monopolyReminderEvent = 0;
             pendingMonopolyCells.Clear();
             pendingMonopolyFinishRewards.Clear();
             monopolyPresenter?.SetBusy(false);

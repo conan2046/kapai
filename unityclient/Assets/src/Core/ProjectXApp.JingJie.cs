@@ -519,6 +519,7 @@ namespace ProjectX.Core
             RefreshStandardCurrencyHeader(oneLevelFrameView, "Layer/GoldCheck");
             foreach (Transform child in frameRoot.GetComponentsInChildren<Transform>(true))
                 if (child.name == "Prompt") child.gameObject.SetActive(false);
+            ApplyPlayerTabRedDots();
         }
 
         private void SetJingJieTabs(Transform first, Transform second, bool selectedFirst = true)
@@ -535,6 +536,7 @@ namespace ProjectX.Core
             // Keep the shared frame order stable; tab selection changes only
             // visibility and graphics, never the sibling position.
             NormalizePlayerHubSurfaceOrder();
+            ApplyPlayerTabRedDots();
         }
 
         private void HandlePlayerHubTabSelected(PlayerHubTab tab)

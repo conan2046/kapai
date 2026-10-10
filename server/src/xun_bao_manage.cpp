@@ -498,6 +498,16 @@ void CXunBaoManage::AddEvent(uint8 cellId, uint8 evt)
 	}
 }
 
+void CXunBaoManage::GetMonopolyReminder(CNetMessage& msg)
+{
+	const uint8 completed = m_pUser->GetExtData8(21);
+	const uint32 entries = completed < JOIN_LIMIT ? JOIN_LIMIT - completed : 0;
+	const bool hasBoard = !m_xunBao.empty();
+	const uint32 used = m_pUser->GetExtData32(443);
+	const uint32 rolls = hasBoard && used < 25 ? 25 - used : 0;
+	msg << (uint8)1 << entries << rolls << (uint8)(hasBoard ? m_state : 0) << (uint8)hasBoard;
+}
+
 void CXunBaoManage::ClearMap(bool clearSum/* = false*/)
 {
 	// 所有事件清空
@@ -1634,6 +1644,8 @@ void CXunBaoManage::GetYouLiAward(CNetMessage & msg)
 			ad.num = data->suiPianCnt;
 			MergeAwardData(awards, ad);
 		}
+		// A completed dispatch is consumed with its reward, including duplicate IDs in a batch.
+		m_youLi.erase(id);
 	}
 	msg.ReWrite();
 	msg.SetType(MSG_YOU_LI);
@@ -1928,6 +1940,7 @@ void CXunBaoManage::LoadMap(const char *row)
 				pos = ReadDataFromBuf((char *)data, &dlgId, sizeof(dlgId), pos);
 				yldata.dlgs.push_back(dlgId);
 			}
+			m_youLi[yldata.id] = yldata;
 		}
 	}
 	return;

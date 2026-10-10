@@ -5,6 +5,7 @@ local M = { pending = false, selected = 0, remaining = 0 }
 local function requestQuestion()
     if M.pending then return false end
     M.pending = true
+    Bridge:SetAnswerReminderPending(true)
     local message = Protocol.newMessage(Protocol.ANSWER)
     message:WriteByte(1)
     Bridge:Send(message)
@@ -12,6 +13,13 @@ local function requestQuestion()
 end
 
 function M.onClick(functionId)
+    Bridge:BeginAnswerEntry()
+    if M.cachedQuestion and not M.pending then
+        local q=M.cachedQuestion
+        Bridge:ShowAnswerQuestion(q.index,q.remaining,q.question,q.answers[1],q.answers[2],q.answers[3],q.answers[4])
+        M.preload()
+        return
+    end
     M.selected = 0
     M.remaining = 0
     if requestQuestion() then
@@ -23,6 +31,8 @@ function M.select(index)
     index = math.floor(tonumber(index) or 0)
     if M.pending or index < 1 or index > 5 then return false end
     M.pending = true
+    M.cachedQuestion = nil
+    Bridge:SetAnswerReminderPending(true)
     M.selected = index
     local message = Protocol.newMessage(Protocol.ANSWER)
     message:WriteByte(2)
@@ -38,12 +48,22 @@ end
 function M.onPacket(command, message)
     if command ~= Protocol.ANSWER then return false end
     local operation = message:ReadByte()
+    if operation == 4 then
+        local version=message:ReadByte()
+        if version~=1 then Bridge:Fail("Answer reminder version mismatch");return true end
+        local rounds,active=message:ReadUInt(),message:ReadByte()~=0
+        if message.Remaining~=0 then Bridge:Fail("Answer reminder trailing bytes");return true end
+        Bridge:SetAnswerReminderState(rounds,active)
+        return true
+    end
     if operation == 1 then
         M.pending = false
+        Bridge:SetAnswerReminderPending(false)
         local success = message:ReadByte()
         if success == 0 then
             local tip = message.Remaining > 0 and message:ReadString() or "答题数据同步失败"
             Bridge:RejectAnswerEntry(tip)
+            M.preload()
             return true
         end
         local questionIndex = message:ReadByte()
@@ -57,12 +77,15 @@ function M.onPacket(command, message)
             Bridge:Fail("Answer/198 question has unread bytes=" .. tostring(message.Remaining) .. ".")
             return true
         end
+        M.cachedQuestion={index=questionIndex,remaining=M.remaining,question=question,answers=answers}
         Bridge:ShowAnswerQuestion(questionIndex, M.remaining, question,
             answers[1], answers[2], answers[3], answers[4])
+        M.preload()
         return true
     end
     if operation == 2 then
         M.pending = false
+        Bridge:SetAnswerReminderPending(false)
         local success = message:ReadByte()
         local correctIndex = M.selected
         local currentReward = 0
@@ -89,6 +112,7 @@ function M.onPacket(command, message)
             return true
         end
         Bridge:CompleteAnswerChoice(success ~= 0, correctIndex, currentReward, finalGold)
+        M.preload()
         return true
     end
     M.pending = false
@@ -97,10 +121,16 @@ function M.onPacket(command, message)
 end
 
 function M.reset()
+    M.cachedQuestion=nil
     M.pending = false
     M.selected = 0
     M.remaining = 0
     Bridge:ResetAnswerState()
+end
+
+function M.preload()
+    if M.pending or not Bridge:IsGameplayReminderOpen(27) then return end
+    local message=Protocol.newMessage(Protocol.ANSWER);message:WriteByte(4);Bridge:Send(message)
 end
 
 return M

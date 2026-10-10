@@ -23,6 +23,10 @@ namespace ProjectX.UI
         private readonly Action<int> openAttributes;
         private readonly Action<int> selectHero;
         private readonly Action<string> feedback;
+        private readonly BagStore bag;
+        private readonly CurrencyStore currencies;
+        private readonly Func<HeroRecord, bool> canCultivate;
+        private readonly Transform redDotTemplate;
         private readonly VirtualList<FormationSlot> list;
         private readonly VirtualList<HeroBagRow> bagList;
         private readonly Text summary;
@@ -40,14 +44,15 @@ namespace ProjectX.UI
         private int selectedId;
         private int selectedPosition = 1;
         private bool selectionInitialized;
-        private static readonly int[] FormationOpenLevels = { 1, 2, 5, 11, 15 };
 
         public HeroPresenter(UnityUiView listView, UnityUiView detailView, UnityUiView bagView,
             HeroStore heroes, FormationStore formation, PlayerStore player,
             HeroEquipmentStore equipment, FaBaoStore faBao, IUiResourceProvider resources,
             Action<int, int> openReplacement, Action<int> openCultivation,
             Action<int> openEnhanceMaster, Action<int, int> openEquipmentSlot,
-            Action<int> openAttributes, Action<int> selectHero, Action<string> feedback)
+            Action<int> openAttributes, Action<int> selectHero, Action<string> feedback,
+            BagStore bag = null, Func<HeroRecord, bool> canCultivate = null, Transform redDotTemplate = null,
+            CurrencyStore currencies = null)
         {
             this.heroes = heroes ?? throw new ArgumentNullException(nameof(heroes));
             this.formation = formation ?? throw new ArgumentNullException(nameof(formation));
@@ -63,6 +68,10 @@ namespace ProjectX.UI
             this.openAttributes = openAttributes ?? throw new ArgumentNullException(nameof(openAttributes));
             this.selectHero = selectHero ?? throw new ArgumentNullException(nameof(selectHero));
             this.feedback = feedback ?? throw new ArgumentNullException(nameof(feedback));
+            this.bag = bag;
+            this.currencies = currencies;
+            this.canCultivate = canCultivate;
+            this.redDotTemplate = redDotTemplate;
             GameObject viewport = Require(listView, "Layer/shenjiangListUI/List/Panel");
             RectTransform viewportRect = viewport.GetComponent<RectTransform>();
             viewportRect.anchoredPosition += new Vector2(-9.33f, 6.67f);
@@ -104,6 +113,8 @@ namespace ProjectX.UI
             player.Changed += Render;
             equipment.Changed += Render;
             faBao.Changed += Render;
+            if (bag != null) bag.Changed += Render;
+            if (currencies != null) currencies.Changed += Render;
             Render();
         }
 
@@ -193,6 +204,8 @@ namespace ProjectX.UI
             player.Changed -= Render;
             equipment.Changed -= Render;
             faBao.Changed -= Render;
+            if (bag != null) bag.Changed -= Render;
+            if (currencies != null) currencies.Changed -= Render;
             list.Dispose();
             bagList.Dispose();
         }
@@ -204,8 +217,11 @@ namespace ProjectX.UI
             Transform head = row.Find("bg_Head");
             Transform add = row.Find("bg_add");
             Transform locked = row.Find("bg_Lock");
-            int openLevel = FormationOpenLevels[Mathf.Clamp(slot.Position - 1, 0, FormationOpenLevels.Length - 1)];
+            int openLevel = FunctionUnlockCatalog.Resolve(1030 + slot.Position).OpenLevel;
             bool isLocked = player.Level < openLevel;
+            RedDotVisual.Set(row, !isLocked && (occupied && canCultivate?.Invoke(item) == true
+                || FormationCatalog.CanFillPosition(formation, heroes, player, slot.Position)), redDotTemplate);
+            RedDotVisual.Set(add, FormationCatalog.CanFillPosition(formation, heroes, player, slot.Position), redDotTemplate);
             Text lockLevel = row.Find("bg_Lock/level")?.GetComponent<Text>();
             if (lockLevel != null) lockLevel.text = openLevel.ToString();
             if (head != null) head.gameObject.SetActive(occupied);
@@ -281,6 +297,8 @@ namespace ProjectX.UI
             {
                 if (background != null) background.SetActive(true);
                 if (addPanel != null) addPanel.SetActive(true);
+                RedDotVisual.Set(detailView.FindNode("Layer/EquipUI/Bg/Panel_new/addnew")?.transform,
+                    FormationCatalog.CanFillPosition(formation, heroes, player, selectedPosition), redDotTemplate);
                 SetDetailContentVisible(false);
                 summary.text = "暂无神将";
                 power.text = attack.text = health.text = physicalDefense.text = magicDefense.text = "-";
@@ -294,6 +312,8 @@ namespace ProjectX.UI
             if (addPanel != null) addPanel.SetActive(false);
             SetDetailContentVisible(true);
             summary.text = $"{hero.Level}级  {hero.Name} +{hero.BreakLevel}";
+            RedDotVisual.Set(detailView.FindNode("Layer/EquipUI/Bg/bg/Image_bg/Btn_3_1_0")?.transform,
+                canCultivate?.Invoke(hero) == true, redDotTemplate);
             power.text = hero.Power.ToString();
             attack.text = $"攻击：{hero.Attack}";
             health.text = $"生命：{hero.Health}";
@@ -490,6 +510,7 @@ namespace ProjectX.UI
                 cell.gameObject.SetActive(active);
                 if (!active) continue;
                 HeroRecord hero = data.Items[itemIndex];
+                RedDotVisual.Set(cell, canCultivate?.Invoke(hero) == true, redDotTemplate);
                 Text name = cell.Find("Name")?.GetComponent<Text>();
                 Text level = cell.Find("Level")?.GetComponent<Text>();
                 if (name != null) name.text = $"{hero.Name}   +{hero.BreakLevel}";

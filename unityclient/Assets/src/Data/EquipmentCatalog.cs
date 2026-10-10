@@ -121,6 +121,7 @@ namespace ProjectX.Data
     {
         [JsonProperty("quality")] public int Quality { get; set; }
         [JsonProperty("jinglian_ratio")] public int RefineRatio { get; set; }
+        [JsonProperty("qianghua_ratio")] public int StrengthRatio { get; set; }
         [JsonProperty("fabao_qianghua")] public int FaBaoStrengthRatio { get; set; }
     }
 
@@ -258,8 +259,8 @@ namespace ProjectX.Data
         {
             if (!strength.TryGetValue(nextLevel, out EquipmentStrengthDefinition value)
                 || value.Cost == null || value.Cost.Length < 3) return 0;
-            int[] ratios = { 0, 10000, 5000, 7500, 10000, 12500, 15000, 20000 };
-            int ratio = quality >= 1 && quality < ratios.Length ? ratios[quality] : 10000;
+            int ratio = qualities.TryGetValue(quality, out EquipmentQualityDefinition definition)
+                ? definition.StrengthRatio : 0;
             return checked(value.Cost[2] * ratio / 10000);
         }
 

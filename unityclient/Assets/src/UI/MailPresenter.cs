@@ -19,6 +19,7 @@ namespace ProjectX.UI
         private readonly Action deleteAll;
         private readonly Action close;
         private readonly Action<RewardRecord> showAttachment;
+        private readonly Func<bool> canAutomaticallyRead;
         private readonly VirtualList<MailRecord> list;
         private readonly GameObject emptyPanel;
         private readonly GameObject contentPanel;
@@ -42,7 +43,8 @@ namespace ProjectX.UI
 
         public MailPresenter(UnityUiView view, UnityUiView frameView, MailStore store, IUiResourceProvider resources,
             Action<uint> claim, Action<uint> read, Action<uint> delete,
-            Action claimAll, Action deleteAll, Action close, Action<RewardRecord> showAttachment)
+            Action claimAll, Action deleteAll, Action close, Action<RewardRecord> showAttachment,
+            Func<bool> canAutomaticallyRead = null)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.frameView = frameView ?? throw new ArgumentNullException(nameof(frameView));
@@ -55,6 +57,7 @@ namespace ProjectX.UI
             this.deleteAll = deleteAll ?? throw new ArgumentNullException(nameof(deleteAll));
             this.close = close ?? throw new ArgumentNullException(nameof(close));
             this.showAttachment = showAttachment ?? throw new ArgumentNullException(nameof(showAttachment));
+            this.canAutomaticallyRead = canAutomaticallyRead ?? (() => view.GameObject.activeInHierarchy);
             emptyPanel = Require("Layer/None", "empty panel");
             contentPanel = Require("Layer/Panel", "content panel");
             Text emptyText = emptyPanel.GetComponentInChildren<Text>(true);
@@ -242,7 +245,7 @@ namespace ProjectX.UI
             foreach (var row in rowMailIds)
                 if (row.Key != null) SetVisible(row.Key, "ChooseBg", row.Value == selectedId);
             RenderDetails(item);
-            if (allowAutomaticRead && !item.IsRead && !item.HasAttachments) read(id);
+            if (allowAutomaticRead && canAutomaticallyRead() && !item.IsRead && !item.HasAttachments) read(id);
             return true;
         }
 

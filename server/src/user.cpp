@@ -22542,7 +22542,8 @@ bool CUser::HeroXiuLianJiHuo(CNetMessage &msg)
 		pPet->xiuLianLevel++;
 
 		msg << PRO_SUCCESS << pPet->xiuLianLevel;
-		msg << CHeroCfgManager::g_xiuLianAttrAdd.size();
+		// The shipped client reads this attribute count as a single byte.
+		msg << (uint8)CHeroCfgManager::g_xiuLianAttrAdd.size();
 		for (U8tU16MapIt uit = CHeroCfgManager::g_xiuLianAttrAdd.begin(); uit != CHeroCfgManager::g_xiuLianAttrAdd.end(); ++uit)
 		{
 			msg << uit->first << (uint16)0;

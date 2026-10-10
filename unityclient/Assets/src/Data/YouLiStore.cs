@@ -27,6 +27,15 @@ namespace ProjectX.Data
         public IReadOnlyList<YouLiRecord> Items => items;
         public int ServerRecordCount { get; private set; }
         public bool HasAuthoritativeResponse { get; private set; }
+        public byte PendingLocationId { get; private set; }
+
+        public bool CanClaim(YouLiRecord value, int playerLevel, double now) =>
+            HasAuthoritativeResponse && value != null && value.IsActive
+            && playerLevel >= value.Definition.UnlockLevel && now > 0
+            && value.EndTime > 0 && value.EndTime <= now
+            && value.Definition.Id != PendingLocationId;
+
+        public void SetPending(byte id) { PendingLocationId = id; Changed?.Invoke(); }
 
         public void Initialize(IEnumerable<YouLiDefinition> definitions)
         {
@@ -70,12 +79,13 @@ namespace ProjectX.Data
                 item.RewardBatchCount = value.RewardBatchCount; item.DialogueCount = value.DialogueCount;
             }
             HasAuthoritativeResponse = true;
+            PendingLocationId = 0;
             Changed?.Invoke();
         }
 
         public void Clear()
         {
-            items.Clear(); incoming.Clear(); ServerRecordCount = 0; HasAuthoritativeResponse = false; Changed?.Invoke();
+            items.Clear(); incoming.Clear(); ServerRecordCount = 0; HasAuthoritativeResponse = false; PendingLocationId = 0; Changed?.Invoke();
         }
     }
 }

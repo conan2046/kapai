@@ -163,7 +163,7 @@ namespace ProjectX.Core
             pendingFormationCombat[index - 1] = heroId;
         }
 
-        public void EndFormationUpdate()
+        public void EndFormationUpdate(bool suppressNavigation = false)
         {
             services.Formation.Replace(pendingActiveFormationId, pendingFormations,
                 pendingFormationDisplay, pendingFormationCombat);
@@ -171,6 +171,11 @@ namespace ProjectX.Core
             for (int index = 0; index < pendingFormationCombat.Count; index++)
                 if (pendingFormationCombat[index] > 0) positions[pendingFormationCombat[index]] = index + 1;
             services.Heroes.SetFightPositions(positions);
+            if (suppressNavigation)
+            {
+                SetStatus("Hero/Formation background snapshot applied without navigation.");
+                return;
+            }
             if (heroRecycleEntryPending)
             {
                 ShowHeroRecycle(false);
@@ -182,8 +187,14 @@ namespace ProjectX.Core
                 SetStatus($"World formation popup synchronized: heroes={services.Heroes.Count}, formation={services.Formation.ActiveFormationId}.");
                 return;
             }
+            if (IsFormationPopupOpen && !heroEntryRequestPending)
+            {
+                SetStatus("Formation snapshot refreshed without closing the current popup.");
+                return;
+            }
             bool showBag = pendingHeroEntry == HeroEntry.Bag;
-            if (heroHubOpen)
+            if (heroHubOpen && heroCultivationView?.GameObject.activeInHierarchy != true
+                && heroLevelUpView?.GameObject.activeInHierarchy != true)
             {
                 heroEntryRequestPending = false;
                 ShowHeroHubTab(heroHubTab);
@@ -228,7 +239,6 @@ namespace ProjectX.Core
                 && (heroCultivationView?.GameObject.activeSelf == true || heroLevelUpView?.GameObject.activeSelf == true);
             if (preserveCultivation)
             {
-                SetHeroFramePageVisibility(false, false, false, true, true);
                 RefreshHeroCultivationData(activeHeroCultivationId);
             }
             else
@@ -388,6 +398,7 @@ namespace ProjectX.Core
             BindHeroHubTab(first, HeroHubTab.Formation);
             BindHeroHubTab(second, HeroHubTab.Heroes);
             BindHeroHubTab(third, HeroHubTab.Fragments);
+            ApplyHeroHubTabRedDots();
         }
 
         private void SetHeroHubTab(Transform tab, string text, bool selected)

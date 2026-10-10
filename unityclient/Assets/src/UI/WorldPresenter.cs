@@ -213,6 +213,8 @@ namespace ProjectX.UI
         private readonly Action openFormation;
         private readonly Action<bool> openHeroFormation;
         private readonly Action openAchievement;
+        private readonly Transform redDotTemplate;
+        private Transform chapterAchievementEntry;
         private readonly Action openYouLi;
         private readonly Action close;
         private readonly Action leaveCurrentChapter;
@@ -276,9 +278,10 @@ namespace ProjectX.UI
             Action leaveCurrentChapter = null,
             Action<RewardRecord> showRewardDetail = null,
             Action<string> feedback = null,
-            Action goldAdd = null, Action staminaAdd = null)
+            Action goldAdd = null, Action staminaAdd = null, Transform redDotTemplate = null)
         {
             this.worldView = worldView ?? throw new ArgumentNullException(nameof(worldView));
+            this.redDotTemplate = redDotTemplate;
             this.stageView = stageView ?? throw new ArgumentNullException(nameof(stageView));
             this.mapView = mapView ?? throw new ArgumentNullException(nameof(mapView));
             this.detailView = detailView ?? throw new ArgumentNullException(nameof(detailView));
@@ -402,6 +405,23 @@ namespace ProjectX.UI
                 formationControl.transform.GetSiblingIndex() > firstStarBox.transform.GetSiblingIndex())
                 formationControl.transform.SetSiblingIndex(firstStarBox.transform.GetSiblingIndex());
             Bind(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu", () => { openAchievement(); Mark("WORLD-25-MAIN-ACHIEVEMENT"); }, false, true);
+            Transform achievementTemplate = Find(mapView, "Layer/Panel_youxia/Button_zhuxianchengjiu")?.transform;
+            if (achievementTemplate != null)
+            {
+                chapterAchievementEntry = UnityEngine.Object.Instantiate(achievementTemplate.gameObject, worldView.GameObject.transform, false).transform;
+                chapterAchievementEntry.name = "RuntimeWorldAchievementEntry";
+                RectTransform rect = (RectTransform)chapterAchievementEntry;
+                rect.anchorMin = rect.anchorMax = new Vector2(1f, 0f);
+                rect.pivot = new Vector2(.5f, .5f);
+                rect.anchoredPosition = new Vector2(-75f, 170f);
+                rect.localScale = Vector3.one;
+                GameObject hitObject = chapterAchievementEntry.Find("RuntimeHitSurface")?.gameObject ?? chapterAchievementEntry.gameObject;
+                Button button = hitObject.GetComponent<Button>() ?? hitObject.AddComponent<Button>();
+                button.targetGraphic = hitObject.GetComponent<Graphic>();
+                if (button.targetGraphic != null) button.targetGraphic.raycastTarget = true;
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(() => { openAchievement(); Mark("WORLD-25-MAIN-ACHIEVEMENT"); });
+            }
             Bind(mapView, "Layer/Panel_youxia/Button_youlisanjie", () => { openYouLi(); Mark("WORLD-34-YOULI-ENTRY"); }, false, true);
             SetButtonLabel(detailView, $"{DetailRoot}/Image_bg/Panel_4/Button_2", "挑战");
             SetButtonLabel(detailView, $"{DetailRoot}/Image_bg/Panel_1/Buzhen", "布 阵");
@@ -600,6 +620,12 @@ namespace ProjectX.UI
 
         public void Render()
         {
+            if (chapterAchievementEntry != null)
+            {
+                chapterAchievementEntry.gameObject.SetActive(chainMode && showChapters && !showDetail);
+                RedDotVisual.Set(chapterAchievementEntry, Enumerable.Range(1, 6).Any(store.CanClaimAchievement), redDotTemplate);
+                chapterAchievementEntry.SetAsLastSibling();
+            }
             // 布点层（kapaiguaiwuLayer）：类型 1 常显；类型 2 仅在连战进行中显示
             stageView.GameObject.SetActive(!showChapters && (!chainMode || chainStageActive || showChapterRewards));
             // chapterPage 常驻显示（prefab 默认关闭，这里恒定激活）：自带全屏章节底图 +
@@ -968,7 +994,7 @@ namespace ProjectX.UI
             {
                 WorldStarBoxRecord box = index < store.StarBoxes.Count ? store.StarBoxes[index] : null;
                 bool open = box != null && box.State >= 2;
-                bool claimable = box != null && box.State == 1;
+                bool claimable = box != null && store.CanClaimBox(store.SelectedChapterId, box.RewardId);
                 SetActive(mapView, $"Layer/Panel_1/Box{index + 1}/Button", open);
                 SetActive(mapView, $"Layer/Panel_1/Box{index + 1}/Button1", !open && box != null);
                 SetActive(mapView, $"Layer/Panel_1/Box{index + 1}/Button1/Image_1", claimable);
@@ -1655,7 +1681,7 @@ namespace ProjectX.UI
                 rect.localScale = Vector3.one;
             }
             bool opened = stage.RewardBoxState >= 2;
-            bool claimable = stage.RewardBoxState == 1;
+            bool claimable = store.CanClaimBox(store.SelectedChapterId, stage.RewardBoxId);
             Transform closed = box.transform.Find("Button1");
             Transform openedButton = box.transform.Find("Button");
             Action openNormalBox = () => { showNormalBox(stage); Mark("WORLD-11-NORMAL-BOX"); };

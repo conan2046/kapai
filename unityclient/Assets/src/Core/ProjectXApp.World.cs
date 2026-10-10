@@ -98,10 +98,11 @@ namespace ProjectX.Core
             chapter.ClaimedBoxes = checked((byte)claimedBoxes);
         }
 
-        public void EndWorldChapterList(double currentChapterId, double currentStageId)
+        public void EndWorldChapterList(double currentChapterId, double currentStageId, bool snapshotOnly = false)
         {
             services.World.ReplaceChapters(pendingWorldMapType, checked((uint)currentChapterId),
                 checked((uint)currentStageId), pendingWorldChapters);
+            if (snapshotOnly || !IsWorldOpen) return;
             EnsureWorldPresenter();
             // 默认章节＝上次挑战过的章节（没有记录时退回进度章）
             uint preferredChapterId = ResolveLastWorldChapterId();
@@ -241,10 +242,16 @@ namespace ProjectX.Core
             });
         }
 
-        public void EndWorldStageList()
+        public void EndWorldStageList(bool snapshotOnly = false)
         {
+            if (snapshotOnly)
+            {
+                services.World.ApplyBoxSnapshot(pendingWorldChapterId, pendingWorldStages, pendingWorldStarBoxes);
+                return;
+            }
             services.World.ReplaceStages(pendingWorldMapType, pendingWorldChapterId, pendingWorldChapterName,
                 pendingWorldStages, pendingWorldStarBoxes);
+            if (!IsWorldOpen) return;
             EnsureWorldPresenter();
             worldFormationReturnPending = false;
             worldFormationReturnToDetail = false;

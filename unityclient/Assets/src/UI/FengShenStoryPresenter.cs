@@ -55,6 +55,20 @@ namespace ProjectX.UI
         private int renderedCurrentStageMarkerCount;
         private int popupStageId;
         private bool resumeLevelAfterModal;
+        private Transform redDotTemplate;
+        private bool challengeRedDot;
+
+        public void RefreshRedDot(bool visible, Transform template)
+        {
+            redDotTemplate = template;
+            challengeRedDot = visible;
+            foreach (var cell in chapterCells)
+                RedDotVisual.Set(cell.transform, visible && cell.name == "chapter_" + store.CurrentChapter, template);
+            foreach (var stage in stageHitButtons)
+                RedDotVisual.Set(stage.Value.transform, visible
+                    && store.GetStageState(store.SelectedChapter, stage.Key) == FengShenStageState.Current, template);
+            RedDotVisual.Set(fightButton?.transform, visible && popupStageId == (int)(store.LevelId % 40000), template);
+        }
 
         public FengShenStoryPresenter(UnityUiView view, UnityUiView levelView, Func<UnityUiView> resolveLevelView,
             FengShenStoryStore store,
@@ -235,6 +249,7 @@ namespace ProjectX.UI
             fightButton.gameObject.SetActive(state == FengShenStageState.Current);
             formationButton.gameObject.SetActive(state == FengShenStageState.Current);
             levelView.ShowPopup();
+            RefreshRedDot(challengeRedDot, redDotTemplate);
             return true;
         }
 
@@ -427,6 +442,7 @@ namespace ProjectX.UI
             RenderBoxes();
             leftButton.interactable = store.FirstVisibleChapter > 1;
             rightButton.interactable = store.FirstVisibleChapter + PageChapterCount <= store.HighestSelectableChapter;
+            RefreshRedDot(challengeRedDot, redDotTemplate);
         }
 
         private void RenderChapterPage()

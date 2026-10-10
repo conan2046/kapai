@@ -37,6 +37,8 @@ namespace ProjectX.Core
             BindPlayerHudControls();
             ApplySteamFeatureExclusions();
             ApplySteamHudFunctionUnlocks();
+            RefreshPlayerRedDots();
+            RefreshHeroRedDots();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (HasCommandLineFlag("-projectXSteamHudExclusionAcceptance"))
                 StartCoroutine(CaptureSteamHudExclusionAcceptance());
@@ -47,6 +49,10 @@ namespace ProjectX.Core
                 InvokeLuaOrFail(onSharedGameplayHotPointRefresh, "Shared.GameplayHotPointRefresh");
             SetStatus("Main UI active.");
             RequestGameNotice();
+            InvokeLuaOrFail(onMailBackgroundRefresh, "Mail.RedDotSnapshot");
+            InvokeLuaOrFail(onBagRedDotRefresh, "Bag.RedDotSnapshot");
+            InvokeLuaOrFail(onHeroRedDotRefresh, "Hero.RedDotSnapshot");
+            InvokeLuaOrFail(onHeroBookRedDotRefresh, "HeroBook.RedDotSnapshot");
         }
 
         private void DestroyLoginEntryViews()

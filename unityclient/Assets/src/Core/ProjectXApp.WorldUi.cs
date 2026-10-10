@@ -59,10 +59,11 @@ namespace ProjectX.Core
                 leaveCurrentChapter: BackgroundWorldBattle,
                 showRewardDetail: ShowWorldRewardDetail,
                 feedback: message => ShowToast(message, 2f),
-                goldAdd: HandleShopClick, staminaAdd: OpenWorldStaminaItem);
+                goldAdd: HandleShopClick, staminaAdd: OpenWorldStaminaItem, redDotTemplate: RedDotTemplate);
             // 关键：op=1 到达时 worldPresenter 可能尚未创建（模式下发早于
             // EndWorldChapterList → EnsureWorldPresenter），因此在这里补一次。
             worldPresenter.SetChainMode(worldChainMode);
+            RenderHeroRedDots();
         }
 
         private void RestoreWorldAfterHeroFormation()
@@ -226,6 +227,7 @@ namespace ProjectX.Core
         private void ShowWorldNormalBox(WorldStageRecord stage)
         {
             if (stage == null || stage.RewardBoxId == 0) return;
+            selectedWorldBoxChapterId = services.World.SelectedChapterId;
             selectedWorldBoxStageId = stage.Id;
             selectedWorldStarBoxRewardId = 0;
             ShowWorldBoxAward(stage.RewardBoxId, "关卡宝箱", stage.RewardBoxState == 1
@@ -234,11 +236,14 @@ namespace ProjectX.Core
         }
 
         private uint selectedWorldStarBoxRewardId;
+        private uint selectedWorldBoxChapterId;
+        public uint GetWorldBoxChapterId() => selectedWorldBoxChapterId;
         private bool worldStaminaUsePending;
 
         private void ShowWorldStarBox(WorldStarBoxRecord box)
         {
             if (box == null) return;
+            selectedWorldBoxChapterId = services.World.SelectedChapterId;
             selectedWorldBoxStageId = 0;
             selectedWorldStarBoxRewardId = box.RewardId;
             ShowWorldBoxAward(box.RewardId, "星级宝箱", box.State == 1 ? "星级宝箱可领取"
@@ -362,13 +367,13 @@ namespace ProjectX.Core
             if (selectedWorldStarBoxRewardId != 0)
             {
                 WorldStarBoxRecord box = services.World.StarBoxes.FirstOrDefault(value => value.RewardId == selectedWorldStarBoxRewardId);
-                if (box == null || box.State != 1) { SetWorldError("该宝箱当前不可领取。"); return; }
+                if (box == null || !services.World.CanClaimBox(selectedWorldBoxChapterId, box.RewardId)) { SetWorldError("该宝箱当前不可领取。"); return; }
                 HideWorldBoxAward();
                 InvokeLuaOrFail(onWorldClaimBox, "World.ClaimBox", (double)box.RewardId);
                 return;
             }
             WorldStageRecord stage = services.World.Stages.FirstOrDefault(value => value.Id == selectedWorldBoxStageId);
-            if (stage == null || stage.RewardBoxId == 0 || stage.RewardBoxState != 1)
+            if (stage == null || stage.RewardBoxId == 0 || !services.World.CanClaimBox(selectedWorldBoxChapterId, stage.RewardBoxId))
             {
                 SetWorldError("该宝箱当前不可领取。");
                 return;
@@ -495,7 +500,11 @@ namespace ProjectX.Core
             if (content != null) content.anchoredPosition = Vector2.zero;
             Animator animator = worldAchievementView.GameObject.GetComponent<Animator>();
             if (animator != null)
+            {
+                animator.enabled = true;
+                animator.speed = 1f;
                 animator.Play("WorldAchievement", 0, 0f);
+            }
             if (worldAchievementLayoutCoroutine != null)
                 StopCoroutine(worldAchievementLayoutCoroutine);
             worldAchievementLayoutCoroutine = StartCoroutine(FitWorldAchievementAfterOpen(animator));
@@ -554,9 +563,18 @@ namespace ProjectX.Core
         private IEnumerator FitWorldAchievementAfterOpen(Animator animator)
         {
             float deadline = Time.realtimeSinceStartup + 2f;
-            while (animator != null && animator.GetCurrentAnimatorStateInfo(0).normalizedTime < 1f
+            // The authored clip includes a closing segment after its visible hold.
+            // Freeze the open pose before that segment can hide or move the popup.
+            const float openPose = .5f / 1.08333337f;
+            while (animator != null && animator.GetCurrentAnimatorStateInfo(0).normalizedTime < openPose
                 && Time.realtimeSinceStartup < deadline)
                 yield return null;
+            if (animator != null)
+            {
+                animator.Play("WorldAchievement", 0, openPose);
+                animator.Update(0f);
+                animator.enabled = false;
+            }
             yield return new WaitForEndOfFrame();
             FitWorldAchievementToScreen();
             worldAchievementLayoutCoroutine = null;
@@ -639,6 +657,7 @@ namespace ProjectX.Core
 
         private void ClaimWorldAchievement(int index)
         {
+            if (!services.World.CanClaimAchievement(index) || services.World.PendingAchievementIndex != 0) return;
             IReadOnlyList<WorldAchievementDefinition> values = WorldVisualCatalog.GetAchievements(worldAchievementType);
             WorldAchievementDefinition achievement = index > 0 && index <= values.Count ? values[index - 1] : null;
             int stars = services.World.Chapters.Sum(value => (int)value.OwnedStars);
@@ -651,6 +670,7 @@ namespace ProjectX.Core
         {
             worldAchievementType = checked((byte)Math.Max(1, (int)type));
             worldAchievementBitmap = checked((byte)Math.Max(0, (int)bitmap));
+            services.World.SetAchievement(worldAchievementType, worldAchievementBitmap);
             worldAchievementAuthoritativeResponse = true;
             RenderWorldAchievement();
         }
@@ -698,7 +718,7 @@ namespace ProjectX.Core
                 if (slot != null) slot.SetActive(achievement != null);
                 if (achievement == null) continue;
                 bool claimed = (worldAchievementBitmap & (1 << index)) != 0;
-                bool claimable = !claimed && stars >= achievement.Condition;
+                bool claimable = services.World.CanClaimAchievement(index);
                 Text condition = worldAchievementView.FindNode(root + "/xingshu_layer/Num")?.GetComponent<Text>();
                 if (condition != null) condition.text = achievement.Condition.ToString();
                 GameObject claimedObject = worldAchievementView.FindNode(root + "/yilingqu");
@@ -708,7 +728,7 @@ namespace ProjectX.Core
                 if (prompt != null) prompt.SetActive(claimable);
                 if (particle != null) particle.SetActive(claimable);
                 Button button = slot?.GetComponent<Button>();
-                if (button != null) button.interactable = claimable;
+                if (button != null) button.interactable = claimable && services.World.PendingAchievementIndex == 0;
                 RenderWorldRewardIcon(worldAchievementView.FindNode(root + "/bg_icon")?.transform,
                     DescribeWorldConfiguredReward(achievement.Reward));
             }

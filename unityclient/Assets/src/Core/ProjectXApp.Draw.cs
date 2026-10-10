@@ -12,6 +12,27 @@ namespace ProjectX.Core
 {
     public sealed partial class ProjectXApp
     {
+        private bool drawDotsDefined;
+        private long drawSnapshotDay = -1;
+        private bool drawDayRefreshPending;
+        private void InitializeDrawRedDots()
+        {
+            redDots.Define("recruitment");
+            redDots.Define("recruitment.normal", "recruitment");
+            redDots.Define("recruitment.advanced", "recruitment");
+            drawDotsDefined = true;
+        }
+        public void SetDrawPending(int kind) => services.Draw.SetPending(kind);
+        private void RefreshDrawDay()
+        {
+            if (!drawDotsDefined || services?.ServerTime.IsSynchronized != true) return;
+            long day = ((long)services.ServerTime.UnixSeconds - services.ServerTime.TodaySeconds) / 86400;
+            if (drawSnapshotDay >= 0 && drawSnapshotDay != day && services.Draw.HasAuthoritativeState) drawDayRefreshPending = true;
+            drawSnapshotDay = day;
+            if (!drawDayRefreshPending || services.Draw.PendingKind != 0) return;
+            drawDayRefreshPending = false;
+            using (var refresh = services.Lua.GetFunction("OnDrawRedDotRefresh")) InvokeLuaOrFail(refresh, "Draw.DayRefresh");
+        }
         public void BeginDrawPoolUpdate(int expectedCount)
         {
             pendingDrawPools.Clear();
@@ -32,12 +53,12 @@ namespace ProjectX.Core
         public void EndDrawPoolUpdate(bool validation)
         {
             services.Draw.ReplacePools(pendingDrawPools, services.ServerTime.UnixSeconds);
-            EnsureDrawPresenter();
+            if (IsDrawOpen) EnsureDrawPresenter();
             // ShowDraw owns navigation when the request is sent. A delayed /224
             // response only refreshes authoritative data; it must not reopen Draw
             // after the user has already closed it or navigated elsewhere.
             RefreshDrawHotPoint();
-            SetStatus($"Draw /224 op=1: pools={services.Draw.Count}, free={services.Draw.HasFreeDraw}.");
+            SetStatus($"Draw /224 op=1: pools={services.Draw.Count}, free={services.Draw.HasFreeDrawAt(services.ServerTime.UnixSeconds)}.");
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (validation)
                 StartCoroutine(HasCommandLineFlag("-projectXDrawClosureValidation")

@@ -38,6 +38,12 @@ namespace ProjectX.Core
                 services = new GameServices(this, launchOptions, canvas.transform);
                 // Keep every shared FirstClassBg/GoldCheck consumer synchronized while it remains open.
                 services.Currencies.Changed += RefreshSharedCurrencyHeaders;
+                InitializePlayerRedDots();
+                InitializeHeroRedDots();
+                InitializeEquipmentRedDots();
+                InitializeDrawRedDots();
+                InitializeWorldRedDots();
+                InitializeGameplayRedDots();
                 // These validations intentionally drive every reconnect step and
                 // assert the intermediate disconnected/login state.  A queued
                 // automatic reconnect can otherwise race an account switch.
@@ -60,6 +66,7 @@ namespace ProjectX.Core
                 onRoleCreateClicked = services.Lua.GetFunction("OnRoleCreateClicked");
                 onRoleRandomClicked = services.Lua.GetFunction("OnRoleRandomClicked");
                 onBagClicked = services.Lua.GetFunction("OnBagClicked");
+                onBagRedDotRefresh = services.Lua.GetFunction("OnBagRedDotRefresh");
                 onBagUseClicked = services.Lua.GetFunction("OnBagUseClicked");
                 onSettingsClicked = services.Lua.GetFunction("OnSettingsClicked");
                 onTaskClicked = services.Lua.GetFunction("OnTaskClicked");
@@ -74,9 +81,11 @@ namespace ProjectX.Core
                 onHeroStarUp = services.Lua.GetFunction("OnHeroStarUp");
                 onHeroCultivationActivate = services.Lua.GetFunction("OnHeroCultivationActivate");
                 onHeroCompose = services.Lua.GetFunction("OnHeroCompose");
+                onHeroRedDotRefresh = services.Lua.GetFunction("OnHeroRedDotRefresh");
                 onHeroRebirthPreview = services.Lua.GetFunction("OnHeroRebirthPreview");
                 onHeroRebirthConfirm = services.Lua.GetFunction("OnHeroRebirthConfirm");
                 onHeroBookOpened = services.Lua.GetFunction("OnHeroBookOpened");
+                onHeroBookRedDotRefresh = services.Lua.GetFunction("OnHeroBookRedDotRefresh");
                 onHeroBookUpgrade = services.Lua.GetFunction("OnHeroBookUpgrade");
                 onFormationMove = services.Lua.GetFunction("OnFormationMove");
                 onFormationSwap = services.Lua.GetFunction("OnFormationSwap");
@@ -101,6 +110,7 @@ namespace ProjectX.Core
                 onFaBaoRefine = services.Lua.GetFunction("OnFaBaoRefine");
                 onEnhanceMasterOpened = services.Lua.GetFunction("OnEnhanceMasterOpened");
                 onMailClicked = services.Lua.GetFunction("OnMailClicked");
+                onMailBackgroundRefresh = services.Lua.GetFunction("OnMailRedDotRefresh");
                 onMailClaimClicked = services.Lua.GetFunction("OnMailClaimClicked");
                 onMailReadClicked = services.Lua.GetFunction("OnMailReadClicked");
                 onMailDeleteClicked = services.Lua.GetFunction("OnMailDeleteClicked");
@@ -232,6 +242,11 @@ namespace ProjectX.Core
             powerChangedPopupObject = null;
             powerChangedPopupView = null;
             ReleaseHeroAuxiliaryViews();
+            DisposePlayerRedDots();
+            DisposeHeroRedDots();
+            DisposeEquipmentRedDots();
+            DisposeWorldRedDots();
+            DisposeGameplayRedDots();
             DisposeJingJie();
             if (services != null)
                 services.Currencies.Changed -= RefreshSharedCurrencyHeaders;
@@ -584,6 +599,9 @@ namespace ProjectX.Core
             welfarePresenter?.Tick();
             activityPresenter?.Tick();
             drawPresenter?.Tick();
+            RefreshDrawHotPoint();
+            RefreshDrawDay();
+            TickGameplayRedDots();
             happyWheelPresenter?.Tick(Time.unscaledDeltaTime);
             if (Input.GetKeyDown(KeyCode.Escape)) HandleBack();
         }

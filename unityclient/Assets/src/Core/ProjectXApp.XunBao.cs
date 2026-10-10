@@ -19,10 +19,11 @@ namespace ProjectX.Core
             InvokeLuaOrFail(onXunBaoHeaderRefresh, "XunBao.PackageSnapshot");
             SetStatus("XunBao current UI active; awaiting /8 package and /319 op=31.");
         }
-        public void SetXunBaoState(int remaining,double recoverySeconds){services.XunBao.Replace(checked((ushort)remaining),checked((uint)recoverySeconds));}
+        public void SetXunBaoState(int remaining,double recoverySeconds){services.XunBao.Replace(checked((ushort)remaining),checked((uint)recoverySeconds),services.ServerTime.UnixSeconds);}
+        public bool BeginXunBaoOperation(int operation,int faBaoId) => services.XunBao.BeginOperation(operation,faBaoId);
         public void SetXunBaoOperationResult(bool succeeded,string message,double remaining,double recoverySeconds)
         {
-            services.XunBao.SetOperationResult(succeeded,message,remaining>=0?(ushort?)checked((ushort)remaining):null,recoverySeconds>=0?(uint?)checked((uint)recoverySeconds):null);
+            services.XunBao.SetOperationResult(succeeded,message,remaining>=0?(ushort?)checked((ushort)remaining):null,recoverySeconds>=0?(uint?)checked((uint)recoverySeconds):null,services.ServerTime.UnixSeconds);
             if (!string.IsNullOrWhiteSpace(message)) ShowToast(message, succeeded ? 2f : 3f);
         }
         public void PlayXunBaoComposeFeedback()

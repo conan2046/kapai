@@ -59,6 +59,42 @@ namespace ProjectX.Data
         private readonly List<WorldStarBoxRecord> starBoxes = new List<WorldStarBoxRecord>();
 
         public event Action Changed;
+        public bool HasChapterState { get; private set; }
+        public bool HasAchievementState { get; private set; }
+        public byte AchievementType { get; private set; } = 1;
+        public byte AchievementBitmap { get; private set; }
+        public int PendingAchievementIndex { get; private set; }
+        public uint PendingBoxId { get; private set; }
+        public uint PendingBoxChapterId { get; private set; }
+        private sealed class KnownBox { public byte State; public bool Normal; public bool Star; }
+        private readonly Dictionary<uint, Dictionary<uint, KnownBox>> knownBoxes = new Dictionary<uint, Dictionary<uint, KnownBox>>();
+        public void SetAchievement(byte type, byte bitmap)
+        {
+            HasAchievementState = true; AchievementType = type; AchievementBitmap = bitmap; Changed?.Invoke();
+        }
+        public void SetAchievementPending(int index) { PendingAchievementIndex = index; Changed?.Invoke(); }
+        public void SetBoxPending(uint chapterId, uint boxId)
+        {
+            PendingBoxChapterId = chapterId; PendingBoxId = boxId; Changed?.Invoke();
+        }
+        public bool CanClaimAchievement(int index)
+        {
+            IReadOnlyList<WorldAchievementDefinition> definitions = WorldVisualCatalog.GetAchievements(AchievementType);
+            return HasChapterState && MapType == 1 && HasAchievementState && index > 0 && index <= definitions.Count
+                && PendingAchievementIndex != index && (AchievementBitmap & (1 << index)) == 0
+                && chapters.Sum(c => (int)c.OwnedStars) >= definitions[index - 1].Condition;
+        }
+        public bool CanClaimBox(uint chapterId, uint boxId) => HasChapterState && MapType == 1
+            && !(PendingBoxChapterId == chapterId && PendingBoxId == boxId)
+            && knownBoxes.TryGetValue(chapterId, out Dictionary<uint, KnownBox> boxes)
+            && boxes.TryGetValue(boxId, out KnownBox box) && box.State == 1;
+        public bool HasReadyBoxes(int playerLevel) => HasChapterState && MapType == 1
+            && chapters.Where(c => c.Id <= CurrentChapterId && playerLevel >= c.OpenLevel)
+                .Sum(c => Math.Max(0, c.ClaimedBoxes - (PendingBoxId > 0 && PendingBoxChapterId == c.Id ? 1 : 0))) > 0;
+        public bool HasReadyBoxKind(bool star, int playerLevel) => HasReadyBoxes(playerLevel) && chapters
+            .Where(c => c.Id <= CurrentChapterId && playerLevel >= c.OpenLevel && c.ClaimedBoxes > 0)
+            .Any(c => knownBoxes.TryGetValue(c.Id, out Dictionary<uint, KnownBox> boxes)
+                && boxes.Any(pair => (star ? pair.Value.Star : pair.Value.Normal) && CanClaimBox(c.Id, pair.Key)));
         public IReadOnlyList<WorldChapterRecord> Chapters => chapters;
         public IReadOnlyList<WorldStageRecord> Stages => stages;
         public IReadOnlyList<WorldStarBoxRecord> StarBoxes => starBoxes;
@@ -76,6 +112,7 @@ namespace ProjectX.Data
             IEnumerable<WorldChapterRecord> values)
         {
             MapType = mapType;
+            HasChapterState = true;
             CurrentChapterId = currentChapterId;
             CurrentStageId = currentStageId;
             chapters.Clear();
@@ -93,10 +130,43 @@ namespace ProjectX.Data
             if (values != null) stages.AddRange(values);
             starBoxes.Clear();
             if (boxes != null) starBoxes.AddRange(boxes);
+            ApplyKnownBoxes(chapterId, stages, starBoxes);
             WorldStageRecord preferred = stages.FirstOrDefault(value => value.Id == CurrentStageId)
                 ?? stages.FirstOrDefault(value => value.IsUnlocked)
                 ?? stages.FirstOrDefault();
             SelectedStageId = preferred?.Id ?? 0;
+            Changed?.Invoke();
+        }
+
+        private void ApplyKnownBoxes(uint chapterId, IEnumerable<WorldStageRecord> values, IEnumerable<WorldStarBoxRecord> boxes)
+        {
+            var snapshot = new Dictionary<uint, KnownBox>();
+            foreach (WorldStageRecord stage in values.Where(s => s.RewardBoxId > 0))
+                snapshot[stage.RewardBoxId] = new KnownBox { State = stage.RewardBoxState, Normal = true };
+            foreach (WorldStarBoxRecord box in boxes)
+            {
+                if (!snapshot.TryGetValue(box.RewardId, out KnownBox known)) snapshot[box.RewardId] = known = new KnownBox();
+                known.State = box.State; known.Star = true;
+            }
+            knownBoxes[chapterId] = snapshot;
+        }
+
+        public void ApplyBoxSnapshot(uint chapterId, IEnumerable<WorldStageRecord> values, IEnumerable<WorldStarBoxRecord> boxes)
+        {
+            ApplyKnownBoxes(chapterId, values, boxes);
+            if (SelectedChapterId == chapterId)
+            {
+                foreach (WorldStageRecord stage in stages)
+                {
+                    WorldStageRecord fresh = values.FirstOrDefault(s => s.Id == stage.Id);
+                    if (fresh != null) stage.RewardBoxState = fresh.RewardBoxState;
+                }
+                foreach (WorldStarBoxRecord box in starBoxes)
+                {
+                    WorldStarBoxRecord fresh = boxes.FirstOrDefault(b => b.RewardId == box.RewardId);
+                    if (fresh != null) box.State = fresh.State;
+                }
+            }
             Changed?.Invoke();
         }
 
@@ -161,10 +231,12 @@ namespace ProjectX.Data
 
         public void ApplyClaimedBox(uint chapterId, uint boxId)
         {
-            WorldStarBoxRecord box = starBoxes.FirstOrDefault(value => value.RewardId == boxId);
-            if (box != null) box.State = 2;
-            WorldStageRecord stage = stages.FirstOrDefault(value => value.RewardBoxId == boxId);
-            if (stage != null) stage.RewardBoxState = 2;
+            if (knownBoxes.TryGetValue(chapterId, out Dictionary<uint, KnownBox> known) && known.TryGetValue(boxId, out KnownBox claim)) claim.State = 2;
+            if (SelectedChapterId == chapterId)
+            {
+                foreach (WorldStarBoxRecord box in starBoxes.Where(value => value.RewardId == boxId)) box.State = 2;
+                foreach (WorldStageRecord stage in stages.Where(value => value.RewardBoxId == boxId)) stage.RewardBoxState = 2;
+            }
             WorldChapterRecord chapter = chapters.FirstOrDefault(value => value.Id == chapterId);
             if (chapter != null && chapter.ClaimedBoxes > 0) chapter.ClaimedBoxes--;
             Changed?.Invoke();
@@ -172,6 +244,9 @@ namespace ProjectX.Data
 
         public void Clear()
         {
+            HasChapterState = HasAchievementState = false;
+            AchievementType = 1; AchievementBitmap = 0; PendingAchievementIndex = 0;
+            PendingBoxId = PendingBoxChapterId = 0; knownBoxes.Clear();
             chapters.Clear();
             stages.Clear();
             starBoxes.Clear();

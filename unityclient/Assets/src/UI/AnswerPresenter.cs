@@ -60,6 +60,8 @@ namespace ProjectX.UI
                 int answerIndex = index + 1;
                 GameObject node = Node($"{Root}/SubjectBg/Button_{answerIndex}");
                 Button button = node.GetComponent<Button>() ?? node.AddComponent<Button>();
+                Transform prompt = node.transform.Find("Prompt");
+                if (prompt != null) prompt.gameObject.SetActive(false);
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() => Select(answerIndex));
                 answerButtons[index] = button;

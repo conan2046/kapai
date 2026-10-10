@@ -24,7 +24,13 @@ end
 
 function M.start() send(5, 2, false) end
 function M.stop() send(10) end
-function M.collect(slotIndex) send(6, math.floor(tonumber(slotIndex) or 0), true) end
+function M.collect(slotIndex)
+    slotIndex=math.floor(tonumber(slotIndex) or 0)
+    if Bridge:BeginFishCollect(slotIndex) then send(6,slotIndex,true) end
+end
+function M.preload()
+    if Bridge:IsGameplayReminderOpen(32) then send(4) end
+end
 function M.exit()
     if not M.opened then return end
     M.opened = false
@@ -36,6 +42,7 @@ function M.onPacket(command, message)
     local operation = message:ReadByte()
     local success = message:ReadByte()
     if success == 0 then
+        if operation == 6 then Bridge:FailFishCollect() end
         failure(message, "钓鱼操作失败")
         return true
     end
@@ -94,7 +101,8 @@ function M.onPacket(command, message)
     end
 
     if operation == 9 then
-        Bridge:ClearFishState()
+        Bridge:ExitFishScene()
+        M.preload()
         return true
     end
 

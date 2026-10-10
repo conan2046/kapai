@@ -31,7 +31,7 @@ namespace ProjectX.Core
                     SetOneLevelFrameVisible(false);
                     HandleBack();
                 },
-                item => bagFlowPresenter.ShowMailAttachment(item));
+                item => bagFlowPresenter.ShowMailAttachment(item), () => IsMailOpen);
         }
 
         private void ConfigureMailFrame()
@@ -68,9 +68,7 @@ namespace ProjectX.Core
 
         private void UpdateMailRedDot()
         {
-            if (mainView == null) return;
-            GameObject prompt = mainView.FindNode($"{MailPath}/Prompt");
-            if (prompt != null) prompt.SetActive(services.Mails.HasUnread);
+            RefreshPlayerRedDots();
         }
 
 

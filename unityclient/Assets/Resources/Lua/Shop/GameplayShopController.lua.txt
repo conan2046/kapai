@@ -26,6 +26,7 @@ for _, value in ipairs(ALL_TYPES) do ALLOWED[value] = true end
 
 local function clearPending()
     M.pendingOp = 0
+    Bridge:SetGameplayShopPending(0)
     M.pendingType = 0
     M.pendingId = 0
     M.pendingQuantity = 0
@@ -46,6 +47,7 @@ local function begin(op, shopType, id, quantity)
         return false
     end
     M.pendingOp = op
+    Bridge:SetGameplayShopPending(op)
     M.pendingType = shopType
     M.pendingId = id or 0
     M.pendingQuantity = quantity or 0
@@ -86,6 +88,10 @@ function M.open(functionId)
         M.queueIndex = 0
         requestPage(firstType)
     end
+end
+
+function M.preload()
+    if M.pendingOp == 0 and Bridge:IsSoulShopReminderOpen() then requestPage(2) end
 end
 
 function M.selectType(shopType)
@@ -165,13 +171,13 @@ function M.onRequestTimeout()
 end
 
 local function readList(message, op)
-    if M.pendingOp ~= op or message.Remaining < 2 then
+    if (op ~= 1 and M.pendingOp ~= op) or message.Remaining < 2 then
         failMalformed(op == 3 and "refresh identity" or "list identity", op == 1)
         return
     end
     local shopType = message:ReadByte()
     local success = message:ReadByte()
-    if shopType ~= M.pendingType then
+    if not ALLOWED[shopType] or (M.pendingOp == op and shopType ~= M.pendingType) then
         failMalformed("list type identity", op == 1)
         return
     end
@@ -217,7 +223,7 @@ local function readList(message, op)
             record[5], record[6], record[7])
     end
     Bridge:EndGameplayShopUpdate()
-    clearPending()
+    if M.pendingOp == op then clearPending() end
     M.activeType = shopType
     M.validationItems[shopType] = ids
 
@@ -380,13 +386,20 @@ local function readCount(message)
 end
 
 function M.onPacket(command, message)
-    if command ~= Protocol.SHOP or M.pendingOp == 0 then return false end
+    if command ~= Protocol.SHOP then return false end
+    if message.Remaining >= 2 then
+        local position=message.Position
+        message:ReadByte()
+        local shopType=message:ReadByte()
+        message.Position=position
+        if shopType~=2 then return false end
+    elseif M.pendingOp == 0 then return false end
     if message.Remaining < 1 then
         failMalformed("header", M.pendingOp == 1)
         return true
     end
     local op = message:ReadByte()
-    if op ~= M.pendingOp then
+    if op ~= 1 and op ~= M.pendingOp then
         failMalformed("op identity expected=" .. tostring(M.pendingOp)
             .. ", actual=" .. tostring(op), false)
     elseif op == 1 or op == 3 then readList(message, op)

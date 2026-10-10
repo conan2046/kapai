@@ -69,10 +69,14 @@ namespace ProjectX.Core
 
         public void EndGameplayShopUpdate()
         {
+            shopSnapshotNeedsTime = !services.ServerTime.IsSynchronized && pendingShopRefreshRemaining > 0;
             services.GameplayShops.Replace(pendingShopType, pendingShopRefreshTimes, pendingShopFreeTimes,
                 pendingShopRefreshRemaining, services.ServerTime.UnixSeconds, pendingShopRecords);
-            EnsureGameplayShopsPresenter();
-            gameplayShopsPresenter.SelectType(pendingShopType, false);
+            if (IsGameplayShopOpen)
+            {
+                EnsureGameplayShopsPresenter();
+                gameplayShopsPresenter.SelectType(pendingShopType, false);
+            }
         }
 
         public bool ApplyGameplayShopPurchase(int rawType, double rawId, int buyCount,

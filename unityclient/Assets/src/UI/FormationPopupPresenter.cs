@@ -34,16 +34,18 @@ namespace ProjectX.UI
         private readonly Button closeInteractionButton;
         private int selectedFormationId;
         private int selectedCombatPosition;
+        private readonly Transform redDotTemplate;
 
         public FormationPopupPresenter(UnityUiView view, FormationStore formation, HeroStore heroes,
             BagStore bag, CurrencyStore currencies, IUiResourceProvider resources,
             Action<int,int> swap, Action<int> upgrade, Action<int> use,
-            Action<string> feedback, Action close)
+            Action<string> feedback, Action close, Transform redDotTemplate = null)
         {
             this.view = view; this.formation = formation; this.heroes = heroes;
             this.bag = bag; this.currencies = currencies;
             this.resources = resources; this.swap = swap; this.upgrade = upgrade; this.use = use;
             this.feedback = feedback;
+            this.redDotTemplate = redDotTemplate;
             selectedFormationId = formation.ActiveFormationId > 0 ? formation.ActiveFormationId : 1;
             runtimeDim = CreateDim(view.GameObject.transform);
             GameObject viewport = Require("Layer/FormationUI/List_Formation/ListView");
@@ -62,6 +64,8 @@ namespace ProjectX.UI
                 BindClick($"Layer/FormationUI/Show/Formation/Position{grid}", () => SelectGrid(captured));
             }
             formation.Changed += Render;
+            bag.Changed += Render;
+            currencies.Changed += Render;
         }
 
         public Button CloseInteractionButton => closeInteractionButton;
@@ -150,9 +154,9 @@ namespace ProjectX.UI
             Text restriction = Find("Layer/FormationUI/Show/Info/Restriction/Content")?.GetComponent<Text>();
             if (restriction != null) restriction.horizontalOverflow = HorizontalWrapMode.Overflow;
             bool maxLevel = currentLevel >= 10;
-            int requiredBooks = maxLevel ? 0 : UpgradeBookCosts[Mathf.Clamp(currentLevel, 0, UpgradeBookCosts.Length - 1)];
-            int ownedBooks = GetBagQuantity(2724 + definition.Id);
-            int requiredGold = maxLevel ? 0 : (currentLevel + 1) * 100000;
+            int requiredBooks = FormationCatalog.Shared.BookCost(formation, definition.Id);
+            int ownedBooks = bag.GetTotalQuantityByItemId(FormationCatalog.Shared.BookId(formation, definition.Id));
+            int requiredGold = FormationCatalog.Shared.GoldCost(formation, definition.Id);
             SetText("Layer/FormationUI/Show/Info/CoinBg/Num", maxLevel ? string.Empty : requiredGold.ToString());
             SetText("Layer/FormationUI/Show/Info/btn_Material/Value", maxLevel ? string.Empty : $"{ownedBooks}/{requiredBooks}");
             SetText("Layer/FormationUI/Show/Info/bg_Name/Name", definition.Name + "法书");
@@ -185,8 +189,11 @@ namespace ProjectX.UI
             if (materialButton != null) materialButton.gameObject.SetActive(!maxLevel);
             Transform materialName = Find("Layer/FormationUI/Show/Info/bg_Name");
             if (materialName != null) materialName.gameObject.SetActive(!maxLevel);
-            foreach (Transform child in view.GameObject.transform.GetComponentsInChildren<Transform>(true))
-                if (child.name == "Prompt") child.gameObject.SetActive(false);
+            bool ready = FormationCatalog.Shared.CanUpgrade(formation, bag, currencies, definition.Id);
+            RedDotVisual.Set(upgradeButton, ready, redDotTemplate);
+            RedDotVisual.Set(materialButton, ready, redDotTemplate);
+            Button upgradeControl = upgradeButton?.GetComponent<Button>();
+            if (upgradeControl != null) upgradeControl.interactable = formation.PendingFormationId == 0;
             RenderedModelCount = 0;
             for (int combatPosition = 1; combatPosition <= models.Length; combatPosition++)
             {
@@ -211,7 +218,7 @@ namespace ProjectX.UI
 
         public int RenderedModelCount { get; private set; }
 
-        public void Dispose() { formation.Changed -= Render; list.Dispose(); }
+        public void Dispose() { formation.Changed -= Render; bag.Changed -= Render; currencies.Changed -= Render; list.Dispose(); }
 
         private void BindFormation(RectTransform row, FormationDefinition item, int index)
         {
@@ -224,7 +231,7 @@ namespace ProjectX.UI
             if (icon != null) icon.sprite = resources.LoadFirst($"Art/Hero/formation_{item.Id}");
             Transform tag = row.Find("Tag"); if (tag != null) tag.gameObject.SetActive(formation.ActiveFormationId == item.Id);
             Transform choose = row.Find("Choose"); if (choose != null) choose.gameObject.SetActive(selectedFormationId == item.Id);
-            Transform prompt = row.Find("Prompt"); if (prompt != null) prompt.gameObject.SetActive(false);
+            RedDotVisual.Set(row, FormationCatalog.Shared.CanUpgrade(formation, bag, currencies, item.Id), redDotTemplate);
             // Bind the Button to the imported visual itself. Dynamically added
             // transparent Graphics under this RectMask2D remain at canvas depth
             // -1 in Unity 2022 batch mode, while bg_Formation already owns the
@@ -262,8 +269,6 @@ namespace ProjectX.UI
             if (sourcePosition != combat) swap?.Invoke(sourcePosition, combat);
         }
 
-        private static readonly int[] UpgradeBookCosts = {1,3,7,13,20,30,45,60,75,100};
-
         private int GetFormationLevel(int id)
         {
             foreach (FormationRecord record in formation.Formations) if (record.Id == id) return record.Level;
@@ -282,19 +287,19 @@ namespace ProjectX.UI
             if (definition.Id == 0) return;
             int level = GetFormationLevel(definition.Id);
             if (level >= 10) return;
-            int requiredBooks = UpgradeBookCosts[Mathf.Clamp(level, 0, UpgradeBookCosts.Length - 1)];
-            if (GetBagQuantity(2724 + definition.Id) < requiredBooks)
+            int requiredBooks = FormationCatalog.Shared.BookCost(formation, definition.Id);
+            if (bag.GetTotalQuantityByItemId(FormationCatalog.Shared.BookId(formation, definition.Id)) < requiredBooks)
             {
                 feedback?.Invoke(definition.Name + "法书不足");
                 return;
             }
-            int requiredGold = (level + 1) * 100000;
+            int requiredGold = FormationCatalog.Shared.GoldCost(formation, definition.Id);
             if (currencies.Gold < requiredGold)
             {
                 feedback?.Invoke("铜钱不足");
                 return;
             }
-            upgrade?.Invoke(definition.Id);
+            if (FormationCatalog.Shared.CanUpgrade(formation, bag, currencies, definition.Id)) upgrade?.Invoke(definition.Id);
         }
 
         private static string BuildRestraintText(FormationDefinition definition)

@@ -12,6 +12,7 @@ namespace ProjectX.UI
         private readonly BagPageBinding bindings;
         private readonly BagStore store;
         private readonly Action<BagItemRecord> useAction;
+        private readonly Transform redDotTemplate;
         private readonly IUiResourceProvider resources;
         private readonly GameObject viewportObject;
         private readonly GameObject rowTemplate;
@@ -30,11 +31,13 @@ namespace ProjectX.UI
         private int selectedSlot;
 
         public BagPresenter(GameObject pageInstance, Transform sharedFrame, BagStore store,
-            IUiResourceProvider resources, Action<BagItemRecord> useAction, Action closeAction)
+            IUiResourceProvider resources, Action<BagItemRecord> useAction, Action closeAction,
+            Transform redDotTemplate = null)
         {
             if (pageInstance == null) throw new ArgumentNullException(nameof(pageInstance));
             if (sharedFrame == null) throw new ArgumentNullException(nameof(sharedFrame));
             this.useAction = useAction;
+            this.redDotTemplate = redDotTemplate;
             this.store = store ?? throw new ArgumentNullException(nameof(store));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             bindings = BagPageBinding.Attach(pageInstance, sharedFrame,
@@ -230,6 +233,7 @@ namespace ProjectX.UI
                 ApplyQuality(slot, item.Quality);
                 ApplyIcon(slot.Find("Icon")?.GetComponent<Image>(), item.Picture);
                 AddQuantityLabel(slot, slot.Find("Icon"), item.Quantity);
+                RedDotVisual.Set(slot, item.CanUseDirectly, redDotTemplate);
                 Button button = ConfigureItemHitArea(slot);
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() =>
@@ -345,6 +349,7 @@ namespace ProjectX.UI
                     && (item.UseType > 0 || item.UseJump > 0 || item.ItemType == 6)
                     && useAction != null;
                 useButton.gameObject.SetActive(canUse);
+                RedDotVisual.Set(useButton.transform, item.CanUseDirectly && canUse, redDotTemplate);
                 useButton.onClick.RemoveAllListeners();
                 if (canUse) useButton.onClick.AddListener(() => useAction(item));
             }

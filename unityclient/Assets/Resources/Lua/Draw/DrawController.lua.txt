@@ -15,6 +15,12 @@ local function requestInfo()
     Bridge:Send(message)
 end
 
+function M.preload() requestInfo() end
+function M.reset()
+    M.pendingKind = nil
+    Bridge:SetDrawPending(0)
+end
+
 function M.onClick()
     M.validation = Bridge:HasCommandLineFlag("-projectXDrawValidation")
         or Bridge:HasCommandLineFlag("-projectXDrawClosureValidation")
@@ -26,6 +32,9 @@ function M.onClick()
 end
 
 function M.draw(kind, drawType)
+    if M.pendingKind ~= nil then return end
+    M.pendingKind = kind
+    Bridge:SetDrawPending(kind)
     local message = Protocol.newMessage(Protocol.PET_RANDOM_DRAW)
     message:WriteByte(2)
     message:WriteByte(kind)
@@ -68,6 +77,8 @@ local function readResult(message)
     local kind = message:ReadByte()
     local drawType = message:ReadByte()
     local success = message:ReadByte()
+    M.pendingKind = nil
+    Bridge:SetDrawPending(0)
     if success == 0 then
         local detail = message.Remaining > 0 and message:ReadString() or "unknown"
         Bridge:SetDrawError("Draw /224 op=2 failed: " .. detail)

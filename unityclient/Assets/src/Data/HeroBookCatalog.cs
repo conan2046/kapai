@@ -50,6 +50,8 @@ namespace ProjectX.Data
         public int Condition { get; }
         public int GetScore(int quality) => scores.TryGetValue(quality, out int value) ? value : 0;
         public HeroBookCost GetCost(int quality) => costs.TryGetValue(quality, out HeroBookCost value) ? value : default;
+        public bool TryGetCost(int quality, out HeroBookCost value) => costs.TryGetValue(quality, out value)
+            && value.ItemId > 0 && value.Quantity >= 0;
     }
 
     public sealed class HeroBookCatalog
@@ -115,6 +117,25 @@ namespace ProjectX.Data
         public bool TryGetStar(int star, out HeroBookStarDefinition value) => stars.TryGetValue(star, out value);
         public bool TryGetHero(int id, out HeroDefinition value) => heroes.TryGetValue(id, out value);
         public int GetQualityRatio(int quality) => qualityRatios.TryGetValue(quality, out int value) ? value : 0;
+
+        public bool CanUpgrade(int heroId, HeroBookStore book, HeroStore ownedHeroes, BagStore bag, int playerLevel)
+        {
+            if (!TryGetHero(heroId, out HeroDefinition definition)) return false;
+            bool owned = ownedHeroes.TryGet(heroId, out HeroRecord hero);
+            bool authoritative = book.HasAuthoritativeState && ownedHeroes.HasAuthoritativeState;
+            bool pending = book.PendingHeroId == heroId;
+            int openLevel = FunctionUnlockCatalog.Resolve(1090).OpenLevel;
+            if (!book.TryGet(heroId, out HeroBookEntry entry))
+                return HeroBookEligibility.CanActivate(playerLevel, openLevel, owned, TryGetStar(1, out _),
+                    authoritative, pending);
+            if (entry.Star <= 0) return false;
+            bool hasNext = TryGetStar(entry.Star + 1, out HeroBookStarDefinition next);
+            HeroBookCost cost = default;
+            bool hasCost = hasNext && next.TryGetCost(definition.Quality, out cost);
+            return HeroBookEligibility.CanUpgrade(playerLevel, openLevel, owned, hero.Star,
+                next?.Condition ?? 0, hasNext, hasCost, hasCost ? bag.GetTotalQuantityByItemId(cost.ItemId) : 0,
+                cost.Quantity, authoritative, pending);
+        }
 
         public static string AttributeName(int type)
         {

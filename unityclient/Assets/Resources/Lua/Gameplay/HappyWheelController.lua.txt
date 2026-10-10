@@ -17,6 +17,12 @@ local function readHistory(message, add)
     for _ = 1, count do add(message:ReadString()) end
 end
 
+function M.preload()
+    if not Bridge:IsGameplayReminderOpen(29) or M.pending >= 0 then return end
+    BagController.requestHappyWheelKeySnapshot()
+    writeRequest(1, 0)
+end
+
 local function discardServerHistory(message)
     local count = message:ReadByte()
     for _ = 1, count do message:ReadString() end
@@ -24,7 +30,6 @@ end
 
 function M.onClick(functionId)
     M.pending = -1
-    Bridge:ClearHappyWheelState()
     Bridge:ShowHappyWheel(functionId)
     -- Rehydrate the server-owned key count after login without opening the bag UI.
     BagController.requestHappyWheelKeySnapshot()
@@ -126,6 +131,7 @@ function M.onOperation(operation, message)
         for _ = 1, indexCount do Bridge:AddHappyWheelSpinIndex(message:ReadByte()) end
         Bridge:CommitHappyWheelSpinResult()
         M.pending = -1
+        M.preload()
         Bridge:SetStatus("HappyWheel/222 spin received: rewards=" .. tostring(indexCount) .. ".")
         return true
     end

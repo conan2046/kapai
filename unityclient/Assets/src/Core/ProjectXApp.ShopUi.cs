@@ -208,6 +208,7 @@ namespace ProjectX.Core
                 () => ShowShop());
             ConfigureShopHubTab(secondPanel.Find("Button"), "将魂商店", selected == ShopHubTab.Soul,
                 ShowShopHubSoulTab);
+            RefreshShopRedDots();
         }
 
         private static void ConfigureShopHubTab(Transform tab, string label, bool selected, Action onClick)

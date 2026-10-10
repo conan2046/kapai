@@ -447,6 +447,15 @@ namespace ProjectX.UI
 
     public sealed class XunBaoPopupPresenter : IDisposable
     {
+        private Transform taskRedDotTemplate;
+        public bool IsTaskBoundaryVisible => IsVisible && Mode == 3;
+        public void RefreshTaskRedDots(Transform template)
+        {
+            taskRedDotTemplate = template;
+            if (template == null) return;
+            foreach (var pair in taskClaimButtons)
+                RedDotVisual.Set(pair.Value?.transform, tasks.TryGet(3,pair.Key,out var item) && tasks.CanClaim(item), template);
+        }
         private readonly UnityUiView view;
         private readonly IUiResourceProvider resources;
         private readonly TaskStore tasks;
@@ -648,7 +657,8 @@ namespace ProjectX.UI
             {
                 button.gameObject.SetActive(!claimed);
                 button.onClick.RemoveAllListeners();
-                button.interactable = item.State == 1;
+                button.interactable = tasks.CanClaim(item);
+                if (taskRedDotTemplate != null) RedDotVisual.Set(button.transform, tasks.CanClaim(item), taskRedDotTemplate);
                 if (item.State == 1) button.onClick.AddListener(() => claimTask(item));
                 taskClaimButtons[item.Id] = button;
             }

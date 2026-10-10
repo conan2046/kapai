@@ -201,7 +201,18 @@ local function sendAffixOperation(uid, op)
     Bridge:Send(message)
 end
 
+local function beginRedDotRequest(uid, kind)
+    if M.redDotRequestUid ~= nil then return false end
+    M.redDotRequestUid, M.redDotRequestKind = uid, kind
+    Bridge:SetEquipmentRedDotPending(uid, kind, true)
+    return true
+end
+local function endRedDotRequest()
+    if M.redDotRequestUid ~= nil then Bridge:SetEquipmentRedDotPending(M.redDotRequestUid, M.redDotRequestKind, false) end
+    M.redDotRequestUid, M.redDotRequestKind = nil, nil
+end
 local function sendEquipmentStrength(uid, strengthType)
+    if not beginRedDotRequest(uid, 1) then return end
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(4)
     message:WriteUInt(uid)
@@ -226,6 +237,7 @@ local function sendFaBaoTakeOff(uid)
 end
 
 local function sendFaBaoStrength(uid, materialUids)
+    if not beginRedDotRequest(uid, 2) then return end
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(20)
     message:WriteUInt(uid)
@@ -235,6 +247,7 @@ local function sendFaBaoStrength(uid, materialUids)
 end
 
 local function sendFaBaoRefine(uid, targetLevel)
+    if not beginRedDotRequest(uid, 2) then return end
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(21)
     message:WriteUInt(uid)
@@ -250,6 +263,7 @@ local function sendEquipmentStrengthAll(position)
 end
 
 local function sendEquipmentRefine(uid, itemId, itemCount)
+    if not beginRedDotRequest(uid, 1) then return end
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(13)
     message:WriteUInt(uid)
@@ -282,6 +296,7 @@ local function sendEquipmentAutoRefine(uid, ...)
 end
 
 local function sendEquipmentCultivate(uid, op)
+    if not beginRedDotRequest(uid, 1) then return end
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(op)
     message:WriteUInt(uid)
@@ -290,6 +305,7 @@ local function sendEquipmentCultivate(uid, op)
 end
 
 local function sendEquipmentCompose(fragmentId)
+    Bridge:SetEquipmentFragmentPending(fragmentId, true)
     local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
     message:WriteByte(11)
     message:WriteWord(fragmentId)
@@ -605,6 +621,7 @@ local function readEquipmentWearResponse(message, op)
 end
 
 local function readEquipmentStrengthResponse(message)
+    endRedDotRequest()
     local uid = message:ReadUInt()
     message:ReadByte()
     if message.Remaining < 1 then Bridge:Fail("Equipment strength returned no result byte (system gate or incomplete response).") M.stage = nil return end
@@ -638,6 +655,7 @@ local function readEquipmentStrengthResponse(message)
 end
 
 local function readSimpleEquipmentCultivationResponse(message, op)
+    endRedDotRequest()
     local uid = message:ReadUInt()
     if op == 14 or op == 15 then message:ReadWord() end
     if message.Remaining < 1 then
@@ -669,7 +687,8 @@ local function readSimpleEquipmentCultivationResponse(message, op)
 end
 
 local function readEquipmentComposeResponse(message)
-    message:ReadWord()
+    local fragmentId = message:ReadWord()
+    Bridge:SetEquipmentFragmentPending(fragmentId, false)
     if message.Remaining < 1 then Bridge:Fail("Equipment compose returned no result byte."); return end
     local success = message:ReadByte()
     if success == 0 then showBusinessError(message.Remaining > 0 and message:ReadString() or "unknown rejection"); return end
@@ -781,6 +800,7 @@ local function refreshFaBaoAfterCultivation(text)
 end
 
 local function readFaBaoStrengthResponse(message)
+    endRedDotRequest()
     if message.Remaining < 1 then Bridge:Fail("FaBao strength returned no result byte."); return end
     local success = message:ReadByte()
     if success == 0 then showBusinessError(message.Remaining > 0 and message:ReadString() or "法宝强化失败"); return end
@@ -795,6 +815,7 @@ local function readFaBaoStrengthResponse(message)
 end
 
 local function readFaBaoRefineResponse(message)
+    endRedDotRequest()
     if message.Remaining < 6 then Bridge:Fail("FaBao refine response is incomplete."); return end
     message:ReadUInt()
     message:ReadByte()
@@ -848,6 +869,7 @@ function M.onPacket(command, message)
 end
 
 function M.reset()
+    M.redDotRequestUid, M.redDotRequestKind = nil, nil
     M.requested, M.equipmentComplete, M.faBaoComplete = false, false, false
     M.stage, M.injectedEquipment, M.injectedFaBao = nil, false, false
     M.equipmentUid, M.faBaoUid, M.strengthBefore = 0, 0, 0

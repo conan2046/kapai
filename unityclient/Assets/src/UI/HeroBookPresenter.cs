@@ -20,6 +20,8 @@ namespace ProjectX.UI
         private readonly HeroBookCatalog catalog;
         private readonly HeroStore heroes;
         private readonly BagStore bag;
+        private readonly PlayerStore player;
+        private readonly Transform redDotTemplate;
         private readonly EquipmentCatalog itemCatalog;
         private readonly IUiResourceProvider resources;
         private readonly Action<int> requestUpgrade;
@@ -38,7 +40,7 @@ namespace ProjectX.UI
             UnityUiView attributesView, UnityUiView achievementView, UnityUiView levelResultView,
             HeroBookStore store, HeroBookCatalog catalog, HeroStore heroes, BagStore bag,
             EquipmentCatalog itemCatalog, IUiResourceProvider resources, Action<int> requestUpgrade,
-            Action<string> feedback)
+            Action<string> feedback, PlayerStore player = null, Transform redDotTemplate = null)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.upgradeView = upgradeView ?? throw new ArgumentNullException(nameof(upgradeView));
@@ -55,12 +57,15 @@ namespace ProjectX.UI
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.requestUpgrade = requestUpgrade ?? throw new ArgumentNullException(nameof(requestUpgrade));
             this.feedback = feedback ?? (_ => { });
+            this.player = player;
+            this.redDotTemplate = redDotTemplate;
             BindMainControls();
             HidePopups();
             store.Changed += Render;
             store.UpgradeCompleted += HandleUpgradeCompleted;
             heroes.Changed += Render;
             bag.Changed += Render;
+            if (player != null) player.Changed += Render;
         }
 
         public void Show()
@@ -81,6 +86,7 @@ namespace ProjectX.UI
             store.UpgradeCompleted -= HandleUpgradeCompleted;
             heroes.Changed -= Render;
             bag.Changed -= Render;
+            if (player != null) player.Changed -= Render;
             if (cardContent != null) UnityEngine.Object.Destroy(cardContent.gameObject);
             cards.Clear();
             cardContent = null;
@@ -163,10 +169,10 @@ namespace ProjectX.UI
             if (!store.TryGet(heroId, out HeroBookEntry entry)) return 3;
             int nextStar = entry.Star + 1;
             if (!catalog.TryGetStar(nextStar, out HeroBookStarDefinition next)) return 1;
-            HeroBookCost cost = next.GetCost(definition.Quality);
-            return owned.Star >= next.Condition
-                && (cost.ItemId <= 0 || bag.GetTotalQuantityByItemId(cost.ItemId) >= cost.Quantity) ? 2 : 1;
+            return CanUpgrade(heroId) ? 2 : 1;
         }
+
+        private bool CanUpgrade(int heroId) => catalog.CanUpgrade(heroId, store, heroes, bag, player?.Level ?? 0);
 
         private HeroBookLevelDefinition ResolveNextLevel()
         {
@@ -291,13 +297,17 @@ namespace ProjectX.UI
             SetText(runtimeCard, "Item/Btn_shengji/Text_2", label);
             if (action != null)
             {
-                action.interactable = true;
+                bool ready = CanUpgrade(heroId);
+                action.interactable = store.PendingHeroId == 0 && (activated || ready);
+                RedDotVisual.Set(action.transform, ready, redDotTemplate);
+                RedDotVisual.Set(runtimeCard.transform.Find("Item"), ready, redDotTemplate);
                 action.onClick.RemoveAllListeners();
                 action.onClick.AddListener(() =>
                 {
                     if (!owned) { feedback("拥有对应神将后方可激活"); return; }
                     if (activated && entry.Star >= catalog.MaxStar) { feedback("已达到最高级"); return; }
-                    if (activated) ShowUpgrade(heroId); else requestUpgrade(heroId);
+                    if (activated) ShowUpgrade(heroId);
+                    else if (CanUpgrade(heroId)) requestUpgrade(heroId);
                 });
             }
         }
@@ -354,7 +364,13 @@ namespace ProjectX.UI
             if (costIcon != null) costIcon.sprite = item == null ? null : resources.LoadItemIcon(item.Picture);
             Bind(upgradeView, "Layer/Popup/Btn_close", CloseUpgrade);
             Bind(upgradeView, "Layer/Mask", CloseUpgrade);
-            Bind(upgradeView, "Layer/Popup/Btn_shengji", () => requestUpgrade(heroId));
+            Bind(upgradeView, "Layer/Popup/Btn_shengji", () =>
+            { if (CanUpgrade(heroId) && store.PendingHeroId == 0) requestUpgrade(heroId); });
+            Transform confirm = Find(upgradeView, "Layer/Popup/Btn_shengji")?.transform;
+            bool ready = CanUpgrade(heroId);
+            if (confirm?.GetComponent<Button>() != null) confirm.GetComponent<Button>().interactable = ready && store.PendingHeroId == 0;
+            RedDotVisual.Set(confirm, ready, redDotTemplate);
+            RedDotVisual.Set(Find(upgradeView, "Layer/Popup/xiaohao")?.transform, ready, redDotTemplate);
         }
 
         private HeroBookAttribute[] CalculateHeroAttributes(HeroDefinition definition, int star)

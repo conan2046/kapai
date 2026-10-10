@@ -60,7 +60,7 @@ namespace ProjectX.Core
                 checked((uint)resetSeconds), pendingHappyWheelRewards, pendingHappyWheelHistory,
                 checked((ushort)costItemId), checked((byte)singleDrawCount), checked((byte)singleKeyCost),
                 checked((byte)multiDrawCount), checked((byte)multiKeyCost), checked((ushort)scorePerDraw),
-                checked((byte)historyLimit));
+                checked((byte)historyLimit), services.ServerTime.UnixSeconds);
         }
 
         public bool BeginHappyWheelSpin(int drawType) => services.HappyWheel.BeginSpin(drawType);

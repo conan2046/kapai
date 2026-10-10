@@ -53,8 +53,14 @@ namespace ProjectX.Data
         public int CurrentChapter => HasAuthoritativeResponse ? checked((int)ChapterId + 1) : 0;
         public int HighestSelectableChapter => Math.Min(MaxChapterCount, Math.Max(1, CurrentChapter));
 
+        public bool CanChallenge(int playerLevel, long stamina) => HasAuthoritativeResponse
+            && !ChallengePending && !IsDisconnected && RemainingChallenges > 0
+            && CurrentChapter <= MaxChapterCount && WorldVisualCatalog.TryGetStage(LevelId, out var stage)
+            && playerLevel >= stage.LevelLimit && stamina >= stage.Hope;
+
         public void Replace(uint chapterId, uint levelId, byte remainingChallenges)
         {
+            bool preserveSelection = HasAuthoritativeResponse;
             ChapterId = chapterId;
             LevelId = levelId;
             RemainingChallenges = remainingChallenges;
@@ -62,8 +68,11 @@ namespace ProjectX.Data
             ChallengePending = false;
             IsDisconnected = false;
             LastChallengeError = string.Empty;
-            SelectedChapter = CurrentChapter;
-            FirstVisibleChapter = InitialViewportStartFor(SelectedChapter);
+            if (!preserveSelection)
+            {
+                SelectedChapter = CurrentChapter;
+                FirstVisibleChapter = InitialViewportStartFor(SelectedChapter);
+            }
             Changed?.Invoke();
         }
 

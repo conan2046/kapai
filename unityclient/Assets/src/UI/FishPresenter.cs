@@ -118,6 +118,13 @@ namespace ProjectX.UI
         }
 
         public int RenderedSlotCount => basketSlotButtons.Count;
+        public void RefreshRedDots(Transform template)
+        {
+            RedDotVisual.Set(Require(view, FishRootPath + "/Panel_caozuo/btn_yulan").transform, store.HasClaimableFish, template);
+            RedDotVisual.Set(collectButton.transform, selectedSlot != ushort.MaxValue && store.CanCollect(selectedSlot), template);
+            foreach (var entry in basketSlotButtons)
+                RedDotVisual.Set(entry.Value.transform, store.CanCollect(entry.Key), template);
+        }
         public bool IsBasketVisible => basketRoot.activeSelf;
         public bool IsOuterFrameVisible => Require(oneLevelView, "Layer/Panel_12").activeSelf;
         public ScrollRect BasketScroll => basketScroll;
@@ -239,6 +246,7 @@ namespace ProjectX.UI
 
         private void HandleCaught(FishCatchRecord record)
         {
+            if (!moduleVisible || !view.GameObject.activeInHierarchy) return;
             if (record != null && !IsBasketVisible) SetBasketVisible(true);
         }
 

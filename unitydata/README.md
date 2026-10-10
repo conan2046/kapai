@@ -29,6 +29,11 @@ unitydata/export/client/source
 - `export/client/source/Configs`：客户端 JSON/XML 配置
 - `export/client/source/Tasks`：Unity 任务配置
 - `export/client/source/World`：Unity 世界与培养 TXT 配置
+- 神将升级门槛由客户端导出器从正式服务端中间产物`exp.json`生成`Configs/hero-level-exp.json`，并核对当前`unityserver/config/json/exp.json`；培养显示与红点共用，避免旧Cocos经验曲线与单机服务端不同。
+- 神将突破同样从正式`break/quality/hero.json`生成`Configs/hero-break.json`并核对当前服务端；按真实神将品质缩放费用，按钮显示和红点共用。
+- 神将升星从正式`star/hero.json`生成`Configs/hero-star.json`并核对当前服务端；专属碎片ID、品质费用、下一星级存在性供按钮和红点共用。
+- 神将修炼从权威`xiulian.json`及正式config的`xiulian_attr/xiulian_cost`生成`Configs/hero-cultivation.json`并核对当前服务端；训练剩余次数与激活消耗分开判定，不使用固定400次或强制最少1次。
+- 神将图鉴继续使用正式handbook/star/quality/hero四张客户端JSON，导出时核对当前Unity服务端；图鉴快照、拥有状态、星级门槛及材料资格供卡片/按钮与主入口共用。
 - `export/client/source/Battle`：Unity 战斗表现 DAT/TXT 配置
 - `export/client/`：Unity 客户端数据导出工作区
 

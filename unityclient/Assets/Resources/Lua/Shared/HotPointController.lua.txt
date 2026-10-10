@@ -3,10 +3,14 @@ local GameplayController = require("Gameplay.GameplayController")
 local M = {}
 
 function M.refreshGameplay()
-    local message = Protocol.newMessage(Protocol.CHUANG_GUAN)
-    message:WriteByte(25)
-    Bridge:Send(message)
-    Bridge:SetStatus("Shared Gameplay KunLun red-point source /213 op=25 requested.")
+    require("Gameplay.MonopolyController").preload()
+    require("Gameplay.MoneyTreeController").preload()
+    require("Gameplay.FengShenStoryController").preload()
+    require("Gameplay.XunBaoController").preload()
+    require("Task.TaskController").preload()
+    require("Gameplay.AnswerController").preload()
+    require("Gameplay.HappyWheelController").preload()
+    require("Gameplay.FishController").preload()
 end
 
 function M.onPacket(command, message)

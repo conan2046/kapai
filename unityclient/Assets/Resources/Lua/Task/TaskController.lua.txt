@@ -28,8 +28,14 @@ local function requestAll()
 end
 
 function M.onClick()
+    Bridge:ShowTask()
     requestAll()
     Bridge:SetStatus("Task/37 request sent: op=1, type=2 daily + type=0 activity boxes.")
+end
+
+function M.preload()
+    if Bridge:IsGameplayReminderOpen(10) then requestAll() end
+    if Bridge:IsGameplayReminderOpen(9) then requestList(3) end
 end
 
 function M.requestXunBao()
@@ -38,6 +44,7 @@ function M.requestXunBao()
 end
 
 function M.claim(taskType, id)
+    if not Bridge:BeginTaskClaim(taskType,id) then return end
     local message = Protocol.newMessage(Protocol.TASK_LIST)
     message:WriteByte(3)
     message:WriteByte(taskType)
@@ -98,12 +105,14 @@ local function readClaim(message)
     local taskType = message:ReadByte()
     local id = message:ReadWord()
     if message.Remaining == 0 then
+        Bridge:FailTaskClaim(taskType,id)
         Bridge:SetStatus("Task/37 claim rejected without payload: type=" .. tostring(taskType)
             .. ", id=" .. tostring(id) .. ".")
         return
     end
     local success = message:ReadByte()
     if success == 0 then
+        Bridge:FailTaskClaim(taskType,id)
         local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
         Bridge:SetStatus("Task/37 claim rejected: type=" .. tostring(taskType)
             .. ", id=" .. tostring(id) .. ", reason=" .. tostring(reason))
@@ -127,7 +136,7 @@ local function readClaim(message)
         Bridge:AddRewardRecord(rewardType, rewardId, rewardAmount, found.name or "",
             found.pic or 0, found.quality or 0)
     end
-    Bridge:EndRewardUpdate(taskType == 0 and "活跃度奖励" or "任务奖励")
+    Bridge:EndTaskRewardUpdate(taskType)
     if message.Remaining ~= 0 then
         Bridge:Fail("Task/37 claim has " .. tostring(message.Remaining) .. " unread bytes.")
         return

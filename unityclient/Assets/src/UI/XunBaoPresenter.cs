@@ -33,6 +33,36 @@ namespace ProjectX.UI
         private readonly Action taskEntry;
         private readonly Action<string> notify;
         private int selected;
+        private Transform redDotTemplate;
+        private int redDotPlayerLevel;
+        private double redDotTime;
+        public void RefreshTaskRedDot(bool visible, Transform template) =>
+            RedDotVisual.Set(view.GameObject.transform.Find("Panel/XunbaoBg/Btn_1"), visible, template);
+
+        public void RefreshRedDots(int playerLevel, double now, Transform template)
+        {
+            redDotTemplate = template; redDotPlayerLevel = playerLevel; redDotTime = now;
+            if (template == null) return;
+            var current = CurrentSearch();
+            bool searchReady = store.CanSearch(current, catalog, bag);
+            RedDotVisual.Set(OneKeySearchButton?.transform, searchReady
+                && playerLevel >= FunctionUnlockCatalog.Resolve(1181).OpenLevel, template);
+            RedDotVisual.Set(ComposeButton?.transform, store.CanCompose(current, bag, playerLevel), template);
+            RedDotVisual.Set(ComposeAllButton?.transform, searches.Any(x => store.CanCompose(x, bag, playerLevel)), template);
+            for (int i = 0; i < treasureCards.Count && i < searches.Count; i++)
+                RedDotVisual.Set(treasureCards[i].transform, store.CanSearch(searches[i], catalog, bag)
+                    || store.CanCompose(searches[i], bag, playerLevel), template);
+            foreach (string quality in new[] { "Red", "Orange", "Purple", "Blue" })
+                for (int i = 1; i <= 8; i++)
+                    RedDotVisual.Set(view.GameObject.transform.Find($"Xunbao/{quality}/Image/Add{i}"), searchReady
+                        && current?.FragmentIds != null && i <= current.FragmentIds.Length
+                        && bag.GetTotalQuantityByItemId(current.FragmentIds[i - 1]) == 0, template);
+            if (store.HasAuthoritativeResponse && recovery != null)
+            {
+                uint seconds = store.RecoveryRemaining(now);
+                recovery.text = seconds > 0 ? $"恢复倒计时：{FormatTime(seconds)}" : store.RecoverySeconds > 0 ? "正在同步恢复次数" : "搜索次数已满";
+            }
+        }
 
         public XunBaoPresenter(UnityUiView view, XunBaoStore store, BagStore bag,
             IUiResourceProvider resources, EquipmentCatalog catalog, Action close,
@@ -181,6 +211,7 @@ namespace ProjectX.UI
                 if (cardIcon != null)
                     cardIcon.color = index == selected ? Color.white : new Color(.58f, .58f, .58f, 1f);
             }
+            RefreshRedDots(redDotPlayerLevel, redDotTime, redDotTemplate);
         }
 
         private static string FormatTime(uint seconds) => $"{seconds / 3600:00}:{seconds % 3600 / 60:00}:{seconds % 60:00}";

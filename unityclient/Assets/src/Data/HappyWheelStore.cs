@@ -31,6 +31,11 @@ namespace ProjectX.Data
         public uint Score { get; private set; }
         public uint ActivitySeconds { get; private set; }
         public uint ResetSeconds { get; private set; }
+        public double ActivityDueAt { get; private set; }
+        public bool CanSpin(int type, BagStore bag, double now) => HasAuthoritativeResponse
+            && PendingDrawType < 0 && (ActivitySeconds == 0 || now < ActivityDueAt)
+            && (type == 0 ? SingleDrawCount > 0 && SingleKeyCost > 0 && bag.GetTotalQuantityByItemId(CostItemId) >= SingleKeyCost
+                : type == 1 && MultiDrawCount > 0 && MultiKeyCost > 0 && bag.GetTotalQuantityByItemId(CostItemId) >= MultiKeyCost);
         public ushort CostItemId { get; private set; }
         public byte SingleDrawCount { get; private set; }
         public byte SingleKeyCost { get; private set; }
@@ -44,7 +49,7 @@ namespace ProjectX.Data
         public void Replace(uint score, uint activitySeconds, uint resetSeconds,
             IEnumerable<HappyWheelReward> configuredRewards, IEnumerable<string> history,
             ushort costItemId, byte singleDrawCount, byte singleKeyCost,
-            byte multiDrawCount, byte multiKeyCost, ushort scorePerDraw, byte historyLimit)
+            byte multiDrawCount, byte multiKeyCost, ushort scorePerDraw, byte historyLimit, double now)
         {
             rewards.Clear();
             if (configuredRewards != null) rewards.AddRange(configuredRewards);
@@ -52,6 +57,7 @@ namespace ProjectX.Data
             if (history != null) personalHistory.AddRange(history);
             Score = score;
             ActivitySeconds = activitySeconds;
+            ActivityDueAt = now + activitySeconds;
             ResetSeconds = resetSeconds;
             CostItemId = costItemId;
             SingleDrawCount = singleDrawCount;
@@ -60,7 +66,6 @@ namespace ProjectX.Data
             MultiKeyCost = multiKeyCost;
             ScorePerDraw = scorePerDraw;
             HistoryLimit = historyLimit;
-            PendingDrawType = -1;
             HasAuthoritativeResponse = rewards.Count > 0 && costItemId > 0;
             Changed?.Invoke();
         }

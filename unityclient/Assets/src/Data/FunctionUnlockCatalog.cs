@@ -8,18 +8,20 @@ namespace ProjectX.Data
 {
     public readonly struct FunctionUnlockDefinition
     {
-        public FunctionUnlockDefinition(int functionId, string name, int openLevel, string icon)
+        public FunctionUnlockDefinition(int functionId, string name, int openLevel, string icon, bool showUpcoming = true)
         {
             FunctionId = functionId;
             Name = name ?? string.Empty;
             OpenLevel = openLevel;
             Icon = icon ?? string.Empty;
+            ShowUpcoming = showUpcoming;
         }
 
         public int FunctionId { get; }
         public string Name { get; }
         public int OpenLevel { get; }
         public string Icon { get; }
+        public bool ShowUpcoming { get; }
     }
 
     public static class FunctionUnlockCatalog
@@ -50,7 +52,7 @@ namespace ProjectX.Data
             if (maximumCount <= 0) return Array.Empty<FunctionUnlockDefinition>();
             EnsureLoaded();
             return definitions.Values
-                .Where(item => item.OpenLevel >= currentLevel)
+                .Where(item => item.ShowUpcoming && item.OpenLevel >= currentLevel)
                 .OrderBy(item => item.OpenLevel)
                 .ThenBy(item => item.FunctionId)
                 .Take(maximumCount)
@@ -84,7 +86,7 @@ namespace ProjectX.Data
                 if (row == null || row.FunctionId <= 0 || row.OpenLevel < 0)
                     throw new InvalidOperationException("Unity function unlock config contains an invalid row.");
                 if (!definitions.TryAdd(row.FunctionId,
-                    new FunctionUnlockDefinition(row.FunctionId, row.Name, row.OpenLevel, row.Icon)))
+                    new FunctionUnlockDefinition(row.FunctionId, row.Name, row.OpenLevel, row.Icon, row.ShowUpcoming ?? true)))
                     throw new InvalidOperationException($"Unity function unlock config contains duplicate function_id={row.FunctionId}.");
             }
         }
@@ -95,6 +97,7 @@ namespace ProjectX.Data
             [JsonProperty("name")] public string Name { get; set; }
             [JsonProperty("openLevel")] public int OpenLevel { get; set; }
             [JsonProperty("icon")] public string Icon { get; set; }
+            [JsonProperty("showUpcoming")] public bool? ShowUpcoming { get; set; }
         }
     }
 }

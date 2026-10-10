@@ -1,9 +1,17 @@
 local Protocol = require("Protocol")
 local HeroController = require("Hero.HeroController")
-local M = { validation = false }
+local M = { validation = false, infoPending = false, claimPending = false }
 
 local function requestInfo()
+    if M.infoPending then return end
+    M.infoPending = true
     local message = Protocol.newMessage(Protocol.YOU_LI); message:WriteByte(1); Bridge:Send(message)
+end
+
+function M.preload() requestInfo() end
+function M.reset()
+    M.infoPending = false; M.claimPending = false; M.validation = false
+    Bridge:SetYouLiPending(0)
 end
 
 local function skipRewardBatch(message)
@@ -49,6 +57,9 @@ function M.startBatch(payload)
 end
 
 function M.claim(locationId)
+    if M.claimPending then return end
+    M.claimPending = true
+    Bridge:SetYouLiPending(locationId)
     local message = Protocol.newMessage(Protocol.YOU_LI)
     message:WriteByte(3); message:WriteByte(1); message:WriteByte(locationId)
     Bridge:Send(message); Bridge:SetStatus("YouLi/335 op=3 requested location="..tostring(locationId)..".")
@@ -58,6 +69,8 @@ function M.onPacket(command, message)
     if command ~= Protocol.YOU_LI then return false end
     local op = message:ReadByte()
     if op == 1 then
+        M.infoPending = false
+        M.claimPending = false
         local count = message:ReadByte()
         Bridge:BeginYouLiUpdate(count)
         for _ = 1, count do
@@ -74,7 +87,9 @@ function M.onPacket(command, message)
         if M.validation then M.validation = false; Bridge:CompleteYouLiValidation() end
     elseif op == 2 or op == 3 then
         local success = message:ReadByte()
-        if success == 0 and message.Remaining > 0 then Bridge:SetYouLiError(message:ReadString())
+        if success == 0 and message.Remaining > 0 then
+            M.claimPending = false; Bridge:SetYouLiPending(0)
+            Bridge:SetYouLiError(message:ReadString())
         else Bridge:SetStatus("YouLi/335 op="..tostring(op).." succeeded; refreshing authoritative state."); requestInfo() end
     end
     return true

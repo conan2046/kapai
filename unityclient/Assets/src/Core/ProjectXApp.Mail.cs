@@ -47,8 +47,12 @@ namespace ProjectX.Core
         {
             services.Mails.Replace(pendingMails);
             UpdateMailRedDot();
-            EnsureMailPresenter();
-            ShowMail();
+            // Login/push snapshots hydrate red dots without opening or stealing a page.
+            if (IsMailOpen)
+            {
+                EnsureMailPresenter();
+                ShowMail();
+            }
         }
 
         public bool SelectMail(double id)

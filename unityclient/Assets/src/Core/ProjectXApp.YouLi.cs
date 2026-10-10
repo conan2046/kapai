@@ -11,13 +11,17 @@ namespace ProjectX.Core
     {
         public void ShowYouLi()
         {
-            services.YouLi.Initialize(services.YouLiCatalog.Items);
+            if (services.YouLi.Items.Count == 0) services.YouLi.Initialize(services.YouLiCatalog.Items);
             EnsureYouLiPresenter();
             if (services.UiStack.Current != youLiView) services.UiStack.Push(youLiView);
             SetStatus("YouLi current main UI active; awaiting /335 op=1.");
         }
 
-        public void BeginYouLiUpdate(int expectedCount) => services.YouLi.BeginUpdate(expectedCount);
+        public void BeginYouLiUpdate(int expectedCount)
+        {
+            if (services.YouLi.Items.Count == 0) services.YouLi.Initialize(services.YouLiCatalog.Items);
+            services.YouLi.BeginUpdate(expectedCount);
+        }
 
         public void AddYouLiRecord(int id, int mode, int durationType, int heroId, double lastTime, double endTime,
             int fragments, int rewardBatchCount, int dialogueCount)
@@ -71,7 +75,12 @@ namespace ProjectX.Core
             }
             InvokeLuaOrFail(onYouLiStartBatch, "YouLi.StartBatch", string.Join(";", assignments));
         }
-        private void ClaimYouLi(byte locationId) => InvokeLuaOrFail(onYouLiClaim, "YouLi.Claim", (double)locationId);
+        private void ClaimYouLi(byte locationId)
+        {
+            var location = services.YouLi.Items.FirstOrDefault(x => x.Definition.Id == locationId);
+            if (services.YouLi.PendingLocationId != 0 || !services.YouLi.CanClaim(location, services.Player.Level, services.ServerTime.UnixSeconds)) return;
+            InvokeLuaOrFail(onYouLiClaim, "YouLi.Claim", (double)locationId);
+        }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         public void CompleteYouLiValidation()

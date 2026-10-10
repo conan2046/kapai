@@ -64,6 +64,8 @@ namespace ProjectX.Data
         public event Action<HeroBookUpgradeResult> UpgradeCompleted;
 
         public int Level { get; private set; }
+        public bool HasAuthoritativeState { get; private set; }
+        public int PendingHeroId { get; private set; }
         public long Score { get; private set; }
         public long NextLevelStart { get; private set; }
         public long NextLevelEnd { get; private set; }
@@ -76,6 +78,7 @@ namespace ProjectX.Data
             IEnumerable<HeroBookAttribute> levelAttributes)
         {
             Level = Math.Max(0, level);
+            HasAuthoritativeState = true;
             Score = Math.Max(0, score);
             NextLevelStart = Math.Max(0, nextLevelStart);
             NextLevelEnd = Math.Max(0, nextLevelEnd);
@@ -108,9 +111,18 @@ namespace ProjectX.Data
 
         public bool TryGet(int heroId, out HeroBookEntry entry) => entries.TryGetValue(heroId, out entry);
 
+        public void SetPending(int heroId)
+        {
+            if (PendingHeroId == heroId) return;
+            PendingHeroId = heroId;
+            Changed?.Invoke();
+        }
+
         public void Clear()
         {
             Level = 0;
+            HasAuthoritativeState = false;
+            PendingHeroId = 0;
             Score = 0;
             NextLevelStart = 0;
             NextLevelEnd = 0;

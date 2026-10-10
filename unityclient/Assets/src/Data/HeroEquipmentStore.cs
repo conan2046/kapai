@@ -114,6 +114,7 @@ namespace ProjectX.Data
 
     public sealed class HeroEquipmentStore
     {
+        public bool HasAuthoritativeState { get; private set; }
         private readonly Dictionary<uint, HeroEquipmentRecord> records = new Dictionary<uint, HeroEquipmentRecord>();
         public event Action Changed;
         public int Count => records.Count;
@@ -124,6 +125,7 @@ namespace ProjectX.Data
 
         public void Replace(IEnumerable<HeroEquipmentRecord> values)
         {
+            HasAuthoritativeState = true;
             records.Clear();
             foreach (HeroEquipmentRecord value in values ?? Array.Empty<HeroEquipmentRecord>())
                 if (value.Uid > 0) records[value.Uid] = value;
@@ -146,11 +148,12 @@ namespace ProjectX.Data
         }
 
         public bool TryGet(uint uid, out HeroEquipmentRecord value) => records.TryGetValue(uid, out value);
-        public void Clear() { records.Clear(); Changed?.Invoke(); }
+        public void Clear() { HasAuthoritativeState = false; records.Clear(); Changed?.Invoke(); }
     }
 
     public sealed class FaBaoStore
     {
+        public bool HasAuthoritativeState { get; private set; }
         private readonly Dictionary<uint, FaBaoRecord> records = new Dictionary<uint, FaBaoRecord>();
         public event Action Changed;
         public int Count => records.Count;
@@ -161,6 +164,7 @@ namespace ProjectX.Data
 
         public void Replace(IEnumerable<FaBaoRecord> values)
         {
+            HasAuthoritativeState = true;
             records.Clear();
             foreach (FaBaoRecord value in values ?? Array.Empty<FaBaoRecord>())
                 if (value.Uid > 0) records[value.Uid] = value;
@@ -183,7 +187,7 @@ namespace ProjectX.Data
         }
 
         public bool TryGet(uint uid, out FaBaoRecord value) => records.TryGetValue(uid, out value);
-        public void Clear() { records.Clear(); Changed?.Invoke(); }
+        public void Clear() { HasAuthoritativeState = false; records.Clear(); Changed?.Invoke(); }
     }
 
     // Read-only mirror of the server's /319 op24/25/26/27 master state.

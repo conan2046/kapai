@@ -17,6 +17,10 @@ local function readRecord(message, treeType)
         message:ReadWord(), message:ReadUInt(), message:ReadWord(), message:ReadUInt()
 end
 
+function M.preload()
+    if M.pending == 0 then writeRequest(1, 0) end
+end
+
 function M.onClick(functionId)
     M.pending = 0
     Bridge:ShowMoneyTree(functionId)

@@ -45,6 +45,10 @@ function M.onClick()
     Bridge:SetStatus("Mail/128 request sent: op=2.")
 end
 
+function M.refreshRedDot()
+    requestList()
+end
+
 function M.claim(id)
     if M.pendingOp ~= 0 then
         Bridge:ShowToast("邮件操作处理中", 1.5)

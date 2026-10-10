@@ -63,6 +63,7 @@ namespace ProjectX.Data
         private readonly Dictionary<int, HeroRecord> records = new Dictionary<int, HeroRecord>();
         public event Action Changed;
         public int FollowHeroId { get; private set; }
+        public bool HasAuthoritativeState { get; private set; }
         public int Count => records.Count;
         public IReadOnlyList<HeroRecord> Items => records.Values
             .OrderBy(hero => hero.FightPosition <= 0 ? int.MaxValue : hero.FightPosition)
@@ -72,6 +73,7 @@ namespace ProjectX.Data
 
         public void Replace(int followHeroId, IEnumerable<HeroRecord> values)
         {
+            HasAuthoritativeState = true;
             FollowHeroId = followHeroId;
             records.Clear();
             foreach (HeroRecord value in values ?? Array.Empty<HeroRecord>()) records[value.Id] = value;
@@ -94,7 +96,7 @@ namespace ProjectX.Data
         }
 
         public bool TryGet(int id, out HeroRecord value) => records.TryGetValue(id, out value);
-        public void Clear() { FollowHeroId = 0; records.Clear(); Changed?.Invoke(); }
+        public void Clear() { HasAuthoritativeState = false; FollowHeroId = 0; records.Clear(); Changed?.Invoke(); }
     }
 
     public readonly struct FormationRecord
@@ -106,6 +108,9 @@ namespace ProjectX.Data
 
     public sealed class FormationStore
     {
+        public bool HasAuthoritativeState { get; private set; }
+        public int PendingFormationId { get; private set; }
+        public void SetPending(int id) { PendingFormationId = id; Changed?.Invoke(); }
         private readonly List<FormationRecord> formations = new List<FormationRecord>();
         private readonly List<int> displayHeroes = new List<int>();
         private readonly List<int> combatHeroes = new List<int>();
@@ -118,6 +123,7 @@ namespace ProjectX.Data
         public void Replace(int activeId, IEnumerable<FormationRecord> values,
             IEnumerable<int> display, IEnumerable<int> combat)
         {
+            HasAuthoritativeState = true;
             ActiveFormationId = activeId;
             formations.Clear(); formations.AddRange(values ?? Array.Empty<FormationRecord>());
             displayHeroes.Clear(); displayHeroes.AddRange(display ?? Array.Empty<int>());
@@ -133,6 +139,7 @@ namespace ProjectX.Data
 
         public void Clear()
         {
+            HasAuthoritativeState = false; PendingFormationId = 0;
             ActiveFormationId = 0;
             formations.Clear(); displayHeroes.Clear(); combatHeroes.Clear();
             Changed?.Invoke();

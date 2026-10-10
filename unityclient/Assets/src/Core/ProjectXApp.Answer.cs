@@ -20,6 +20,16 @@ namespace ProjectX.Core
         private int answerRemaining;
         private int answerCorrectCount;
         private uint answerTotalGold;
+        private bool answerReminderAuthority, answerReminderQuestion, answerReminderPending, answerPresentationRequested;
+        private uint answerReminderRounds;
+        public void SetAnswerReminderState(double rounds,bool questionActive)
+        {
+            answerReminderAuthority = true; answerReminderRounds = checked((uint)rounds);
+            answerReminderQuestion = questionActive; RefreshGameplayRedDots();
+        }
+        public void SetAnswerReminderPending(bool pending)
+        { answerReminderPending = pending; RefreshGameplayRedDots(); }
+        public void BeginAnswerEntry() => answerPresentationRequested = true;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         private bool answerValidationStarted;
         private bool answerValidationCompleted;
@@ -30,6 +40,8 @@ namespace ProjectX.Core
         public void ShowAnswerQuestion(int questionIndex, int remaining, string question,
             string answer1, string answer2, string answer3, string answer4)
         {
+            answerRemaining = remaining;
+            if (!answerPresentationRequested || services.UiStack.Current != gameplayView) return;
             EnsureAnswerPresenter();
             if (questionIndex <= 1)
             {
@@ -74,6 +86,7 @@ namespace ProjectX.Core
         public void CompleteAnswerChoice(bool correct, int correctIndex,
             double currentReward, double finalGold)
         {
+            if (!answerPresentationRequested || services.UiStack.Current != gameplayView) return;
             uint current = checked((uint)currentReward);
             uint final = checked((uint)finalGold);
             if (correct) answerCorrectCount++;
@@ -96,6 +109,8 @@ namespace ProjectX.Core
 
         public void ResetAnswerState()
         {
+            answerReminderAuthority = answerReminderQuestion = answerReminderPending = answerPresentationRequested = false;
+            answerReminderRounds = 0;
             if (answerAdvanceRoutine != null) StopCoroutine(answerAdvanceRoutine);
             answerAdvanceRoutine = null;
             answerPresenter?.Hide();
@@ -293,6 +308,7 @@ namespace ProjectX.Core
 
         private void CloseAnswer()
         {
+            answerPresentationRequested = false;
             if (answerAdvanceRoutine != null) StopCoroutine(answerAdvanceRoutine);
             answerAdvanceRoutine = null;
             answerPresenter?.Hide();

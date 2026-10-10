@@ -10,6 +10,10 @@ local function sendOperation(op)
     Bridge:Send(message)
 end
 
+function M.preload()
+    if Bridge:IsGameplayReminderOpen(3) then sendOperation(24) end
+end
+
 function M.onClick()
     M.validation = Bridge:HasCommandLineFlag("-projectXFengShenStoryValidation") and not M.validationStarted
     M.battleValidation = Bridge:HasCommandLineFlag("-projectXBattleFengShenStoryValidation") and not M.battleValidationStarted

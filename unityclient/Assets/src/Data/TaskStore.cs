@@ -93,6 +93,25 @@ namespace ProjectX.Data
         }
 
         public event Action Changed;
+        private readonly HashSet<int> authoritativeTypes = new HashSet<int>();
+        public int PendingClaimType { get; private set; } = -1;
+        public int PendingClaimId { get; private set; }
+        public bool CanClaim(TaskRecord item) => authoritativeTypes.Contains(item.Type) && item.Definition != null
+            && item.State == 1 && (item.Jump == 0 || FunctionRouteCatalog.CanOpen(item.Jump))
+            && !(PendingClaimType == item.Type && PendingClaimId == item.Id);
+        public bool HasDailyClaimable => Items.Any(CanClaim);
+        public bool HasActivityClaimable => ActivityBoxes.Any(CanClaim);
+        public bool HasXunBaoClaimable => XunBaoItems.Any(CanClaim);
+        public bool BeginClaim(int type, int id)
+        {
+            if (PendingClaimId != 0 || !TryGet(type, id, out var item) || !CanClaim(item)) return false;
+            PendingClaimType = type; PendingClaimId = id; Changed?.Invoke(); return true;
+        }
+        public void FailClaim(int type, int id)
+        {
+            if (PendingClaimType != type || PendingClaimId != id) return;
+            PendingClaimType = -1; PendingClaimId = 0; Changed?.Invoke();
+        }
         public int Count => dailyRecords.Count;
         public int ActivityBoxCount => activityBoxes.Count;
         public int XunBaoCount => xunBaoRecords.Count;
@@ -132,6 +151,7 @@ namespace ProjectX.Data
             Dictionary<int, TaskRecord> target = RecordsFor(type);
             target.Clear();
             foreach (TaskRecord value in values ?? Array.Empty<TaskRecord>()) target[value.Id] = value;
+            authoritativeTypes.Add(type);
             Changed?.Invoke();
         }
 
@@ -144,6 +164,7 @@ namespace ProjectX.Data
         public void Upsert(int type, int id, uint progress, byte state)
         {
             RecordsFor(type)[id] = CreateRecord(id, progress, state);
+            authoritativeTypes.Add(type);
             Changed?.Invoke();
         }
 
@@ -161,6 +182,7 @@ namespace ProjectX.Data
             Dictionary<int, TaskRecord> target = RecordsFor(type);
             if (!target.TryGetValue(id, out TaskRecord record)) return;
             target[id] = CreateRecord(id, record.Progress, 2);
+            if (PendingClaimType == type && PendingClaimId == id) { PendingClaimType = -1; PendingClaimId = 0; }
             Changed?.Invoke();
         }
 
@@ -177,6 +199,7 @@ namespace ProjectX.Data
             activityBoxes.Clear();
             xunBaoRecords.Clear();
             trackedMissions.Clear();
+            authoritativeTypes.Clear(); PendingClaimType = -1; PendingClaimId = 0;
             Changed?.Invoke();
         }
 

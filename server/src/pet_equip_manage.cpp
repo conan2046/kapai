@@ -3341,7 +3341,8 @@ void CEquipManeger::FaBaoSouSuo(CUser* pUser, CNetMessage& msg)
 	if (m_lastCntTime == 0 && m_faBaoCnt < CItemCfgManager::CfgFBMaxCnt)
 		m_lastCntTime = now;
 
-	uint32 sec = now + CItemCfgManager::CfgFBAddSec - m_lastCntTime;
+	uint32 sec = m_lastCntTime > 0 && m_lastCntTime + CItemCfgManager::CfgFBAddSec > now
+		? m_lastCntTime + CItemCfgManager::CfgFBAddSec - now : 0;
 	msg.WriteData(pos, &m_faBaoCnt, sizeof(m_faBaoCnt));
 	msg.WriteData(pos + 2, &cnt, sizeof(cnt));
 	msg.WriteData(pos + 4, &sec, sizeof(sec));
@@ -3443,7 +3444,8 @@ void CEquipManeger::FaBaoAutoSouSuo(CUser* pUser, CNetMessage& msg)
 	if (m_lastCntTime == 0 && m_faBaoCnt < CItemCfgManager::CfgFBMaxCnt)
 		m_lastCntTime = now;
 
-	uint32 sec = now + CItemCfgManager::CfgFBAddSec - m_lastCntTime;
+	uint32 sec = m_lastCntTime > 0 && m_lastCntTime + CItemCfgManager::CfgFBAddSec > now
+		? m_lastCntTime + CItemCfgManager::CfgFBAddSec - now : 0;
 	msg.WriteData(pos, &cnt, sizeof(cnt));
 	msg << m_faBaoCnt << sec << useCnt;
 	pUser->DelPackageById(stoneId, useCnt);

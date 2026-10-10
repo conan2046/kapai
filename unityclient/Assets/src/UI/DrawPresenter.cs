@@ -662,13 +662,11 @@ namespace ProjectX.UI
 
         private void RenderPools()
         {
-            uint elapsed = serverTime.IsSynchronized && serverTime.UnixSeconds > store.SnapshotUnixSeconds
-                ? serverTime.UnixSeconds - store.SnapshotUnixSeconds : 0;
             foreach (DrawPoolRecord pool in store.Pools)
             {
                 Transform popup = FindNamed(view.GameObject.transform, "Popup" + pool.Kind);
                 if (popup == null) continue;
-                uint cd = pool.FreeCooldownSeconds > elapsed ? pool.FreeCooldownSeconds - elapsed : 0;
+                uint cd = store.RemainingCooldown(pool.Kind, serverTime.UnixSeconds);
                 Transform single = FindNamed(popup, "Btn_Recruit_2");
                 Transform ten = FindNamed(popup, "Btn_Recruit_1");
                 bool isFree = pool.FreeTimes > 0 && cd == 0;
@@ -703,7 +701,11 @@ namespace ProjectX.UI
             }
             SetNamedVisible(single, "Icon", !hasFreeTimes || isInCooldown);
             SetTicketIcon(single, pool.Kind);
-            SetNamedVisible(single, "Prompt", isFree);
+            SetNamedVisible(single, "Prompt", store.CanFreeDraw(pool.Kind, serverTime.UnixSeconds));
+            Button singleButton = single?.GetComponent<Button>();
+            Button tenButton = ten?.GetComponent<Button>();
+            if (singleButton != null) singleButton.interactable = store.PendingKind == 0;
+            if (tenButton != null) tenButton.interactable = store.PendingKind == 0;
         }
 
         private void RenderHeaderResources()

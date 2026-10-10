@@ -11,20 +11,28 @@ local function skipRewardBatch(message)
  local count=message:ReadByte()
  for _=1,count do message:ReadWord();message:ReadUInt();message:ReadUInt() end
 end
+function M.preload()
+ if not Bridge:IsGameplayReminderOpen(9) then return end
+ local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(31);Bridge:Send(m)
+end
 function M.onClick()
  M.validation=Bridge:HasCommandLineFlag("-projectXXunBaoValidation");Bridge:ShowXunBao()
  local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(31);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=31 requested.")
 end
 function M.search(faBaoId,suiId)
+ if not Bridge:BeginXunBaoOperation(28,faBaoId) then return end
  local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(28);m:WriteWord(faBaoId);m:WriteWord(suiId);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=28 requested.")
 end
 function M.searchAll(faBaoId,autoSign)
+ if not Bridge:BeginXunBaoOperation(29,faBaoId) then return end
  local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(29);m:WriteByte(autoSign);m:WriteWord(faBaoId);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=29 requested.")
 end
 function M.compose(faBaoId)
+ if not Bridge:BeginXunBaoOperation(30,faBaoId) then return end
  local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(30);m:WriteWord(faBaoId);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=30 requested.")
 end
 function M.composeAll()
+ if not Bridge:BeginXunBaoOperation(36,0) then return end
  local m=Protocol.newMessage(Protocol.PET_EQUIP_OPERATE);m:WriteByte(36);Bridge:Send(m);Bridge:SetStatus("XunBao/319 op=36 requested.")
 end
 function M.onOperation(op,message)

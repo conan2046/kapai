@@ -59,6 +59,106 @@ if ($OnlyWorldBoxRewards) {
     return
 }
 
+# Equipment reminders and operation UI share the active server's formal configuration.
+foreach ($table in @('equip','equip_qianghua','equip_jinglian','equip_juexing','equip_shenzhu','fabao','fabao_qianghua','fabao_jinglian','quality','item','hecheng')) {
+    $inputRows = @(Get-Content -LiteralPath (Join-Path $Root "unitydata\export\server\generated\json_server\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json)
+    $activeRows = @(Get-Content -LiteralPath (Join-Path $Root "unityserver\config\json\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json)
+    if (($inputRows | ConvertTo-Json -Depth 32 -Compress) -cne ($activeRows | ConvertTo-Json -Depth 32 -Compress)) {
+        throw "Formal equipment table differs from the active Unity server: $table"
+    }
+    Write-Utf8IfChanged -Path (Join-Path $source "Configs\$table.json") -Content (($inputRows | ConvertTo-Json -Depth 32 -Compress) + "`n")
+}
+
+# Formation costs come from the current-level server row, including learning at level zero.
+$formationRows = @(Get-Content -LiteralPath (Join-Path $Root 'unitydata\export\server\generated\json_server\zhenfa_level.json') -Raw -Encoding UTF8 | ConvertFrom-Json | Sort-Object id,level | Select-Object id,level,cost)
+$formationActive = @(Get-Content -LiteralPath (Join-Path $Root 'unityserver\config\json\zhenfa_level.json') -Raw -Encoding UTF8 | ConvertFrom-Json | Sort-Object id,level | Select-Object id,level,cost)
+if (($formationRows | ConvertTo-Json -Depth 12 -Compress) -cne ($formationActive | ConvertTo-Json -Depth 12 -Compress)) {
+    throw 'Formal formation costs differ from the active Unity server.'
+}
+Write-Utf8IfChanged -Path (Join-Path $source 'Configs\formation-level.json') -Content (($formationRows | ConvertTo-Json -Depth 12) + "`n")
+
+# Hero leveling must use the same formal experience thresholds as the Unity server.
+# Legacy World/exp_dat contains the old Cocos curve and remains for its other consumers.
+$heroExpInput = Join-Path $Root 'unitydata\export\server\generated\json_server\exp.json'
+$heroExpBaseline = Join-Path $Root 'unityserver\config\json\exp.json'
+$heroExpRows = @(Get-Content -LiteralPath $heroExpInput -Raw -Encoding UTF8 | ConvertFrom-Json)
+$heroExpActive = @(Get-Content -LiteralPath $heroExpBaseline -Raw -Encoding UTF8 | ConvertFrom-Json)
+$heroExpData = @($heroExpRows | Sort-Object level | Select-Object level, exp_hero)
+$heroExpActiveData = @($heroExpActive | Sort-Object level | Select-Object level, exp_hero)
+if (($heroExpData | ConvertTo-Json -Compress) -cne ($heroExpActiveData | ConvertTo-Json -Compress)) {
+    throw 'Formal hero experience input differs from the active Unity server.'
+}
+$heroExpLevels = [System.Collections.Generic.HashSet[int]]::new()
+foreach ($row in $heroExpData) {
+    if ([int]$row.level -le 0 -or [long]$row.exp_hero -lt 0 -or -not $heroExpLevels.Add([int]$row.level)) {
+        throw 'Invalid or duplicate formal hero experience level.'
+    }
+}
+Write-Utf8IfChanged -Path (Join-Path $source 'Configs\hero-level-exp.json') -Content (($heroExpData | ConvertTo-Json -Depth 4) + "`n")
+
+$heroBreakTables = @{}
+foreach ($table in @('break','quality','hero')) {
+    $inputRows = @(Get-Content -LiteralPath (Join-Path $Root "unitydata\export\server\generated\json_server\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json)
+    $activeRows = @(Get-Content -LiteralPath (Join-Path $Root "unityserver\config\json\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json)
+    $columns = switch ($table) {
+        'break' { @('break_level','level','attr','cost') }
+        'quality' { @('quality','break_ratio') }
+        'hero' { @('id','quality') }
+    }
+    $projected = @($inputRows | Sort-Object $columns[0] | Select-Object -Property $columns)
+    $active = @($activeRows | Sort-Object $columns[0] | Select-Object -Property $columns)
+    if (($projected | ConvertTo-Json -Depth 12 -Compress) -cne ($active | ConvertTo-Json -Depth 12 -Compress)) {
+        throw "Formal hero breakthrough table differs from active Unity server: $table"
+    }
+    $heroBreakTables[$table] = $projected
+}
+$heroBreakContent = [ordered]@{ levels=$heroBreakTables['break']; qualities=$heroBreakTables['quality']; heroes=$heroBreakTables['hero'] }
+Write-Utf8IfChanged -Path (Join-Path $source 'Configs\hero-break.json') -Content (($heroBreakContent | ConvertTo-Json -Depth 12) + "`n")
+
+$heroStarTables = @{}
+foreach ($table in @('star','hero')) {
+    $inputRows = @(Get-Content -LiteralPath (Join-Path $Root "unitydata\export\server\generated\json_server\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json)
+    $activeRows = @(Get-Content -LiteralPath (Join-Path $Root "unityserver\config\json\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json)
+    $columns = if ($table -eq 'star') { @('star','cost') } else { @('id','quality','itemId') }
+    $projected = @($inputRows | Sort-Object $columns[0] | Select-Object -Property $columns)
+    $active = @($activeRows | Sort-Object $columns[0] | Select-Object -Property $columns)
+    if (($projected | ConvertTo-Json -Depth 12 -Compress) -cne ($active | ConvertTo-Json -Depth 12 -Compress)) {
+        throw "Formal hero star table differs from active Unity server: $table"
+    }
+    $heroStarTables[$table] = $projected
+}
+$heroStarContent = [ordered]@{ stars=$heroStarTables['star']; heroes=$heroStarTables['hero'] }
+Write-Utf8IfChanged -Path (Join-Path $source 'Configs\hero-star.json') -Content (($heroStarContent | ConvertTo-Json -Depth 12) + "`n")
+
+$cultivationColumns = @('level','name','level_need','cost_type','cost_xiulian','attr')
+$cultivationRows = @(Get-Content -LiteralPath (Join-Path $Root 'unitydata\export\server\authoritative\json\xiulian.json') -Raw -Encoding UTF8 | ConvertFrom-Json | Sort-Object level | Select-Object -Property $cultivationColumns)
+$cultivationActive = @(Get-Content -LiteralPath (Join-Path $Root 'unityserver\config\json\xiulian.json') -Raw -Encoding UTF8 | ConvertFrom-Json | Sort-Object level | Select-Object -Property $cultivationColumns)
+if (($cultivationRows | ConvertTo-Json -Depth 12 -Compress) -cne ($cultivationActive | ConvertTo-Json -Depth 12 -Compress)) {
+    throw 'Formal hero cultivation snapshot differs from the active Unity server.'
+}
+$cultivationParameters = @(Get-Content -LiteralPath (Join-Path $Root 'unitydata\export\server\generated\json_server\config.json') -Raw -Encoding UTF8 | ConvertFrom-Json | Where-Object name -in 'xiulian_cost','xiulian_attr' | Sort-Object name | Select-Object name,type,value)
+$cultivationParametersActive = @(Get-Content -LiteralPath (Join-Path $Root 'unityserver\config\json\config.json') -Raw -Encoding UTF8 | ConvertFrom-Json | Where-Object name -in 'xiulian_cost','xiulian_attr' | Sort-Object name | Select-Object name,type,value)
+if (($cultivationParameters | ConvertTo-Json -Compress) -cne ($cultivationParametersActive | ConvertTo-Json -Compress)) {
+    throw 'Formal hero cultivation parameters differ from the active Unity server.'
+}
+$cultivationItem = [int]($cultivationParameters | Where-Object name -eq 'xiulian_cost').value
+$cultivationUnitsText = [string]($cultivationParameters | Where-Object name -eq 'xiulian_attr').value
+$cultivationUnitsText = $cultivationUnitsText.Trim()
+if (-not $cultivationUnitsText.StartsWith('[[')) { $cultivationUnitsText = '[' + $cultivationUnitsText + ']' }
+$cultivationUnits = @($cultivationUnitsText | ConvertFrom-Json)
+$cultivationContent = [ordered]@{ trainingItemId=$cultivationItem; attributeUnits=$cultivationUnits; levels=$cultivationRows }
+Write-Utf8IfChanged -Path (Join-Path $source 'Configs\hero-cultivation.json') -Content (($cultivationContent | ConvertTo-Json -Depth 12) + "`n")
+
+# HeroBook already consumes these four formal JSON sources; reject silent drift.
+foreach ($table in @('handbook','star','quality','hero')) {
+    $sortKey = switch ($table) { 'star' { 'star' } 'quality' { 'quality' } default { 'id' } }
+    $bookSource = @(Get-Content -LiteralPath (Join-Path $source "Configs\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json | Sort-Object $sortKey)
+    $bookActive = @(Get-Content -LiteralPath (Join-Path $Root "unityserver\config\json\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json | Sort-Object $sortKey)
+    if (($bookSource | ConvertTo-Json -Depth 16 -Compress) -cne ($bookActive | ConvertTo-Json -Depth 16 -Compress)) {
+        throw "Formal HeroBook source differs from active Unity server: $table"
+    }
+}
+
 New-Item -ItemType Directory -Force -Path $destination | Out-Null
 
 $sourceFiles = @(Get-ChildItem -LiteralPath $source -Recurse -File | Where-Object { $_.Extension -ne '.meta' })

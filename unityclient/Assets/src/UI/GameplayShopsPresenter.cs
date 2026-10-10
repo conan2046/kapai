@@ -9,6 +9,8 @@ namespace ProjectX.UI
 {
     public sealed class GameplayShopsPresenter : IDisposable
     {
+        public void RefreshRedDots(bool freeRefresh, Transform template) => RedDotVisual.Set(
+            soulView?.GameObject?.transform.Find("ShopUI/jianghunShop/Panel_1/btn_Refresh"), freeRefresh, template);
         private static readonly byte[] AllTypes = { 2 };
         private static readonly byte[][] Groups =
         {

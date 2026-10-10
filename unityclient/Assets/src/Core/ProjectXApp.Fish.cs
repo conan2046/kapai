@@ -115,6 +115,10 @@ namespace ProjectX.Core
             services.Fish.Clear();
         }
 
+        public bool BeginFishCollect(int slotIndex) => services.Fish.BeginCollect(checked((ushort)slotIndex));
+        public void FailFishCollect() => services.Fish.FailCollect();
+        public void ExitFishScene() => services.Fish.ExitScene();
+
         private void RequestFishStart() => InvokeLuaOrFail(onFishStart, "Fish.Start");
         private void RequestFishStop() => InvokeLuaOrFail(onFishStop, "Fish.Stop");
         private void RequestFishCollect(ushort slotIndex) =>

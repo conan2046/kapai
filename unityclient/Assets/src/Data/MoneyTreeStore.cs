@@ -45,6 +45,11 @@ namespace ProjectX.Data
 
         public bool TryGet(byte type, out MoneyTreeRecord record) => records.TryGetValue(type, out record);
 
+        // Only the coin tree has a current Steam UI route; paid opportunities are not reminders.
+        public bool HasFreeShake => HasAuthoritativeResponse && PendingShakeType != 1
+            && records.TryGetValue(1, out MoneyTreeRecord record)
+            && record.RemainingCount > 0 && record.RemainingFreeCount > 0 && record.CostValue == 0;
+
         public void Replace(IEnumerable<MoneyTreeRecord> values)
         {
             records.Clear();

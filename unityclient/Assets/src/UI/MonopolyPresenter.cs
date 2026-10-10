@@ -166,6 +166,12 @@ namespace ProjectX.UI
             }));
         }
 
+        public void RefreshRedDots(bool canRoll, bool canReset, Transform template)
+        {
+            RedDotVisual.Set(rollButton.transform, canRoll, template);
+            RedDotVisual.Set(hudView.FindNode("Layer/Panel/Refresh")?.transform, canReset, template);
+        }
+
         public void ResolveEvent(uint eventId, uint target)
         {
             if (eventId == 8 && target > 0 && target <= 82)

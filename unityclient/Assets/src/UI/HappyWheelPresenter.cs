@@ -120,6 +120,12 @@ namespace ProjectX.UI
             resetTime.text = FormatTime(store.ResetSeconds > elapsed ? store.ResetSeconds - elapsed : 0);
         }
 
+        public void RefreshRedDots(bool single, bool multi, Transform template)
+        {
+            RedDotVisual.Set(singleButton.transform, single, template);
+            RedDotVisual.Set(multiButton.transform, multi, template);
+        }
+
         private void Render()
         {
             bool ready = store.HasAuthoritativeResponse;
@@ -163,6 +169,7 @@ namespace ProjectX.UI
 
         private void HandleSpun(IReadOnlyList<int> indexes)
         {
+            if (!view.GameObject.activeInHierarchy) return;
             if (indexes == null || indexes.Count == 0) return;
             int selected = Mathf.Clamp(indexes[indexes.Count - 1], 0, Math.Max(0, store.Rewards.Count - 1));
             effect.Play(selected, Math.Max(1, store.Rewards.Count), () =>

@@ -10,6 +10,7 @@ namespace ProjectX.Data
         public uint TotalDraws { get; set; }
         public uint FreeCooldownSeconds { get; set; }
         public byte FreeTimes { get; set; }
+        public uint SnapshotUnixSeconds { get; set; }
     }
 
     public sealed class DrawRewardRecord
@@ -43,13 +44,30 @@ namespace ProjectX.Data
         public IReadOnlyList<DrawPoolRecord> Pools => pools;
         public DrawResultRecord LastResult { get; private set; }
         public uint SnapshotUnixSeconds { get; private set; }
+        public bool HasAuthoritativeState { get; private set; }
+        public byte PendingKind { get; private set; }
+        public void SetPending(int kind) { PendingKind = checked((byte)kind); }
         public int Count => pools.Count;
         public bool HasFreeDraw => pools.Any(value => value.FreeTimes > 0 && value.FreeCooldownSeconds == 0);
+        public uint RemainingCooldown(int kind, uint now)
+        {
+            DrawPoolRecord pool = pools.FirstOrDefault(value => value.Kind == kind);
+            if (pool == null) return 0;
+            if (pool.SnapshotUnixSeconds == 0 && now > 0) pool.SnapshotUnixSeconds = now;
+            uint elapsed = now > pool.SnapshotUnixSeconds ? now - pool.SnapshotUnixSeconds : 0;
+            return pool.FreeCooldownSeconds > elapsed ? pool.FreeCooldownSeconds - elapsed : 0;
+        }
+        public bool CanFreeDraw(int kind, uint now) => HasAuthoritativeState && now > 0 && kind >= 1 && kind <= 2
+            && PendingKind != kind && pools.Any(value => value.Kind == kind && value.FreeTimes > 0)
+            && RemainingCooldown(kind, now) == 0;
+        public bool HasFreeDrawAt(uint now) => pools.Any(value => CanFreeDraw(value.Kind, now));
 
         public void ReplacePools(IEnumerable<DrawPoolRecord> values, uint snapshotUnixSeconds)
         {
+            HasAuthoritativeState = true;
             pools.Clear();
             if (values != null) pools.AddRange(values.OrderBy(value => value.Kind));
+            foreach (DrawPoolRecord pool in pools) pool.SnapshotUnixSeconds = snapshotUnixSeconds;
             SnapshotUnixSeconds = snapshotUnixSeconds;
             Changed?.Invoke();
         }
@@ -64,6 +82,7 @@ namespace ProjectX.Data
                 pool.TotalDraws = value.TotalDraws;
                 if (value.DrawType == 1)
                 {
+                    pool.SnapshotUnixSeconds = snapshotUnixSeconds;
                     pool.FreeTimes = value.FreeTimes;
                     pool.FreeCooldownSeconds = value.FreeCooldownSeconds;
                 }
@@ -79,6 +98,7 @@ namespace ProjectX.Data
 
         public void Clear()
         {
+            HasAuthoritativeState = false; PendingKind = 0;
             pools.Clear();
             LastResult = null;
             SnapshotUnixSeconds = 0;

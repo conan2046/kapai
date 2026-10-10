@@ -21,6 +21,22 @@ namespace ProjectX.UI
               "Layer/Renwu/Content/TitleBg/LoadingBg/Point_4/Text" };
         private readonly UnityUiView view;
         private readonly TaskStore store;
+        private Transform redDotTemplate;
+        public void RefreshRedDots(Transform template)
+        {
+            redDotTemplate = template;
+            if (template == null) return;
+            foreach (Transform row in view.GameObject.GetComponentsInChildren<Transform>(true))
+            {
+                if (!row.name.StartsWith("Task_", StringComparison.Ordinal)) continue;
+                string[] fields = row.name.Split('_');
+                if (fields.Length > 1 && int.TryParse(fields[1], out int id) && store.TryGet(2, id, out var item))
+                    RedDotVisual.Set(row.Find("Panel/Btn_0"), store.CanClaim(item), template);
+            }
+            var boxes = store.ActivityBoxes;
+            for (int i = 0; i < ActivityPanelPaths.Length; i++)
+                RedDotVisual.Set(RequireNode(ActivityPanelPaths[i]).transform, i < boxes.Count && store.CanClaim(boxes[i]), template);
+        }
         private readonly IUiResourceProvider resources;
         private readonly VirtualList<TaskRecord> list;
         private readonly ScrollRect listScroll;
@@ -116,6 +132,9 @@ namespace ProjectX.UI
             SetVisible(row, "Panel/Btn_0", item.State == 1);
             Bind(row.Find("Panel/Btn"), item.State == 0 && item.Jump != 0 ? () => go(item) : null);
             Bind(row.Find("Panel/Btn_0"), item.State == 1 ? () => claim(item) : null);
+            if (redDotTemplate != null) RedDotVisual.Set(row.Find("Panel/Btn_0"), store.CanClaim(item), redDotTemplate);
+            Button claimButton = row.Find("Panel/Btn_0")?.GetComponent<Button>();
+            if (claimButton != null) claimButton.interactable = store.CanClaim(item);
             RenderRewards(row.Find("Panel/ListView"), item.Rewards);
             row.gameObject.name = $"Task_{item.Id}_{index}";
         }
@@ -158,6 +177,7 @@ namespace ProjectX.UI
                 button.onClick.RemoveAllListeners();
                 button.interactable = true;
                 button.onClick.AddListener(() => previewBox(box));
+                if (redDotTemplate != null) RedDotVisual.Set(panel, store.CanClaim(box), redDotTemplate);
             }
         }
 

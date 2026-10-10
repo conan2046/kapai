@@ -82,6 +82,7 @@ namespace ProjectX.Core
                 RequestMoneyTreeShake,
                 () => ShowToast("额外次数由贵族配置决定，贵族界面暂未迁移。", 3f),
                 ShowMoneyTreeReward);
+            RefreshGameplayRedDots();
         }
 
         private void ShowMoneyTreeReward(MoneyTreeRecord reward)

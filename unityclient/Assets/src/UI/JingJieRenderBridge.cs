@@ -155,36 +155,19 @@ namespace ProjectX.UI
 
         public bool TryBeginUpgrade()
         {
-            if (!state.HasAuthoritativeState)
+            config.TryGet(state.CurrentId + 1, out JingJieDefinition target);
+            int owned = target != null && target.MaterialId > 0 ? bag.GetTotalQuantityByItemId(target.MaterialId) : 0;
+            JingJieUpgradeBlock block = JingJieUpgradeEligibility.Evaluate(state, target,
+                player.Level, player.Power, currencies.Gold, owned);
+            switch (block)
             {
-                feedback("境界数据同步中");
-                return false;
-            }
-            if (!config.TryGet(state.CurrentId + 1, out JingJieDefinition target))
-            {
-                feedback("已达到最高境界");
-                return false;
-            }
-            if (player.Level < target.LevelLimit)
-            {
-                feedback($"角色等级达到{target.LevelLimit}级后可突破");
-                return false;
-            }
-            if (player.Power < (ulong)target.PowerLimit)
-            {
-                feedback($"战力达到{target.PowerLimit}后可突破");
-                return false;
-            }
-            int owned = target.MaterialId > 0 ? bag.GetTotalQuantityByItemId(target.MaterialId) : 0;
-            if (target.MaterialId > 0 && owned < target.MaterialAmount)
-            {
-                feedback("突破材料不足");
-                return false;
-            }
-            if (currencies.Gold < target.GoldAmount)
-            {
-                feedback("金币不足");
-                return false;
+                case JingJieUpgradeBlock.Synchronizing: feedback("境界数据同步中"); return false;
+                case JingJieUpgradeBlock.Maximum: feedback("已达到最高境界"); return false;
+                case JingJieUpgradeBlock.Pending: return false;
+                case JingJieUpgradeBlock.Level: feedback($"角色等级达到{target.LevelLimit}级后可突破"); return false;
+                case JingJieUpgradeBlock.Power: feedback($"战力达到{target.PowerLimit}后可突破"); return false;
+                case JingJieUpgradeBlock.Material: feedback("突破材料不足"); return false;
+                case JingJieUpgradeBlock.Gold: feedback("金币不足"); return false;
             }
             return state.BeginUpgrade();
         }

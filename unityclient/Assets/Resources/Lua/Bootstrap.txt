@@ -51,6 +51,9 @@ function OnDisconnected(reason)
     HeroController.reset()
     HeroBookController.reset()
     EquipmentController.reset()
+    DrawController.reset()
+    WorldController.resetRedDotRequests()
+    YouLiController.reset()
     MailController.onDisconnected()
     ShopController.onDisconnected()
     GameplayShopController.onDisconnected()
@@ -89,9 +92,26 @@ function OnHeroCultivate(heroId, count) HeroController.cultivate(heroId, count) 
 function OnHeroStarUp(heroId) HeroController.starUp(heroId) end
 function OnHeroCultivationActivate(heroId) HeroController.activateCultivation(heroId) end
 function OnHeroCompose(fragmentId) HeroController.composeHero(fragmentId) end
+function OnHeroRedDotRefresh()
+    HeroController.preload("RedDot")
+    EquipmentController.preload(function() end)
+    DrawController.preload()
+    WorldController.preload()
+    YouLiController.preload()
+    MoneyTreeController.preload()
+    FengShenStoryController.preload()
+    XunBaoController.preload()
+    TaskController.preload()
+    MonopolyController.preload()
+    AnswerController.preload()
+    HappyWheelController.preload()
+    FishController.preload()
+    GameplayShopController.preload()
+end
 function OnHeroRebirthPreview(heroId) HeroController.requestRebirthPreview(heroId) end
 function OnHeroRebirthConfirm(heroId) HeroController.confirmRebirth(heroId) end
 function OnHeroBookOpened() HeroBookController.open() end
+function OnHeroBookRedDotRefresh() HeroBookController.preload() end
 function OnHeroBookUpgrade(heroId) HeroBookController.upgrade(heroId) end
 function OnDrawClosurePrepareMount() HeroController.prepareDrawClosureMount() end
 function OnHeroEquipmentWear(uid, position) EquipmentController.wearEquipment(uid, position) end
@@ -123,6 +143,8 @@ end
 function OnFaBaoRefine(uid, targetLevel) EquipmentController.refineFaBao(uid, targetLevel) end
 function OnEnhanceMasterOpened(position) EquipmentController.requestMaster(position) end
 function OnMailClicked() MailController.onClick() end
+function OnMailRedDotRefresh() MailController.refreshRedDot() end
+function OnBagRedDotRefresh() BagController.requestRedDotSnapshot() end
 function OnMailClaimClicked(id) MailController.claim(id) end
 function OnMailReadClicked(id) MailController.read(id) end
 function OnMailDeleteClicked(id) MailController.delete(id) end
@@ -165,6 +187,7 @@ function OnGuildCreate(name) GuildController.create(name) end
 function OnGuildRequestMembers() GuildController.requestMembers() end
 function OnGuildLeave() GuildController.leave() end
 function OnWorldClicked() WorldController.onClick() end
+function OnWorldRedDotRefresh() WorldController.preload() end
 function OnWorldRequestChapter(chapterId) WorldController.requestChapter(chapterId) end
 function OnWorldRequestStage(stageId) WorldController.requestStage(stageId) end
 function OnWorldOpenPreferredStage() WorldController.openPreferredStage() end
@@ -187,6 +210,7 @@ function OnWelfareClaimSign() WelfareController.claimSign() end
 function OnActivityClicked() ActivityController.onClick() end
 function OnActivitySelected(tag) ActivityController.select(tag) end
 function OnDrawClicked() DrawController.onClick() end
+function OnDrawRedDotRefresh() DrawController.preload() end
 function OnDrawRequested(kind, drawType) DrawController.draw(kind, drawType) end
 function OnDrawClosurePrepareReconnect() HeroController.prepareDrawClosureReconnect() end
 function OnDrawClosurePrepareAccountIsolation() HeroController.prepareDrawClosureAccountIsolation() end
@@ -210,6 +234,14 @@ function OnXunBaoComposeAll() XunBaoController.composeAll() end
 function OnSevenDayClicked() SevenDayController.onClick() end
 function OnSevenDayClaim(id) SevenDayController.claim(id) end
 function OnMoneyTreeClicked(functionId) MoneyTreeController.onClick(functionId) end
+function OnMoneyTreeRedDotRefresh() MoneyTreeController.preload() end
+function OnFengShenStoryRedDotRefresh() FengShenStoryController.preload() end
+function OnTaskRedDotRefresh() TaskController.preload() end
+function OnMonopolyRedDotRefresh() MonopolyController.preload() end
+function OnAnswerRedDotRefresh() AnswerController.preload() end
+function OnHappyWheelRedDotRefresh() HappyWheelController.preload() end
+function OnFishRedDotRefresh() FishController.preload() end
+function OnShopRedDotRefresh() GameplayShopController.preload() end
 function OnMoneyTreeShake(treeType) MoneyTreeController.shake(treeType) end
 function OnFishClicked(functionId) FishController.onClick(functionId) end
 function OnFishStart() FishController.start() end

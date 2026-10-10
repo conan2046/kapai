@@ -158,6 +158,7 @@ end
 
 function M.upgradeFormation(formationId)
     if M.mutationStage ~= nil or formationId == nil or formationId <= 0 then return end
+    Bridge:SetFormationUpgradePending(formationId, true)
     M.mutationStage = "formation_upgrade_response"
     sendFormationAction(2, formationId)
     Bridge:SetStatus("Formation/48 op=2 upgrade request sent: formation=" .. tostring(formationId) .. ".")
@@ -263,8 +264,9 @@ function M.starUp(heroId)
 end
 
 function M.composeHero(fragmentId)
-    if M.mutationStage ~= nil or fragmentId == nil or fragmentId <= 0 then return end
+    if M.mutationStage ~= nil or M.composeSnapshotPending or fragmentId == nil or fragmentId <= 0 then return end
     M.mutationStage = "compose_response"
+    Bridge:SetHeroComposePending(fragmentId, true)
     local message = Protocol.newMessage(Protocol.HERO)
     message:WriteByte(11)
     message:WriteWord(fragmentId)
@@ -451,7 +453,12 @@ local function readCultivationResponse(op, message)
             Bridge:SetStatus("Hero cultivation rejected: " .. tostring(reason))
             return
         end
-        Bridge:Fail("Hero cultivation rejected: " .. tostring(reason))
+        if Bridge:HasCommandLineFlag("-projectXHeroCultivationG3Validation") then
+            Bridge:Fail("Hero cultivation rejected: " .. tostring(reason))
+            return
+        end
+        Bridge:SetStatus("Hero cultivation rejected: " .. tostring(reason))
+        Bridge:ShowToast(reason ~= "" and reason or "操作未完成", 2)
         return
     end
     if heroId ~= M.mutationHero then
@@ -492,6 +499,10 @@ syncHeroMirror = function()
             hero.primarySkillLevel or 1)
     end
     Bridge:EndHeroUpdate()
+    if M.composeSnapshotPending then
+        M.composeSnapshotPending = false
+        Bridge:SetHeroComposePending(0, false)
+    end
 end
 
 syncRenderMirror = function()
@@ -505,7 +516,7 @@ syncRenderMirror = function()
     for index = 1, #FormationModel.CombatPosList do
         Bridge:AddFormationCombatHero(index, FormationModel.CombatPosList[index])
     end
-    Bridge:EndFormationUpdate()
+    Bridge:EndFormationUpdate(M.preloadPending and not M.requested)
     Bridge:SyncHeroSelection(FormationModel:GetSelectedHeroId())
 end
 
@@ -825,6 +836,7 @@ end
 local function readFormationUpgradeResponse(message)
     local formationId = message:ReadWord()
     local success = message:ReadByte()
+    Bridge:SetFormationUpgradePending(formationId, false)
     if success == 0 then
         local reason = message.Remaining > 0 and message:ReadString() or "unknown server rejection"
         M.mutationStage = nil
@@ -911,10 +923,12 @@ local function readHeroComposeResponse(message)
     local success = message:ReadByte()
     M.mutationStage = nil
     if success == 0 then
+        Bridge:SetHeroComposePending(fragmentId, false)
         local reason = message.Remaining > 0 and message:ReadString() or "神将碎片不足"
         Bridge:ShowToast(reason, 2)
         return
     end
+    M.composeSnapshotPending = true
     M.onClick()
     Bridge:ShowToast("神将合成成功", 2)
 end
@@ -943,6 +957,8 @@ function M.onPacket(command, message)
 end
 
 function M.reset()
+    M.composeSnapshotPending = false
+    Bridge:SetHeroComposePending(0, false)
     local keepClosure = Bridge:HasCommandLineFlag("-projectXDrawClosureValidation")
         and (M.closureStage == "await_reconnect" or M.closureStage == "await_account_isolation")
     M.requested, M.snapshotOnly, M.preloadPending = false, false, false

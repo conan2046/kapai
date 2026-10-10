@@ -5836,6 +5836,24 @@ void CPackageDeal::AnswerQuestionOption(CNetMessage *pMsg,int sock)
 		{
 			break;
 		}
+	case 4: // Read-only function27 reminder; do not draw a question or start its timer.
+		{
+			int used = pUser->GetExtData8(ED8_6);
+			bool ready = FindScript(200) != NULL;
+			if (unitySettings.isUnitySqlite)
+			{
+				ready = unitySettings.valid && GetUnityAnswerUsedCount(pUser->GetRoleId(), used);
+				CGetDbConnect db;
+				CDatabaseSql *connection = db.GetDbConnect();
+				if (!connection || !connection->Query("select count(*) from question where question<>''")) ready = false;
+				else { char **row = connection->GetRow(); ready = ready && row && atoi(row[0]) > 0; }
+			}
+			const uint32 remaining = ready && used < MaxDaTiTimes ? MaxDaTiTimes - used : 0;
+			msg.ReWrite(); msg.SetType(MSG_ANSWER_QUESION);
+			msg << op << (uint8)1 << remaining << (uint8)(ready && pUser->m_isInDaTi);
+			m_socketServer.SendMsg(pUser->GetSock(), msg);
+			return;
+		}
 	default:
 		{
 
@@ -13674,6 +13692,10 @@ void CPackageDeal::ChuangGuanOption(CNetMessage *pMsg,int sock)
 	CXunBaoManage& xunBao = pUser->GetXunbaoManage();
 	switch (op)
 	{
+	case CXunBaoManage::ECGOp_MonopolyReminder:
+		xunBao.GetMonopolyReminder(msg);
+		m_socketServer.SendMsg(pUser->GetSock(), msg);
+		return;
 	case CXunBaoManage::ECGOp_QueryInfo:	// 闯关入口
 		{
 			CHECK_SYSTEM_OPEN(SOT_21)

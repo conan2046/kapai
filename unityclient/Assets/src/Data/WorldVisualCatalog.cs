@@ -36,6 +36,7 @@ namespace ProjectX.Data
         public int MonsterPicture { get; set; }
         public float MonsterScale { get; set; } = 1f;
         public int Hope { get; set; }
+        public int LevelLimit { get; set; }
         public int MaxAttempts { get; set; }
         public WorldConfiguredReward[] FirstRewards { get; set; } = Array.Empty<WorldConfiguredReward>();
         public WorldConfiguredReward[] ShowRewards { get; set; } = Array.Empty<WorldConfiguredReward>();
@@ -72,6 +73,7 @@ namespace ProjectX.Data
             public int Quality;
             public int FightId;
             public int Hope;
+            public int LevelLimit;
             public int MaxAttempts;
             public WorldConfiguredReward[] FirstRewards;
             public WorldConfiguredReward[] ShowRewards;
@@ -189,6 +191,7 @@ namespace ProjectX.Data
                 TryGetString(entry, "Des", out string description);
                 TryGetString(entry, "Name", out string name);
                 TryGetInt(entry, "Hope", out int hope);
+                bool hasLevelLimit = TryGetInt(entry, "Levellimit", out int levelLimit);
                 TryGetInt(entry, "AttackCount", out int maxAttempts);
                 stageSources[(uint)id] = new StageSource
                 {
@@ -197,6 +200,7 @@ namespace ProjectX.Data
                     Description = description ?? string.Empty,
                     FightId = fightId,
                     Hope = hope,
+                    LevelLimit = hasLevelLimit ? levelLimit : int.MaxValue,
                     MaxAttempts = maxAttempts,
                     FirstRewards = ParseTriples(GetBraceField(entry, "first_reward")),
                     ShowRewards = ParseTriples(GetBraceField(entry, "show_reward"))
@@ -216,6 +220,7 @@ namespace ProjectX.Data
                     MonsterPicture = monster.Picture,
                     MonsterScale = monster.Scale <= 0f ? 1f : monster.Scale,
                     Hope = pair.Value.Hope,
+                    LevelLimit = pair.Value.LevelLimit,
                     MaxAttempts = pair.Value.MaxAttempts,
                     FirstRewards = pair.Value.FirstRewards ?? Array.Empty<WorldConfiguredReward>(),
                     ShowRewards = pair.Value.ShowRewards ?? Array.Empty<WorldConfiguredReward>()

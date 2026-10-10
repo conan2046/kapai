@@ -1289,6 +1289,35 @@ namespace ProjectX.Core
 
         public void SetHudRedDot(int redType, bool visible)
         {
+            if (redType == 71 || redType == 72)
+            {
+                // Excluded arena/blood shops must not drive the retained shop HUD.
+                RefreshShopRedDots();
+                return;
+            }
+            if (redType == 31)
+            {
+                services.Mails.SetUnreadHint(visible);
+                InvokeLuaOrFail(onMailBackgroundRefresh, "Mail.RedDotRefresh");
+                return;
+            }
+            if (redType == 131)
+            {
+                InvokeLuaOrFail(onHeroBookRedDotRefresh, "HeroBook.RedDotRefresh");
+                return;
+            }
+            if (redType == 61 || redType == 62 || redType == 64)
+            {
+                // Legacy 64 includes hidden trial /320 op21-23. Recompute from effective World routes.
+                using (var refresh = services.Lua.GetFunction("OnWorldRedDotRefresh")) InvokeLuaOrFail(refresh, "World.RedDotRefresh");
+                return;
+            }
+            if (redType == 63) return;
+            if (redType == 41 || redType == 51 || redType == 101 || redType == 103)
+            {
+                RefreshGameplayRedDots();
+                return;
+            }
             EnsureMainHudPresenter();
             mainHudPresenter.SetRedDot(redType, visible);
         }
@@ -3672,14 +3701,20 @@ namespace ProjectX.Core
         public void EndTaskUpdate()
         {
             services.Tasks.Replace(pendingTaskType, pendingTaskRecords);
-            if (pendingTaskType == 3)
+            // The requesting entry owns navigation. Background and delayed lists only update stores.
+        }
+
+        public bool BeginTaskClaim(int type,int id) => services.Tasks.BeginClaim(type,id);
+        public void FailTaskClaim(int type,int id) => services.Tasks.FailClaim(type,id);
+        public void EndTaskRewardUpdate(int type)
+        {
+            bool visible = type == 3 ? xunBaoPopupPresenter?.IsTaskBoundaryVisible == true : IsTaskOpen;
+            if (visible) EndRewardUpdate(type == 0 ? "活跃度奖励" : "任务奖励");
+            else
             {
-                EnsureXunBaoPopupPresenter();
-                return;
+                services.Rewards.Replace(type == 0 ? "活跃度奖励" : "任务奖励", pendingRewards);
+                restoreTaskFrameAfterReward = false;
             }
-            EnsureTaskPresenter();
-            taskPresenter.Render();
-            ShowTask();
         }
 
         public void UpsertTaskRecord(int type, int id, uint progress, int state)
@@ -4075,7 +4110,11 @@ namespace ProjectX.Core
         }
         private void HandleMailClick()
         {
-            try { CallLua(onMailClicked, "Mail.OnClicked"); }
+            try
+            {
+                ShowMail();
+                CallLua(onMailClicked, "Mail.OnClicked");
+            }
             catch (Exception exception) { Fail($"Mail open failed: {exception.Message}"); }
         }
         private void HandleShopClick()
@@ -4876,7 +4915,8 @@ namespace ProjectX.Core
                 services.Heroes, services.Formation, services.Player, services.HeroEquipment, services.FaBao,
                 services.Resources, ShowHeroReplacement, ShowHeroCultivation, ShowHeroEnhanceMaster,
                 ShowHeroEquipmentSlot, ShowHeroAttributes,
-                id => InvokeLuaOrFail(onHeroSelected, "Hero.Select", id), message => ShowToast(message, 2f));
+                id => InvokeLuaOrFail(onHeroSelected, "Hero.Select", id), message => ShowToast(message, 2f),
+                services.Bag, CanCultivateHero, RedDotTemplate, services.Currencies);
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             heroListView.BindClick("Layer/shenjiangListUI/List/btn_buzhen", ShowFormationPopup, true);
             heroBagView.BindClick("Layer/yingxiongbeibaoUI/cell", ShowHeroBook, true);
@@ -4898,7 +4938,7 @@ namespace ProjectX.Core
                 formationId => InvokeLuaOrFail(onFormationUpgrade, "Hero.FormationUpgrade", formationId),
                 formationId => InvokeLuaOrFail(onFormationUse, "Hero.FormationUse", formationId),
                 message => ShowToast(message, 2f),
-                () => formationPopupView.SetVisible(false));
+                () => formationPopupView.SetVisible(false), RedDotTemplate);
             PrepareHeroFormationSurface(false);
             formationPopupView.ShowPopup();
             // Activate the surface before loading/playing Imod. Otherwise the
@@ -5235,7 +5275,7 @@ namespace ProjectX.Core
                 id => InvokeLuaOrFail(onHeroCultivationActivate, "Hero.CultivationActivate", id),
                 RestoreHeroFormationView, message => ShowToast(message, 2f),
                 (parent, picture) => ShowRuntimeHeroModel(parent, picture),
-                id => InvokeLuaOrFail(onHeroSelected, "HeroCultivation.Select", id));
+                id => InvokeLuaOrFail(onHeroSelected, "HeroCultivation.Select", id), RedDotTemplate, services.Currencies);
             EnsureHeroHubContentHierarchyOrder();
         }
 
@@ -6068,11 +6108,7 @@ namespace ProjectX.Core
         private void RenderHeroFragments()
         {
             BagItemRecord[] fragments = services.Bag.GetItemsByType(2)
-                .OrderByDescending(item =>
-                {
-                    int required = GetHeroFragmentComposeCost(item);
-                    return required > 0 && item.Quantity >= required;
-                })
+                .OrderByDescending(CanComposeHeroFragment)
                 .ThenByDescending(item => item.Quality)
                 .ThenByDescending(item => item.Quantity)
                 .ThenByDescending(item => item.ItemId)
@@ -6086,7 +6122,7 @@ namespace ProjectX.Core
             BagItemRecord preferred = fragments.FirstOrDefault(item => item.ItemId == selectedHeroFragmentId);
             if (preferred.ItemId <= 0)
                 preferred = fragments.FirstOrDefault(item =>
-                    GetHeroFragmentComposeCost(item) > 0 && item.Quantity >= GetHeroFragmentComposeCost(item));
+                    CanComposeHeroFragment(item));
             if (preferred.ItemId <= 0 && fragments.Length > 0) preferred = fragments[0];
             selectedHeroFragmentId = preferred.ItemId;
 
@@ -6202,7 +6238,8 @@ namespace ProjectX.Core
             int required = heroFragment
                 ? GetHeroFragmentComposeCost(item)
                 : services.EquipmentCatalog.GetEquipmentComposeCost(item.ItemId);
-            bool composable = required > 0 && item.Quantity >= required;
+            bool composable = heroFragment ? CanComposeHeroFragment(item)
+                : required > 0 && item.Quantity >= required;
             GameObject ready = cell.Find("Tips")?.gameObject;
             if (ready != null) ready.SetActive(composable);
             GameObject prompt = cell.Find("Prompt")?.gameObject;
@@ -6253,13 +6290,7 @@ namespace ProjectX.Core
 
         private static int GetHeroFragmentComposeCost(BagItemRecord item)
         {
-            string description = item.Description ?? string.Empty;
-            int marker = description.IndexOf("个碎片", StringComparison.Ordinal);
-            if (marker <= 0) return 0;
-            int start = marker - 1;
-            while (start >= 0 && char.IsDigit(description[start])) start--;
-            string digits = description.Substring(start + 1, marker - start - 1);
-            return int.TryParse(digits, out int value) ? value : 0;
+            return HeroFragmentCatalog.Shared.GetRequiredFragments(item.ItemId);
         }
 
         private void BindHeroFragmentDetail(BagItemRecord item)
@@ -6288,7 +6319,9 @@ namespace ProjectX.Core
             if (compose != null)
             {
                 compose.onClick.RemoveAllListeners();
-                compose.interactable = required > 0 && item.Quantity >= required;
+                bool ready = CanComposeHeroFragment(item);
+                compose.interactable = !heroComposePending && ready;
+                RedDotVisual.Set(compose.transform, ready, RedDotTemplate);
                 compose.onClick.AddListener(() => InvokeLuaOrFail(onHeroCompose, "Hero.Compose", item.ItemId));
             }
             GameObject sourceObject = binding.FindNode("Layer/suipianUI/suipian/Btn_huoqu");
@@ -6328,7 +6361,8 @@ namespace ProjectX.Core
             if (compose != null)
             {
                 compose.onClick.RemoveAllListeners();
-                compose.interactable = required > 0 && item.Quantity >= required;
+                compose.interactable = CanComposeEquipmentFragment(item);
+                RedDotVisual.Set(compose.transform, CanComposeEquipmentFragment(item), RedDotTemplate);
                 compose.onClick.AddListener(() => InvokeLuaOrFail(onHeroEquipmentCompose,
                     "HeroEquipment.Compose", item.ItemId));
             }
@@ -6656,6 +6690,7 @@ namespace ProjectX.Core
 
         private void ShowHeroBook()
         {
+            if (!IsHeroBookUnlocked()) { ShowToast($"{FunctionUnlockCatalog.Resolve(1090).OpenLevel}级开启神将图鉴", 2f); return; }
             EnsureHeroPresenter();
             heroBookView = heroBookView ?? services.UiAssets.InstantiateUnity("HeroBook", oneLevelFrameView.GameObject.transform);
             Transform overlayRoot = GetDynamicUiRoot();
@@ -6676,7 +6711,7 @@ namespace ProjectX.Core
                 services.HeroBook, services.HeroBookCatalog, services.Heroes, services.Bag,
                 services.EquipmentCatalog, services.Resources,
                 id => InvokeLuaOrFail(onHeroBookUpgrade, "HeroBook.Upgrade", id),
-                message => ShowToast(message, 3f));
+                message => ShowToast(message, 3f), services.Player, RedDotTemplate);
             ShowHeroBagAuxiliary(heroBookView, "神将图鉴");
             heroBookPresenter.Show();
             InvokeLuaOrFail(onHeroBookOpened, "HeroBook.Open");
@@ -7728,7 +7763,7 @@ namespace ProjectX.Core
                 {
                     SetStatus(message);
                     ShowToast(message, 2f);
-                }, cultivationOnly);
+                }, cultivationOnly, CanCultivateEquipment, RedDotTemplate);
             if (presenterCreated) heroEquipmentPresenterCultivationOnly = cultivationOnly;
             if (!cultivationOnly && !heroEquipmentFragmentBagSubscribed)
             {
@@ -7821,6 +7856,7 @@ namespace ProjectX.Core
             fragmentButton.interactable = true;
             fragmentButton.onClick.RemoveAllListeners();
             fragmentButton.onClick.AddListener(ShowHeroEquipmentFragments);
+            ApplyEquipmentHubDots();
         }
 
         private static void HideRuntimeTab(Transform panel, string name)
@@ -7920,6 +7956,9 @@ namespace ProjectX.Core
                 orderedTabs[index] = tab;
                 if (!visible) continue;
                 SetTabText(tab, labels[index], index == selectedMode);
+                RedDotVisual.Set(tab, heroEquipmentPresenter != null && CanCultivateEquipment(
+                    heroEquipmentPresenter.SelectedUid, kind, index), RedDotTemplate);
+                heroEquipmentPresenter?.ApplyRedDots();
                 Button button = EnsureRuntimeButton(tab);
                 button.onClick.RemoveAllListeners();
                 int mode = index;
@@ -8070,7 +8109,7 @@ namespace ProjectX.Core
                 tabButton.interactable = false;
             }
             Transform tabPrompt = tab?.Find("Prompt");
-            if (tabPrompt != null) tabPrompt.gameObject.SetActive(false);
+            if (tabPrompt != null) tabPrompt.gameObject.SetActive(redDots.IsVisible("gameplay.10"));
             if (tabPanel?.parent != null)
                 foreach (Transform sibling in tabPanel.parent)
                     if (sibling != tabPanel && sibling.name.StartsWith("Panel_", StringComparison.Ordinal))
@@ -8539,7 +8578,8 @@ namespace ProjectX.Core
             GameObject closeTemplate = closeFrame.FindNode("Layer/shopBg/Popup/Btn_close");
             youLiPresenter = youLiPresenter ?? new YouLiPresenter(youLiView, services.YouLi, services.Heroes,
                 services.Player.Level, services.Resources, StartYouLi, StartAllYouLi, ClaimYouLi,
-                closeTemplate, () => HandleBack());
+                closeTemplate, () => HandleBack(), RedDotTemplate,
+                () => services.ServerTime.UnixSeconds);
         }
 
         private void EnsureFengShenStoryPresenter()
@@ -8576,6 +8616,7 @@ namespace ProjectX.Core
                     lastGameplayBoundaryId = 13;
                     HandleCommerceRoute(13);
                 });
+            RefreshGameplayRedDots();
         }
 
         private static void AttachAndOrderHeroEquipmentCultivationViews(Transform parent,
@@ -8627,9 +8668,12 @@ namespace ProjectX.Core
 
         private void RefreshDrawHotPoint()
         {
-            GameObject button = mainView?.FindNode(DrawPath);
-            Transform prompt = button?.transform.Find("Prompt");
-            if (prompt != null) prompt.gameObject.SetActive(services?.Draw.HasFreeDraw == true);
+            if (!drawDotsDefined || services == null) return;
+            bool unlocked = services.Player.Level > 0 && services.ServerTime.IsSynchronized;
+            redDots.SetEnabled("recruitment", unlocked);
+            redDots.Set("recruitment.normal", services.Draw.CanFreeDraw(1, services.ServerTime.UnixSeconds));
+            redDots.Set("recruitment.advanced", services.Draw.CanFreeDraw(2, services.ServerTime.UnixSeconds));
+            RedDotVisual.Set(mainView?.FindNode(DrawPath)?.transform, redDots.IsVisible("recruitment"), RedDotTemplate);
         }
 
         private DrawResultRecord RequirePendingDraw() => pendingDrawResult

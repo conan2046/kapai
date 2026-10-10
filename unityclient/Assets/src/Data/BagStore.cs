@@ -40,6 +40,7 @@ namespace ProjectX.Data
         public string ItemFrom { get; }
         public string Choices { get; }
         public string Sources { get; }
+        public bool CanUseDirectly => ItemId > 0 && Quantity > 0 && (UseType > 0 || ItemType == 6);
     }
 
     public sealed class BagStore
@@ -47,6 +48,7 @@ namespace ProjectX.Data
         private readonly Dictionary<int, BagItemRecord> bySlot = new Dictionary<int, BagItemRecord>();
         public event Action Changed;
         public int Count => bySlot.Count;
+        public bool HasDirectlyUsableItems => Items.Any(item => item.CanUseDirectly);
         public IReadOnlyList<BagItemRecord> Items
         {
             get

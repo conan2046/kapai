@@ -3621,6 +3621,49 @@ void PracticeTemple::SetPracticeUser(int type,int uIdx,CUser *pUser)
 	m_userList[type][uIdx] = ptr;
 }
 
+// Empty single-player databases must load the same exported VIP data as the formal server.
+// Existing rows (and every MySQL database) remain authoritative.
+static bool SeedSqliteVipConfig(CDatabaseSql *db)
+{
+    if (!db->IsSqlite()) return true;
+    if (!db->Query("select count(*) from vip_def")) return false;
+    char **count = db->GetRow();
+    if (!count) return false;
+    if (atoi(count[0]) != 0) return true;
+    FILE *file = fopen("json/vip.json", "rb");
+    if (!file) return false;
+    char buffer[8192];
+    rapidjson::FileReadStream stream(file, buffer, sizeof(buffer));
+    rapidjson::Document document;
+    document.ParseStream(stream);
+    fclose(file);
+    if (document.HasParseError() || !document.IsArray() || document.Size() != 16) return false;
+    const char *columns[] = { "vip", "yuanbao", "lingqi", "arenatz", "arenabuy", "bosstz", "bossbuy",
+        "openshop", "fxdown", "fxexp", "offline", "zhongzhi", "jingbi_tree", "yuanbao_tree",
+        "neidan_tree", "jingyan_tree", "awardt1", "awardn1", "awardt2", "awardn2", "awardt3",
+        "awardn3", "yaoqianshu", "yaoqianshu2", "fengshen_shilian" };
+    string sql = "insert into vip_def (";
+    for (size_t i = 0; i < sizeof(columns)/sizeof(columns[0]); ++i) {
+        if (i) sql += ",";
+        sql += columns[i];
+    }
+    sql += ",sweep_copy) values ";
+    for (rapidjson::SizeType row = 0; row < document.Size(); ++row) {
+        if (row) sql += ",";
+        sql += "(";
+        for (size_t i = 0; i < sizeof(columns)/sizeof(columns[0]); ++i) {
+            if (!document[row].IsObject() || !document[row].HasMember(columns[i])
+                || !document[row][columns[i]].IsUint()) return false;
+            if (i) sql += ",";
+            char number[32];
+            snprintf(number, sizeof(number), "%u", document[row][columns[i]].GetUint());
+            sql += number;
+        }
+        sql += ",'')";
+    }
+    return db->Query(sql.c_str());
+}
+
 bool InitVipConfig()
 {
 	CGetDbConnect getDb;
@@ -3634,6 +3677,7 @@ bool InitVipConfig()
 	char sql[512];
 	char** row = NULL;
 
+	if (!SeedSqliteVipConfig(pDb)) return false;
 	//                        0    1      2     3      4       5     6       7      8     9    10    11        12
 	snprintf(sql,sizeof(sql),"select vip,yuanbao,lingqi,arenatz,arenabuy,bosstz,bossbuy,openshop,fxdown,fxexp,offline,zhongzhi,jingbi_tree,"\
 	//        13         14        15       16     17      18    19      20      21       22       23          24

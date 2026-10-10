@@ -43,6 +43,18 @@ namespace ProjectX.Data
         public event Action<FishCatchRecord> Caught;
 
         public bool HasAuthoritativeState { get; private set; }
+        public bool HasAuthoritativeBasket { get; private set; }
+        public int PendingCollectSlot { get; private set; } = -1;
+        public bool CanCollect(ushort index) => HasAuthoritativeBasket && PendingCollectSlot != index
+            && slots.TryGetValue(index, out FishBasketSlot value) && value.ItemId > 0 && value.Quantity > 0;
+        public bool HasClaimableFish => slots.Values.Any(value => CanCollect(value.SlotIndex));
+        public bool BeginCollect(ushort index)
+        {
+            if (PendingCollectSlot >= 0 || !CanCollect(index)) return false;
+            PendingCollectSlot = index; Changed?.Invoke(); return true;
+        }
+        public void FailCollect() { PendingCollectSlot = -1; Changed?.Invoke(); }
+        public void ExitScene() { HasAuthoritativeState = false; SetFishing(0); Changed?.Invoke(); }
         public int SceneId { get; private set; }
         public int MapId { get; private set; }
         public int PositionX { get; private set; }
@@ -91,10 +103,11 @@ namespace ProjectX.Data
 
         public void ReplaceBasket(IEnumerable<FishBasketSlot> values)
         {
+            HasAuthoritativeBasket = true;
             slots.Clear();
             if (values != null)
                 foreach (FishBasketSlot value in values)
-                    if (value != null) slots[value.SlotIndex] = value;
+                    if (value != null && value.ItemId > 0 && value.Quantity > 0) slots[value.SlotIndex] = value;
             Changed?.Invoke();
         }
 
@@ -116,7 +129,7 @@ namespace ProjectX.Data
             Caught?.Invoke(new FishCatchRecord(itemId, slotIndex, quantity, discarded));
         }
 
-        public void ApplyCollected(ushort slotIndex) { slots.Remove(slotIndex); Changed?.Invoke(); }
+        public void ApplyCollected(ushort slotIndex) { slots.Remove(slotIndex); PendingCollectSlot = -1; Changed?.Invoke(); }
         public void ApplyTime(ushort remainingSeconds) { SetFishing(remainingSeconds); Changed?.Invoke(); }
         public void Stop(uint gold) { Gold = gold; SetFishing(0); Changed?.Invoke(); }
 
@@ -124,6 +137,8 @@ namespace ProjectX.Data
         {
             slots.Clear();
             HasAuthoritativeState = false;
+            HasAuthoritativeBasket = false;
+            PendingCollectSlot = -1;
             IsFishing = false;
             FinishUtc = default;
             Gold = 0;

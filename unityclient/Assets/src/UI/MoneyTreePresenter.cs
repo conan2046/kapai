@@ -64,6 +64,9 @@ namespace ProjectX.UI
             rewardEffect?.Clear();
         }
 
+        public void RefreshRedDot(bool visible, Transform template) =>
+            RedDotVisual.Set(shakeButton.transform, visible, template);
+
         private void HandleRewarded(MoneyTreeRecord reward)
         {
             rewardEffect?.Play();

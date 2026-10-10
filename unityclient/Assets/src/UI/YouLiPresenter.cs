@@ -13,7 +13,7 @@ namespace ProjectX.UI
         private readonly UnityUiView view;
         private readonly YouLiStore store;
         private readonly HeroStore heroes;
-        private readonly int playerLevel;
+        private int playerLevel;
         private readonly IUiResourceProvider resources;
         private readonly List<GameObject> cards = new List<GameObject>();
         private readonly Transform template;
@@ -25,10 +25,12 @@ namespace ProjectX.UI
         private Button oneKeyStart;
         private Button oneKeyClaim;
         private GameObject closeControl;
+        private readonly Transform redDotTemplate;
+        private readonly Func<double> serverNow;
 
         public YouLiPresenter(UnityUiView view, YouLiStore store, HeroStore heroes, int playerLevel,
             IUiResourceProvider resources, Action<byte> start, Action startAll, Action<byte> claim,
-            GameObject closeTemplate, Action close)
+            GameObject closeTemplate, Action close, Transform redDotTemplate = null, Func<double> serverNow = null)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.store = store ?? throw new ArgumentNullException(nameof(store));
@@ -38,6 +40,8 @@ namespace ProjectX.UI
             this.start = start ?? throw new ArgumentNullException(nameof(start));
             this.startAll = startAll ?? throw new ArgumentNullException(nameof(startAll));
             this.claim = claim ?? throw new ArgumentNullException(nameof(claim));
+            this.redDotTemplate = redDotTemplate;
+            this.serverNow = serverNow ?? (() => DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             Normalize(view.GameObject.transform);
             InstallBackground(view.GameObject.transform);
 
@@ -151,9 +155,37 @@ namespace ProjectX.UI
             if (oneKeyStart != null) oneKeyStart.interactable = store.Items.Any(value => playerLevel >= value.Definition.UnlockLevel && !value.IsActive);
             if (oneKeyClaim != null) oneKeyClaim.interactable = store.Items.Any(IsReady);
             RenderActiveHero();
+            Tick(serverNow());
         }
 
-        private bool IsReady(YouLiRecord value) => value.IsActive && value.EndTime > 0 && value.EndTime <= (uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        private bool IsReady(YouLiRecord value) => store.CanClaim(value, playerLevel, serverNow());
+        public void Tick(double now, int currentPlayerLevel = -1)
+        {
+            if (currentPlayerLevel >= 0 && currentPlayerLevel != playerLevel)
+            {
+                playerLevel = currentPlayerLevel;
+                Render();
+                return;
+            }
+            foreach (GameObject card in cards)
+            {
+                if (card == null) continue;
+                var value = store.Items.FirstOrDefault(x => card.name == $"Location_{x.Definition.Id}");
+                if (value == null) continue;
+                bool ready = store.CanClaim(value, playerLevel, now);
+                RedDotVisual.Set(card.transform, ready, redDotTemplate);
+                Transform item = Find(card.transform, "Item");
+                SetVisible(Find(item, "Text_1"), ready);
+                SetText(Find(item, "TimeBg/Time"), value.IsActive
+                    ? FormatRemaining(value.EndTime, now) : string.Empty);
+            }
+            bool any = store.Items.Any(x => store.CanClaim(x, playerLevel, now));
+            if (oneKeyClaim != null)
+            {
+                oneKeyClaim.interactable = store.PendingLocationId == 0 && any;
+                RedDotVisual.Set(oneKeyClaim.transform, any, redDotTemplate);
+            }
+        }
         private void RenderActiveHero()
         {
             Transform panel = Find(view.GameObject.transform, "youliUI/Panel");
@@ -224,9 +256,9 @@ namespace ProjectX.UI
             return rect;
         }
 
-        private static string FormatRemaining(uint endTime)
+        private static string FormatRemaining(uint endTime, double now = 0)
         {
-            long seconds = Math.Max(0, (long)endTime - DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            long seconds = Math.Max(0, (long)(endTime - (now > 0 ? now : DateTimeOffset.UtcNow.ToUnixTimeSeconds())));
             return $"{seconds / 3600:00}:{seconds / 60 % 60:00}:{seconds % 60:00}";
         }
 

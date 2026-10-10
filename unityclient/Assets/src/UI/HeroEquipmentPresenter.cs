@@ -84,6 +84,20 @@ namespace ProjectX.UI
         private readonly Action<uint, int> refineFaBao;
         private readonly Action<int, HeroEquipmentKind> showCultivationFrame;
         private readonly Func<int> getPlayerLevel;
+        private readonly Func<uint, HeroEquipmentKind, int, bool> canCultivate;
+        private readonly Transform redDotTemplate;
+        public uint SelectedUid => selected.Uid;
+        public HeroEquipmentKind SelectedKind => selected.Kind;
+        public void ApplyRedDots()
+        {
+            Button[] actions = { strengthOnceButton, refineOnceButton, awakenOnceButton, divineOnceButton };
+            for (int mode = 0; mode < 4; mode++) RedDotVisual.Set(actions[mode]?.transform,
+                canCultivate?.Invoke(selected.Uid, selected.Kind, mode) == true, redDotTemplate);
+            RedDotVisual.Set(HeroEquipmentNodeIds.Get(faBaoStrengthView, "Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn")?.transform,
+                canCultivate?.Invoke(selected.Uid, HeroEquipmentKind.FaBao, 0) == true, redDotTemplate);
+            RedDotVisual.Set(HeroEquipmentNodeIds.Get(faBaoRefineView, "Layer/fabaojuexing_layer/juexing/jinglianxiaohao/Btn_shenzhu")?.transform,
+                canCultivate?.Invoke(selected.Uid, HeroEquipmentKind.FaBao, 1) == true, redDotTemplate);
+        }
         private readonly Func<int, int> getHeroAtDisplayPosition;
         private Text buildRecommendationText;
         private readonly Action<string> showFeedback;
@@ -149,9 +163,11 @@ namespace ProjectX.UI
             Action<uint, uint[]> strengthFaBao, Action<uint, int> refineFaBao,
             Action<int, HeroEquipmentKind> showCultivationFrame,
             Func<int> getPlayerLevel, Func<int, int> getHeroAtDisplayPosition, Action<string> showFeedback,
-            bool cultivationOnly = false)
+            bool cultivationOnly = false, Func<uint, HeroEquipmentKind, int, bool> canCultivate = null, Transform redDotTemplate = null)
         {
             this.cultivationOnly = cultivationOnly;
+            this.canCultivate = canCultivate;
+            this.redDotTemplate = redDotTemplate;
             this.listView = listView;
             this.detailView = detailView;
             this.changeView = changeView;
@@ -285,6 +301,8 @@ namespace ProjectX.UI
 
             equipment.Changed += Render;
             faBao.Changed += Render;
+            bag.Changed += Render;
+            currencies.Changed += Render;
             if (!cultivationOnly) Render();
         }
 
@@ -448,7 +466,7 @@ namespace ProjectX.UI
 
         public void Render()
         {
-            if (cultivationOnly) return;
+            if (cultivationOnly) { ApplyRedDots(); return; }
             uint selectedUid = selected.Uid;
             HeroEquipmentKind selectedKind = selected.Kind;
             bool detailWasVisible = detailView.GameObject.activeSelf;
@@ -493,10 +511,13 @@ namespace ProjectX.UI
                     returnToListOnDetailClose = preservedReturnTarget;
                 }
             }
+            ApplyRedDots();
         }
 
         public void Dispose()
         {
+            bag.Changed -= Render;
+            currencies.Changed -= Render;
             if (equipment != null) equipment.Changed -= Render;
             if (faBao != null) faBao.Changed -= Render;
             list?.Dispose();
@@ -564,14 +585,8 @@ namespace ProjectX.UI
                 cultivate.gameObject.SetActive(true);
                 cultivate.onClick.RemoveAllListeners();
                 cultivate.onClick.AddListener(() => ShowStrength(item));
-                Transform prompt = cultivate.transform.Find("Prompt");
-                if (prompt != null)
-                {
-                    int nextLevel = Mathf.Min(item.StrengthLevel + 1, catalog.MaxStrengthLevel);
-                    int cost = catalog.GetStrengthCost(nextLevel, item.Definition.Quality);
-                    prompt.gameObject.SetActive(item.Kind == HeroEquipmentKind.Equipment
-                        && nextLevel > item.StrengthLevel && cost > 0 && currencies.Gold >= cost);
-                }
+                RedDotVisual.Set(cultivate.transform, Enumerable.Range(0, item.Kind == HeroEquipmentKind.Equipment ? 4 : 2)
+                    .Any(mode => canCultivate?.Invoke(item.Uid, item.Kind, mode) == true), redDotTemplate);
             }
         }
 
@@ -961,7 +976,7 @@ namespace ProjectX.UI
             SetText(panel, "Value_1", (baseValue + perLevel * currentLevel).ToString());
             SetText(panel, "Value_2", (baseValue + perLevel * nextLevel).ToString());
             SetText(panel, "Value_3", perLevel.ToString());
-            int required = catalog.GetFaBaoStrengthExperience(currentLevel, item.Definition.Quality);
+            int required = catalog.GetFaBaoStrengthExperience(currentLevel + 1, item.Definition.Quality);
             int selectedExperience = selectedFaBaoMaterials.Sum(value => Mathf.Max(0, value.Definition.ExperienceValue));
             SetBoundText(faBaoStrengthView,
                 "Layer/fabaoqianghuaUI/qianghua/qianghuaxiaohao/Slider_Bg/Value", $"{item.Experience}/{required}");
@@ -1009,7 +1024,7 @@ namespace ProjectX.UI
             selected = item;
             showCultivationFrame?.Invoke(1, HeroEquipmentKind.FaBao);
             int currentLevel = item.RefineLevel;
-            FaBaoRefineDefinition next = catalog.GetFaBaoRefine(currentLevel);
+            FaBaoRefineDefinition next = catalog.GetFaBaoRefine(currentLevel + 1);
             int nextLevel = next != null && next.Cost != null && next.Cost.Length > 0 ? currentLevel + 1 : currentLevel;
             SetBoundText(faBaoRefineView, "Layer/fabaojuexing_layer/juexing/juexingshuxing/Level_1", $"{currentLevel}级");
             SetBoundText(faBaoRefineView, "Layer/fabaojuexing_layer/juexing/juexingshuxing/Level_2", $"{nextLevel}级");
@@ -1269,7 +1284,8 @@ namespace ProjectX.UI
                 "Layer/zhuangbeijinglianUI/jinglian/jichushuxing/ListView/Panel_1",
                 item.Definition.RefineAttributes, currentLevel, nextLevel);
             SetBoundText(refineView, "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Slider_Bg/Value",
-                $"{item.Experience}/{config?.Experience ?? 0}");
+                $"{item.Experience}/{catalog.GetRefineExperience(currentLevel, item.Definition.Quality)}");
+            SetBoundText(refineView, "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/Level", $"当前：{currentLevel}阶");
             IReadOnlyList<int> materialIds = catalog.GetRefineMaterialIds();
             BagItemRecord material = bag.Items.FirstOrDefault(value => catalog.GetRefineMaterialExperience(value.ItemId) > 0
                 && value.Quantity > 0);
@@ -1310,6 +1326,7 @@ namespace ProjectX.UI
                 "Layer/zhuangbeijuexingUI/juexing/jichushuxing/ListView/Panel_1",
                 item.Definition.AwakenAttributes, currentLevel, nextLevel);
             int gold = config?.Cost?.FirstOrDefault(value => value != null && value.Length >= 3 && value[0] == 60000)?[2] ?? 0;
+            BindAwakenMaterialCosts(config);
             SetBoundText(awakenView, "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/ConsumeBg/Value", gold.ToString());
             awakenOnceButton.onClick.RemoveAllListeners();
             awakenOnceButton.onClick.AddListener(() => awakenEquipment?.Invoke(item.Uid));
@@ -1317,6 +1334,49 @@ namespace ProjectX.UI
                 "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/yijianjinglianBtn", "觉醒");
             SetStrengthAllVisible(false);
             SetEquipmentCultivationSubview(2);
+        }
+
+        private void BindAwakenMaterialCosts(EquipmentAwakenDefinition config)
+        {
+            const string root = "Layer/zhuangbeijuexingUI/juexing/juexingxiaohao/";
+            int[][] materials = (config?.Cost ?? Array.Empty<int[]>()).Where(c => c != null && c.Length == 3 && c[0] < 60000).ToArray();
+            Transform template = HeroEquipmentNodeIds.Get(awakenView, root + "Item")?.transform;
+            if (template == null) throw new InvalidOperationException("Awaken material template is missing.");
+            Transform parent = template.parent;
+            foreach (Transform child in parent)
+                if (child.name.StartsWith("RuntimeAwakenCost_", StringComparison.Ordinal)) child.gameObject.SetActive(false);
+            for (int i = 0; i < materials.Length; i++)
+            {
+                int[] cost = materials[i];
+                string nodeName = "RuntimeAwakenCost_" + cost[0];
+                Transform item = parent.Find(nodeName);
+                if (item == null) { item = UnityEngine.Object.Instantiate(template.gameObject, parent, false).transform; item.name = nodeName; }
+                item.gameObject.SetActive(true);
+                RectTransform rect = (RectTransform)item;
+                rect.anchorMin = rect.anchorMax = new Vector2(.5f, 0f);
+                rect.pivot = new Vector2(.5f, .5f);
+                rect.anchoredPosition = new Vector2((i - (materials.Length - 1) * .5f) * 110f, 150f);
+                rect.sizeDelta = new Vector2(70f, 70f);
+                rect.localScale = Vector3.one;
+                EquipmentMaterialDefinition definition = catalog.GetItem(cost[0]);
+                ApplyMaterialIcon(item.GetComponent<Image>(), definition);
+                Text value = item.Find("Value")?.GetComponent<Text>();
+                if (value != null)
+                {
+                    int owned = bag.GetTotalQuantityByItemId(cost[0]);
+                    value.text = $"{definition?.Name ?? cost[0].ToString()}\n{owned}/{cost[2]}";
+                    value.fontSize = 14;
+                    value.horizontalOverflow = HorizontalWrapMode.Overflow;
+                    value.verticalOverflow = VerticalWrapMode.Overflow;
+                    value.alignment = TextAnchor.MiddleCenter;
+                    value.rectTransform.anchorMin = value.rectTransform.anchorMax = new Vector2(.5f, .5f);
+                    value.rectTransform.anchoredPosition = new Vector2(0f, -52f);
+                    value.rectTransform.sizeDelta = new Vector2(110f, 48f);
+                    value.color = owned >= cost[2] ? Color.white : new Color(.85f,.16f,.12f,1f);
+                }
+            }
+            template.gameObject.SetActive(false);
+            SetBoundText(awakenView, root + "Name", string.Empty);
         }
 
         private void ShowDivine(DisplayRecord item)

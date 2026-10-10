@@ -279,7 +279,9 @@ public:
 		ECGOp_KunLunFightFaild = 31,
 		ECGOp_KunLunRobot = 32,
 		ECGOp_XunBaoFight = 33,  // 寻宝战斗
+		ECGOp_MonopolyReminder = 34, // Read-only function21 reminder; never creates a board.
 	};
+	void GetMonopolyReminder(CNetMessage& msg);
 	enum BUY_ROLL_TIMES_ERRCODE
 	{
 		NOT_ENOUGH_MONEY = 1,
