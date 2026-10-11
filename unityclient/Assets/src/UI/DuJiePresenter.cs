@@ -45,6 +45,7 @@ namespace ProjectX.UI
             finishing = false;
             HitCount = TotalDamagePercent = 0;
             view.ReturnButton.gameObject.SetActive(false);
+            view.Status.gameObject.SetActive(true);
             view.RoleName.text = roleName ?? string.Empty;
             Transform anchor = view.RoleAnchor.Find("SpineAnchor");
             if (anchor == null) throw new InvalidOperationException("DuJie role SpineAnchor is missing.");
@@ -81,13 +82,21 @@ namespace ProjectX.UI
                 ulong remaining = CalculateDisplayHealth(maximum, TotalDamagePercent, trial.Success, rules.MinimumSuccessHealth);
                 SetHealth(remaining, maximum);
                 view.Status.text = $"第{HitCount}道天雷  气血伤害{percent}%";
-                yield return new WaitForSecondsRealtime(rules.LightningMilliseconds / 1000f);
+                yield return new WaitForSecondsRealtime(Mathf.Max(.01f, view.LightningVisibleSeconds));
+                lightning.SetActive(false);
+                if (HitCount < trial.Damages.Length)
+                    yield return new WaitForSecondsRealtime(rules.LightningMilliseconds / 1000f);
             }
             shield.SetActive(false);
             lightning.SetActive(false);
-            view.Status.text = trial.Success ? "渡劫成功" : "渡劫失败";
+            view.Status.gameObject.SetActive(!trial.Success);
+            view.Status.text = trial.Success ? string.Empty : "渡劫失败";
             if (trial.Success) PlayParticles(success, false);
-            yield return new WaitForSecondsRealtime(rules.ResultMilliseconds / 1000f);
+            float resultSeconds = rules.ResultMilliseconds / 1000f;
+            Animation resultAnimation = trial.Success ? success.GetComponent<Animation>() : null;
+            if (resultAnimation != null && resultAnimation.clip != null)
+                resultSeconds = Mathf.Max(resultSeconds, resultAnimation.clip.length);
+            yield return new WaitForSecondsRealtime(resultSeconds);
             Finish();
         }
 

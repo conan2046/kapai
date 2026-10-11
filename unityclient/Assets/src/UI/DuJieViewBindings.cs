@@ -21,5 +21,6 @@ namespace ProjectX.UI
         public GameObject LightningPrefab;
         public GameObject ShieldPrefab;
         public GameObject SuccessPrefab;
+        [Min(.01f)] public float LightningVisibleSeconds = .25f;
     }
 }

@@ -44,7 +44,8 @@ namespace ProjectX.Core
             cultivationResult=envelope.Result;
             cultivationLastKind=envelope.Kind;
             cultivationLastGain=ulong.TryParse(envelope.Gain,NumberStyles.None,CultureInfo.InvariantCulture,out ulong gain)?gain:0;
-            if(envelope.Kind=="settlement" && cultivationLastGain>0 && jingJieRenderBridge?.IsVisible==true)
+            if(envelope.Kind=="settlement" && cultivationLastGain>0 && jingJieRenderBridge?.IsVisible==true
+                && cultivationPresenter?.IsRunning!=true)
                 ShowToast($"+{cultivationLastGain:N0}经验");
             if(envelope.Kind=="upgrade")
             {
