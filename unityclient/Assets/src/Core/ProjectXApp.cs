@@ -4435,7 +4435,7 @@ namespace ProjectX.Core
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(() =>
             {
-                string message = $"达到{requiredLevel}级后解锁{featureName}";
+                string message = $"达到{CultivationDisplay.Name(requiredLevel)}后解锁{featureName}";
                 ShowToast(message, 3f);
                 SetStatus($"HUD feature locked: path={path}, requiredLevel={requiredLevel}, currentLevel={services.Player.Level}.");
             });

@@ -129,7 +129,7 @@ namespace ProjectX.UI
                     }
                 }
                 SetVisible(Find(item, "Lock"), !unlocked);
-                SetText(Find(item, "Lock/Condition"), $"等级达到{value.Definition.UnlockLevel}开启");
+                SetText(Find(item, "Lock/Condition"), $"达到{CultivationDisplay.Name(value.Definition.UnlockLevel)}开启");
                 SetVisible(Find(item, "Btn_youli"), unlocked && !value.IsActive);
                 Button startButton = Bind(Find(item, "Btn_youli"), () => start(value.Definition.Id));
                 if (startButton != null) startButton.interactable = unlocked && !value.IsActive;

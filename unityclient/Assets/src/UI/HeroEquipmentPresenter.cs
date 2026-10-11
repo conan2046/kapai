@@ -1609,7 +1609,7 @@ namespace ProjectX.UI
             int minimumLevel = FunctionUnlockCatalog.Resolve(functionIds[Mathf.Clamp(mode, 0, functionIds.Length - 1)]).OpenLevel;
             if (getPlayerLevel() < minimumLevel)
             {
-                showFeedback?.Invoke($"{minimumLevel}级开启");
+                showFeedback?.Invoke($"{CultivationDisplay.Name(minimumLevel)}开启");
                 return false;
             }
             if (mode == 2 && item.Definition.Quality < 5)

@@ -172,7 +172,7 @@ namespace ProjectX.Core
         {
             if ((type == 27 || type == 28) && services.Player.Level < 99)
             {
-                ShowToast("99级开启此功能", 2f);
+                ShowToast($"{CultivationDisplay.Name(99)}开启此功能", 2f);
                 return;
             }
             InvokeLuaOrFail(onGameplayShopTab, "Gameplay.Shops.Tab", (double)type);

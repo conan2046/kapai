@@ -131,7 +131,7 @@ namespace ProjectX.UI
             if (Array.IndexOf(AllTypes, type) < 0) return false;
             if ((type == 27 || type == 28) && getPlayerLevel() < 99)
             {
-                showMessage("99级开启此功能");
+                showMessage($"{CultivationDisplay.Name(99)}开启此功能");
                 return false;
             }
             selectedType = type;
