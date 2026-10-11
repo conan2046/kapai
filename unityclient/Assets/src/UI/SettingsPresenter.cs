@@ -130,7 +130,14 @@ namespace ProjectX.UI
             ConfigureFrame(null);
             SetText(view, "Layer/Panel/SystemBg/ImageBg/Name", $"角色：{player.Name}");
             SetText(view, "Layer/Panel/SystemBg/ImageBg/ServerName", "存档：本地");
-            SetText(view, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1", player.Level.ToString());
+            SetText(view, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1", CultivationDisplay.Name(player.Level));
+            Text realmLabel = ResolveNode(view, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1")?.GetComponent<Text>();
+            if (realmLabel != null)
+            {
+                realmLabel.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 160f);
+                realmLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
+                realmLabel.verticalOverflow = VerticalWrapMode.Overflow;
+            }
             GameObject headObject = ResolveNode(view, "Layer/Panel/SystemBg/ImageBg/HeadIcon/HeadImage");
             Image head = headObject != null ? headObject.GetComponent<Image>() : null;
             if (head != null) head.sprite = resources.LoadPlayerRoundPortrait(player.Head);
@@ -177,7 +184,7 @@ namespace ProjectX.UI
         {
             bool valid = player.IsLoaded && !string.IsNullOrWhiteSpace(player.Name)
                 && ReadText(view, "Layer/Panel/SystemBg/ImageBg/Name") == $"角色：{player.Name}"
-                && ReadText(view, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1") == player.Level.ToString()
+                && ReadText(view, "Layer/Panel/SystemBg/ImageBg/HeadIcon/Text_1") == CultivationDisplay.Name(player.Level)
                 && ReadText(frameView, "Layer/GoldCheck/GoldIcon1/GoldNumBg/Num") == $"{currencies.Stamina}/100"
                 && ReadText(frameView, "Layer/GoldCheck/GoldIcon3/GoldNumBg/Num") == FormatCurrency(currencies.Gold)
                 && ReadText(frameView, "Layer/GoldCheck/GoldIcon4/GoldNumBg/Num") == currencies.Premium.ToString();

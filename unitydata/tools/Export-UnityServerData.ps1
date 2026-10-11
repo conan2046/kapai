@@ -2,10 +2,15 @@ param(
     [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path,
     [switch]$CleanOutput,
     [switch]$ApplyGeneratedJson,
-    [int]$TimeoutSeconds = 120
+    [int]$TimeoutSeconds = 120,
+    [switch]$OnlyJingJie
 )
 
 $ErrorActionPreference = 'Stop'
+if ($OnlyJingJie) {
+    & (Join-Path $PSScriptRoot 'Export-UnityJingJieData.ps1') -Root $Root -Mode Server
+    return
+}
 
 $source = Join-Path $Root 'unitydata\export\server'
 $excel = Join-Path $Root 'unitydata\excel'
@@ -38,8 +43,7 @@ $stage = Join-Path $Root ('.local\unityserver-export\stage-' + [guid]::NewGuid()
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'excel') | Out-Null
 Copy-Item -LiteralPath $vendor -Destination (Join-Path $stage 'xl转表.exe') -Force
 Get-ChildItem -LiteralPath $excel -Recurse -File | ForEach-Object {
-    # This inherited workbook currently owns only client Spine icon templates.
-    # Do not overwrite the server's accepted breakthrough costs with its old data.
+    # JingJie uses the Unity-owned typed exporter; role visuals remain client-only.
     if ($_.Name -in @('jingjie_config.xlsx','role_visual.xlsx')) { return }
     $relative = $_.FullName.Substring($excel.Length).TrimStart('\', '/')
     $target = Join-Path (Join-Path $stage 'excel') $relative
@@ -166,3 +170,4 @@ if ($unresolvedDrift.Count -gt 0) {
 }
 
 Write-Output ("Unity server Excel export generated: {0} files; excelDrift={1}; authoritativeOverrides={2}; unresolved={3}; applied={4}; report={5}" -f $generatedFiles.Count, $excelDrift.Count, $authoritativeOverrides.Count, $unresolvedDrift.Count, $ApplyGeneratedJson.IsPresent, $reportPath)
+& (Join-Path $PSScriptRoot 'Export-UnityJingJieData.ps1') -Root $Root -Mode Server

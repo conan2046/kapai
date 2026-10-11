@@ -53,11 +53,11 @@ namespace ProjectX.Editor
                 return false;
             }
 
-            string buildDirectory = Path.Combine(repositoryRoot, ".local", "server-build", "server-win");
+            string buildDirectory = Path.Combine(repositoryRoot, ".local", "unityserver-build", "server-win");
             string executable = Path.Combine(buildDirectory, "Debug", "kapai.exe");
             if (!force && !NeedsBuild(repositoryRoot, executable)) return true;
 
-            string buildScript = Path.Combine(repositoryRoot, "tools", "local", "Build-Server.ps1");
+            string buildScript = Path.Combine(repositoryRoot, "unityserver", "tools", "Build-UnityServer.ps1");
             if (!File.Exists(buildScript))
             {
                 UnityEngine.Debug.LogError("[EditorLocalServerBuildGuard] 缺少服务端构建脚本：" + buildScript);
@@ -127,12 +127,12 @@ namespace ProjectX.Editor
 
         private static IEnumerable<string> BuildInputs(string repositoryRoot)
         {
-            string serverRoot = Path.Combine(repositoryRoot, "server");
+            string serverRoot = Path.Combine(repositoryRoot, "unityserver");
             string sourceRoot = Path.Combine(serverRoot, "src");
             foreach (string file in new[]
             {
                 Path.Combine(serverRoot, "CMakeLists.txt"),
-                Path.Combine(repositoryRoot, "tools", "local", "Build-Server.ps1")
+                Path.Combine(repositoryRoot, "unityserver", "tools", "Build-UnityServer.ps1")
             })
                 if (File.Exists(file)) yield return file;
             if (!Directory.Exists(sourceRoot)) yield break;

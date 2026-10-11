@@ -388,6 +388,7 @@ namespace ProjectX.Editor
             new PrefabSpec(LoadingPrefab, false),
             new PrefabSpec(JingJiePrefab, false, HeroFramePrefab),
             new PrefabSpec(JingJiePreviewPrefab, false, HeroFramePrefab),
+            new PrefabSpec("Assets/Prefabs/OneLevel/DuJieLayer.prefab", false),
             new PrefabSpec(HeroBookPrefab, false),
             new PrefabSpec(HeroBookUpgradePrefab, false),
             new PrefabSpec(HeroBookActivateResultPrefab, false),

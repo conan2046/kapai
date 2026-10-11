@@ -269,7 +269,7 @@ namespace ProjectX.Core
             FunctionUnlockDefinition unlock = FunctionUnlockCatalog.Resolve(22);
             if (services.Player.Level < unlock.OpenLevel)
             {
-                ShowToast($"{unlock.OpenLevel}级开启主角境界", 2f);
+                ShowToast($"{CultivationDisplay.Name(unlock.OpenLevel)}开启主角境界", 2f);
                 return;
             }
             InvokeLuaOrFail(onJingJieClicked, "JingJie.Open");
@@ -380,7 +380,11 @@ namespace ProjectX.Core
             SetStatus("JingJie /306 op=4 rejected by server.");
         }
 
-        public void ClearJingJieState() => services?.JingJie.Clear();
+        public void ClearJingJieState()
+        {
+            ResetCultivationPresentation();
+            services?.JingJie.Clear();
+        }
 
         private void RequestJingJieUpgrade() =>
             InvokeLuaOrFail(onJingJieUpgrade, "JingJie.Upgrade");
@@ -458,17 +462,9 @@ namespace ProjectX.Core
             jingJieConfig = jingJieConfig ?? new JingJieConfigData();
             jingJieRenderBridge = new JingJieRenderBridge(jingJieView, jingJiePreviewView,
                 services.JingJie, jingJieConfig, services.Player, services.Currencies, services.Bag,
-                services.Resources, RequestJingJieUpgrade, ShowJingJieMaterial, message => ShowToast(message, 2f));
+                services.Resources, RequestJingJieUpgrade, message => ShowToast(message, 2f));
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => TryHandleJingJieBack(), true);
             jingJiePreviewView.SetVisible(false);
-        }
-
-        private void ShowJingJieMaterial(JingJieDefinition definition)
-        {
-            EnsureBagPresenter();
-            RewardRecord item = services.ShopCatalog.DescribeReward(definition.MaterialId,
-                definition.MaterialId, checked((uint)services.Bag.GetTotalQuantityByItemId(definition.MaterialId)));
-            bagFlowPresenter.ShowMailAttachment(item);
         }
 
         private void HideOtherOneLevelChildren()

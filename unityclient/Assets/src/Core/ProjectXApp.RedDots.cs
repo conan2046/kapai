@@ -36,11 +36,8 @@ namespace ProjectX.Core
             redDots.SetEnabled(PlayerDot, services.Player.Level >= FunctionUnlockCatalog.Resolve(22).OpenLevel);
             jingJieConfig = jingJieConfig ?? new JingJieConfigData();
             jingJieConfig.TryGet(services.JingJie.CurrentId + 1, out JingJieDefinition next);
-            int material = next != null && next.MaterialId > 0
-                ? services.Bag.GetTotalQuantityByItemId(next.MaterialId) : 0;
             redDots.SetEnabled(PlayerTabDots[0], services.Player.Level >= FunctionUnlockCatalog.Resolve(22).OpenLevel);
-            redDots.Set(PlayerTabDots[0], JingJieUpgradeEligibility.Evaluate(services.JingJie, next,
-                services.Player.Level, services.Player.Power, services.Currencies.Gold, material)
+            redDots.Set(PlayerTabDots[0], JingJieUpgradeEligibility.Evaluate(services.JingJie, next)
                 == JingJieUpgradeBlock.None);
             redDots.Set(PlayerTabDots[2], services.Mails.HasUnreadPrompt);
             // Usable inventory is not pending work; any future new-arrival marker belongs to the item icon.

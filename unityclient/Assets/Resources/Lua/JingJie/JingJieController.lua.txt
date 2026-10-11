@@ -16,9 +16,7 @@ end
 function M.upgrade()
     if M.pending or not Bridge:BeginJingJieUpgrade() then return false end
     M.pending = true
-    local message = Protocol.newMessage(Protocol.JING_JIE)
-    message:WriteByte(4)
-    Bridge:Send(message)
+    Bridge:SendJingJieUpgradeRequest()
     Bridge:SetStatus("JingJie /306 op=4 breakthrough requested.")
     return true
 end
@@ -26,6 +24,13 @@ end
 function M.onPacket(command, message)
     if command ~= Protocol.JING_JIE then return false end
     local operation = message:ReadByte()
+    if operation == 128 then
+        local json = message:ReadString()
+        if message.Remaining ~= 0 then Bridge:Fail("Unity JingJie snapshot has unread bytes"); return true end
+        M.pending = false
+        Bridge:ApplyJingJieEnvelope(json)
+        return true
+    end
     if operation == 1 then
         local id = message:ReadWord()
         if message.Remaining ~= 0 then

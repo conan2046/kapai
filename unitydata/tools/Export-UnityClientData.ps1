@@ -3,7 +3,8 @@ param(
     [switch]$CleanOutput,
     [switch]$OnlyWorldBoxRewards,
     [switch]$OnlyJingJieVisuals,
-    [switch]$OnlyRoleVisuals
+    [switch]$OnlyRoleVisuals,
+    [switch]$OnlyJingJie
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,36 +27,9 @@ function Write-Utf8IfChanged([string]$Path, [string]$Content) {
     [System.IO.File]::WriteAllText($Path, $Content, [System.Text.UTF8Encoding]::new($false))
 }
 
-# The inherited JingJie Excel has historical economics. Only icon is owned by this
-# workbook until those columns have been reconciled with the active server baseline.
+# Preserve the existing caller switch while exporting the complete Unity-owned table.
 function Export-JingJieVisuals {
-    $workbook = Join-Path $Root 'unitydata\excel\jingjie_config.xlsx'
-    $visuals = @(Get-Content (Join-Path $source 'Configs\role-visuals.json') -Raw -Encoding UTF8 | ConvertFrom-Json)
-    $icons = @{}
-    foreach ($row in @(Read-UnityVisualExcelRows $workbook)) {
-        if (-not $row.jingjie_id) { continue }
-        $id = [int]$row.jingjie_id
-        $icon = [string]$row.icon
-        if ($icons.ContainsKey($id) -or $icon -cnotmatch '^role_\{sex\}_([0-9]{2})$') {
-            throw "Invalid/duplicate JingJie icon at id=$id : $icon"
-        }
-        $visualId = [int]$Matches[1]
-        if (@($visuals | Where-Object visual_id -eq $visualId).Count -ne 1) {
-            throw "JingJie icon has no role_visual mapping: $icon"
-        }
-        $icons[$id] = $icon
-    }
-    $path = Join-Path $source 'Configs\jingjie.json'
-    $rows = @(Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable)
-    if ($rows.Count -ne $icons.Count) { throw 'JingJie Excel IDs differ from client baseline.' }
-    foreach ($row in $rows) {
-        if (-not $icons.ContainsKey([int]$row.jingjie_id)) { throw 'Missing JingJie Excel ID.' }
-        $row.icon = $icons[[int]$row.jingjie_id]
-    }
-    $content = ConvertTo-Json -InputObject $rows -Depth 16 -Compress
-    Write-Utf8IfChanged $path $content
-    Write-Utf8IfChanged (Join-Path $destination 'Configs\jingjie.json') $content
-    Write-Output ('JingJie visual export: {0} rows; only icon updated.' -f $rows.Count)
+    & (Join-Path $PSScriptRoot 'Export-UnityJingJieData.ps1') -Root $Root -Mode Client
 }
 
 function Export-RoleVisuals {
@@ -91,7 +65,7 @@ function Export-RoleVisuals {
     Write-Output ('Role visual export: {0} paired Spine/avatar mappings.' -f $rows.Count)
 }
 if ($OnlyRoleVisuals) { Export-RoleVisuals; return }
-if ($OnlyJingJieVisuals) { Export-RoleVisuals; Export-JingJieVisuals; return }
+if ($OnlyJingJieVisuals -or $OnlyJingJie) { Export-RoleVisuals; Export-JingJieVisuals; return }
 
 # Box previews must use the same Unity Excel export as the running Unity server.
 $rewardInput = Join-Path $Root 'unitydata\export\server\generated\json_server\reward_fixed.json'

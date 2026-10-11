@@ -164,7 +164,7 @@ namespace ProjectX.Editor
 
         private static string[] ResolveRuntimeInputs(string root) => new[]
         {
-            Path.Combine(root, ".local", "server-build", "server-win", "Debug", "kapai.exe"),
+            Path.Combine(root, ".local", "unityserver-build", "server-win", "Debug", "kapai.exe"),
             Path.Combine(root, "unityserver", "config"),
             Path.Combine(root, "unityserver", "sql", "sqlite", "001_initial_schema.sql")
         };

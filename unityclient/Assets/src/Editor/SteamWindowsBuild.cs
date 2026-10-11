@@ -94,7 +94,7 @@ namespace ProjectX.Editor
 
         private static void PackageServer(string repositoryRoot, string serverRoot)
         {
-            string buildRoot = Path.Combine(repositoryRoot, ".local", "steam-server-build", "server-win", "Debug");
+            string buildRoot = Path.Combine(repositoryRoot, ".local", "unity-steam-server-build", "server-win", "Debug");
             string executable = Path.Combine(buildRoot, "kapai.exe");
             string config = Path.Combine(repositoryRoot, "unityserver", "config");
             string scripts = Path.Combine(repositoryRoot, "unityserver", "script");
@@ -203,7 +203,7 @@ namespace ProjectX.Editor
                     throw new FileNotFoundException("An enabled Steam build scene is missing.", scenePath);
             }
 
-            string serverBuildRoot = Path.Combine(repositoryRoot, ".local", "steam-server-build", "server-win", "Debug");
+            string serverBuildRoot = Path.Combine(repositoryRoot, ".local", "unity-steam-server-build", "server-win", "Debug");
             string[] requiredFiles =
             {
                 Path.Combine(serverBuildRoot, "kapai.exe"),
@@ -222,11 +222,11 @@ namespace ProjectX.Editor
 
         private static void EnsurePackagedServerBuilt(string repositoryRoot)
         {
-            string buildDirectory = Path.Combine(repositoryRoot, ".local", "steam-server-build", "server-win");
+            string buildDirectory = Path.Combine(repositoryRoot, ".local", "unity-steam-server-build", "server-win");
             string executable = Path.Combine(buildDirectory, "Debug", "kapai.exe");
             if (!NeedsServerBuild(repositoryRoot, executable)) return;
 
-            string buildScript = Path.Combine(repositoryRoot, "tools", "local", "Build-Server.ps1");
+            string buildScript = Path.Combine(repositoryRoot, "unityserver", "tools", "Build-UnityServer.ps1");
             if (!File.Exists(buildScript))
                 throw new FileNotFoundException("Steam server build script is missing.", buildScript);
             string vcpkgRoot = Path.Combine(repositoryRoot, "tools", "local", "vcpkg");
@@ -237,9 +237,11 @@ namespace ProjectX.Editor
 
             string cachePath = Path.Combine(buildDirectory, "CMakeCache.txt");
             if (File.Exists(cachePath)
-                && File.ReadAllText(cachePath).IndexOf("E:\\neiwang_kapai\\Game", StringComparison.OrdinalIgnoreCase) >= 0)
+                && !File.ReadAllLines(cachePath).Any(line => string.Equals(
+                    line.Replace('\\', '/'), "CMAKE_HOME_DIRECTORY:INTERNAL="
+                    + Path.Combine(repositoryRoot, "unityserver").Replace('\\', '/'), StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException(
-                    "Steam server build cache contains an external E-drive path; use a clean C-worktree build directory.");
+                    "Steam server cache uses another source tree; choose a fresh Unity build directory.");
 
             string knownPwsh = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "PowerShell", "7", "pwsh.exe");
@@ -250,7 +252,7 @@ namespace ProjectX.Editor
             {
                 FileName = pwsh,
                 Arguments = "-NoProfile -ExecutionPolicy Bypass -File " + Quote(buildScript)
-                    + " -BuildDir " + Quote(Path.Combine(".local", "steam-server-build", "server-win"))
+                    + " -BuildDir " + Quote(Path.Combine(".local", "unity-steam-server-build", "server-win"))
                     + " -VcpkgRoot " + Quote(vcpkgRoot),
                 WorkingDirectory = repositoryRoot,
                 UseShellExecute = false,
@@ -286,12 +288,12 @@ namespace ProjectX.Editor
 
         private static IEnumerable<string> ServerBuildInputs(string repositoryRoot)
         {
-            string serverRoot = Path.Combine(repositoryRoot, "server");
+            string serverRoot = Path.Combine(repositoryRoot, "unityserver");
             string sourceRoot = Path.Combine(serverRoot, "src");
             foreach (string input in new[]
                      {
                          Path.Combine(serverRoot, "CMakeLists.txt"),
-                         Path.Combine(repositoryRoot, "tools", "local", "Build-Server.ps1")
+                         Path.Combine(repositoryRoot, "unityserver", "tools", "Build-UnityServer.ps1")
                      })
                 if (File.Exists(input)) yield return input;
             if (!Directory.Exists(sourceRoot)) yield break;

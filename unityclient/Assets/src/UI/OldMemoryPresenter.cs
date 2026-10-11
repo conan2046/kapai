@@ -104,8 +104,10 @@ namespace ProjectX.UI
             string filled = root + "/FilledState";
             SetText(filled + "/RoleName", string.IsNullOrWhiteSpace(metadata.roleName)
                 ? (slot.IsLegacyImport ? "本地旧存档" : "未记录角色") : metadata.roleName);
-            SetText(filled + "/Realm", "境界：--");
-            SetText(filled + "/Level", metadata.level > 0 ? $"等级：{metadata.level}" : "等级：--");
+            var realmConfig = new JingJieConfigData();
+            string realmName = realmConfig.TryGet(metadata.level, out JingJieDefinition realm) ? realm.Name : "--";
+            SetText(filled + "/Realm", "境界：" + realmName);
+            SetText(filled + "/Level", metadata.level > 0 ? $"第{metadata.level}阶" : "未修炼");
             SetText(filled + "/PowerBg/CombatPower", metadata.combatPower > 0 ? $"战力：{metadata.combatPower}" : "战力：--");
             SetText(filled + "/PlayTime", "游戏时间：" + FormatDuration(metadata.totalPlaySeconds));
             SetText(filled + "/LastSaved", "最后保存：" + FormatSavedTime(metadata.updatedUtc, slot.DatabasePath));

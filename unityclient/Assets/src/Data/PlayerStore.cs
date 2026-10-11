@@ -44,6 +44,11 @@ namespace ProjectX.Data
             Changed?.Invoke();
         }
 
+        public void ApplyCultivation(ushort level,ulong experience,ulong power)
+        {
+            Level=level;Experience=experience;Power=power;Changed?.Invoke();
+        }
+
         public void SetLevelAndPower(ushort level, ulong power)
         {
             Level = level;

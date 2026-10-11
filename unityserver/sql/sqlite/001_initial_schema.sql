@@ -2163,3 +2163,25 @@ INSERT INTO question (id,question,answer1,answer2,answer3,answer4) VALUES
 DELETE FROM sqlite_sequence WHERE name='question';
 INSERT INTO sqlite_sequence(name,seq) VALUES('question',38);
 -- END GENERATED QUESTION BANK SEED
+
+-- Unity realm revision 2. Original Cocos schema is intentionally unchanged.
+CREATE TABLE IF NOT EXISTS unity_jingjie_state (
+  role_id INTEGER PRIMARY KEY REFERENCES role_info(id) ON DELETE CASCADE,
+  version INTEGER NOT NULL DEFAULT 2,
+  current_id INTEGER NOT NULL DEFAULT 1,
+  experience TEXT NOT NULL DEFAULT '0',
+  failure_count INTEGER NOT NULL DEFAULT 0,
+  last_ms INTEGER NOT NULL DEFAULT 0,
+  cycle_ms INTEGER NOT NULL DEFAULT 0,
+  fraction INTEGER NOT NULL DEFAULT 0,
+  revision INTEGER NOT NULL DEFAULT 0,
+  attempt INTEGER NOT NULL DEFAULT 0,
+  entered INTEGER NOT NULL DEFAULT 0,
+  pending TEXT NOT NULL DEFAULT '',
+  last_request TEXT NOT NULL DEFAULT '',
+  last_result TEXT NOT NULL DEFAULT '',
+  offline TEXT NOT NULL DEFAULT '',
+  legacy_level INTEGER NOT NULL DEFAULT 1,
+  legacy_id INTEGER NOT NULL DEFAULT 0,
+  legacy_experience TEXT NOT NULL DEFAULT '0'
+);

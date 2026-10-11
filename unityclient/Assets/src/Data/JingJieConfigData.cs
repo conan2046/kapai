@@ -12,19 +12,21 @@ namespace ProjectX.Data
         [JsonProperty("jingjie_id")] public int Id { get; private set; }
         [JsonProperty("name")] public string Name { get; private set; }
         [JsonProperty("quality")] public int Quality { get; private set; }
-        [JsonProperty("level_limit")] public int LevelLimit { get; private set; }
-        [JsonProperty("zhanli_limit")] public long PowerLimit { get; private set; }
-        [JsonProperty("tupo_cost")] public int[][] Costs { get; private set; }
+        [JsonProperty("realm")] public int Realm { get; private set; }
+        [JsonProperty("stage")] public int Stage { get; private set; }
+        [JsonProperty("next_id")] public int NextId { get; private set; }
+        [JsonProperty("need_exp")] public long RequiredExperience { get; private set; }
+        [JsonProperty("exp")] public int ExperiencePerSecond { get; private set; }
+        [JsonProperty("upgrade_probability")] public int Probability { get; private set; }
+        [JsonProperty("thunder_number")] public int[] ThunderCount { get; private set; }
+        [JsonProperty("thunder_damage")] public int[] ThunderDamage { get; private set; }
+        [JsonProperty("fail_upgrade")] public int FailurePenalty { get; private set; }
+        [JsonProperty("Threshold")] public int FailureThreshold { get; private set; }
+        [JsonProperty("visual_stage")] public int VisualStage { get; private set; }
         [JsonProperty("attr")] public int[][] Attributes { get; private set; }
         [JsonProperty("icon")] public string Icon { get; private set; }
 
-        public int MaterialId => Costs?
-            .FirstOrDefault(cost => cost != null && cost.Length == 3 && cost[0] > 0 && cost[0] < 60000)?[0] ?? 0;
-        public int MaterialAmount => Costs?
-            .FirstOrDefault(cost => cost != null && cost.Length == 3 && cost[0] > 0 && cost[0] < 60000)?[2] ?? 0;
-        public int GoldAmount => Costs?
-            .Where(cost => cost != null && cost.Length == 3 && cost[0] == 60000)
-            .Sum(cost => cost[2]) ?? 0;
+        public bool IsBreakthrough => Stage == 10 && NextId != 0;
 
         private static int Value(int[][] values, int row, int column) =>
             values != null && row >= 0 && row < values.Length && values[row] != null
@@ -43,16 +45,15 @@ namespace ProjectX.Data
             JingJieDefinition[] values = JsonConvert.DeserializeObject<JingJieDefinition[]>(asset.text)
                 ?? Array.Empty<JingJieDefinition>();
             byId = values.ToDictionary(value => value.Id);
-            if (byId.Count == 0) throw new InvalidOperationException("JingJie config has no rows.");
+            if (byId.Count != 550) throw new InvalidOperationException("Unity JingJie must contain 550 stages.");
             for (int id = 1; id <= byId.Count; id++)
             {
                 if (!byId.TryGetValue(id, out JingJieDefinition value))
                     throw new InvalidOperationException($"JingJie config sequence is missing id={id}.");
-                if (value.Costs == null || value.Costs.Length == 0
-                    || value.Costs.Any(cost => cost == null || cost.Length != 3))
-                    throw new InvalidOperationException($"JingJie id={id} cost must use [itemId,subType,amount].");
-                if (value.GoldAmount <= 0)
-                    throw new InvalidOperationException($"JingJie id={id} has an invalid breakthrough cost.");
+                if (value.Realm != (id-1)/10+1 || value.Stage != (id-1)%10+1
+                    || value.NextId != (id==550?0:id+1) || value.RequiredExperience<=0 || value.ExperiencePerSecond<=0
+                    || value.Attributes == null || value.Attributes.Any(attribute=>attribute==null||attribute.Length!=2))
+                    throw new InvalidOperationException($"Invalid Unity JingJie definition: id={id}");
             }
         }
 

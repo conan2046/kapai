@@ -11,6 +11,8 @@ namespace ProjectX.UI
             if (root.GetComponent<UiButtonFeedbackScope>() == null)
                 root.AddComponent<UiButtonFeedbackScope>();
 
+            if (root.GetComponent<PrefabAuthoredLayout>() != null) return;
+
             foreach (Text text in root.GetComponentsInChildren<Text>(true))
             {
                 if (text == null || string.IsNullOrEmpty(text.text)

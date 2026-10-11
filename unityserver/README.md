@@ -1,13 +1,15 @@
 # Unity Server Runtime
 
-该目录是 Unity 单机运行时所需的服务端运行包输入，不替代 Cocos/原版服务端源目录。
+该目录是 Unity 独立服务端源码、构建入口与运行包输入；Cocos/原版服务端继续维护 `server/`。
 
 - `config/`：Unity 本地服务配置与导出后的运行时配置。
-- `script/`：从 `server/script/` 同步的 Lua 运行时脚本；`config/config` 的 `script_dir=../script/` 依赖此目录。
-- `sql/sqlite/`：从 `server/sql/sqlite/` 同步的 SQLite schema、seed 与验证夹具；Unity 编辑器运行和发布打包只依赖其中的 SQLite 文件。
+- `src/`、`tests/`：2026-10-11 从既有服务端建立的独立源码及数据库验证基线；Unity 后续业务修改仅在本目录进行。
+- `CMakeLists.txt`、`tools/Build-UnityServer.ps1`：Unity 专用构建；默认产物 `.local/unityserver-build/server-win`，发布产物 `.local/unity-steam-server-build/server-win`。
+- `script/`：Unity 独立 Lua 运行时脚本；`config/config` 的 `script_dir=../script/` 依赖此目录。
+- `sql/sqlite/`：Unity 独立 SQLite schema、seed 与验证夹具。
 
-同步原则：先维护正式源目录，再通过项目工具更新本目录；禁止直接在运行时副本内修业务逻辑。`server/config`、`server/script`、`server/sql` 仍保留给 Cocos/原版链路使用。
+Unity 源码、脚本与SQLite schema直接维护于本目录；配置由 `unitydata` 导出。禁止将 Unity 业务修改回写 `server/` 或 Cocos 配置／源码；不再自动从原版目录覆盖本目录。
 
-Unity 与原版客户端共用 `server/src` 服务端源码；这不是对 Cocos 客户端或引擎的运行时依赖。服务端 CMake 不再读取 Cocos SDK 的 zlib 头文件或默认 Lua 库：zlib 使用独立 `ZLIB::ZLIB`，Lua 5.1/LuaJIT 由 `tools/local/Build-Server.ps1` 从工作区依赖提供，直接 CMake 构建须显式指定 Lua 输入。Unity 编辑器产物位于 `.local/server-build/server-win/Debug`，发布构建使用 `.local/steam-server-build/server-win`。
+Unity 构建仅读取 `unityserver/src`，不编译 `server/src`。zlib 使用独立 `ZLIB::ZLIB`，Lua 5.1/LuaJIT由Unity专用脚本解析既有工作区依赖，直接CMake构建须显式指定Lua输入。编辑器及Steam打包均使用独立目录，拒绝复用指向原版源码的CMake缓存。
 
 Unity 的 TCP 消息编码、装备/阵容 Lua 模型及文本标签转换由当前 Unity 代码执行。它们沿用既有协议与业务规则，不加载 Cocos 引擎；维护时保留字段布局、Unicode 编码、排序、奖励和文本显示语义。

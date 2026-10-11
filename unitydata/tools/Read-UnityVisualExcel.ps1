@@ -1,6 +1,6 @@
 # Shared narrow reader for client visual tables. Row 1 is keys, rows 2..4 are
 # export scope, descriptions and types; data begins at row 5.
-function Read-UnityVisualExcelRows([string]$Path) {
+function Read-UnityVisualExcelRows([string]$Path, [int]$SheetIndex = 1) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [IO.Compression.ZipFile]::OpenRead($Path)
     try {
@@ -17,7 +17,8 @@ function Read-UnityVisualExcelRows([string]$Path) {
             $stringNs.AddNamespace('s', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main')
             $shared = @($strings.SelectNodes('//s:si', $stringNs) | ForEach-Object { $_.InnerText })
         }
-        $sheet = Read-VisualExcelPart 'xl/worksheets/sheet1.xml'
+        if ($SheetIndex -lt 1) { throw 'Excel sheet index must be positive.' }
+        $sheet = Read-VisualExcelPart ('xl/worksheets/sheet{0}.xml' -f $SheetIndex)
         $ns = [Xml.XmlNamespaceManager]::new($sheet.NameTable)
         $ns.AddNamespace('s', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main')
         function Read-VisualExcelCell($Cell) {

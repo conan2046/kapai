@@ -34,25 +34,25 @@ namespace ProjectX.Editor
             check("clear-removes-account-state", !dots.IsVisible("player") && !dots.IsVisible("mail"));
 
             JingJieDefinition target = JsonConvert.DeserializeObject<JingJieDefinition>(
-                "{\"jingjie_id\":1,\"level_limit\":10,\"zhanli_limit\":50000,\"tupo_cost\":[[60000,0,10000],[861,0,2]]}");
+                "{\"jingjie_id\":2,\"need_exp\":12000}");
             var state = new JingJieViewState();
-            Func<int, ulong, long, int, JingJieUpgradeBlock> evaluate = (level, power, gold, material) =>
-                JingJieUpgradeEligibility.Evaluate(state, target, level, power, gold, material);
-            check("realm-waits-for-authority", evaluate(10, 50000, 10000, 2) == JingJieUpgradeBlock.Synchronizing);
-            state.ApplyCurrent(0);
-            check("realm-exact-boundaries-ready", evaluate(10, 50000, 10000, 2) == JingJieUpgradeBlock.None);
-            check("realm-level-insufficient", evaluate(9, 50000, 10000, 2) == JingJieUpgradeBlock.Level);
-            check("realm-power-insufficient", evaluate(10, 49999, 10000, 2) == JingJieUpgradeBlock.Power);
-            check("realm-gold-insufficient", evaluate(10, 50000, 9999, 2) == JingJieUpgradeBlock.Gold);
-            check("realm-material-insufficient", evaluate(10, 50000, 10000, 1) == JingJieUpgradeBlock.Material);
+            Func<JingJieUpgradeBlock> evaluate = () => JingJieUpgradeEligibility.Evaluate(state, target);
+            check("realm-waits-for-authority", evaluate() == JingJieUpgradeBlock.Synchronizing);
+            var snapshot = new JingJieSnapshot { Id=1, Experience="5999", NeedExperience="6000", Revision="1",
+                Power="0", Rate=100, NextId=2, IntervalMilliseconds=5000, ServerMilliseconds="0", CycleMilliseconds="0" };
+            state.ApplySnapshot(snapshot);
+            check("realm-insufficient-experience-off", evaluate() == JingJieUpgradeBlock.Experience);
+            snapshot.Experience="6000";snapshot.Revision="2";
+            state.ApplySnapshot(snapshot);
+            check("realm-current-row-exact-boundary-ready", evaluate() == JingJieUpgradeBlock.None);
             state.BeginUpgrade();
-            check("realm-pending-does-not-prompt", evaluate(10, 50000, 10000, 2) == JingJieUpgradeBlock.Pending);
+            check("realm-pending-does-not-prompt", evaluate() == JingJieUpgradeBlock.Pending);
             state.FinishUpgrade();
-            check("realm-rejection-restores-ready", evaluate(10, 50000, 10000, 2) == JingJieUpgradeBlock.None);
-            check("realm-maximum-off", JingJieUpgradeEligibility.Evaluate(state, null, 10, 50000, 10000, 2)
+            check("realm-rejection-restores-ready", evaluate() == JingJieUpgradeBlock.None);
+            check("realm-maximum-off", JingJieUpgradeEligibility.Evaluate(state, null)
                 == JingJieUpgradeBlock.Maximum);
             state.Clear();
-            check("realm-cleared-state-off", evaluate(10, 50000, 10000, 2) == JingJieUpgradeBlock.Synchronizing);
+            check("realm-cleared-state-off", evaluate() == JingJieUpgradeBlock.Synchronizing);
 
             var mails = new MailStore();
             mails.SetUnreadHint(true);

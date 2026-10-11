@@ -711,7 +711,7 @@ namespace ProjectX.UI
                 }
             }
 
-            CreateBattleText(rect, "Level", $"{player.Level}级", new Vector2(100f, 18f),
+            CreateBattleText(rect, "Level", CultivationDisplay.Name(player.Level), new Vector2(100f, 18f),
                 new Vector2(92f, 30f), 24, new Color(0.2f, 1f, 0.25f, 1f), TextAnchor.MiddleLeft);
             CreateBattleText(rect, "Gain", $"经验+{reward.Amount}", new Vector2(395f, 18f),
                 new Vector2(145f, 30f), 20, new Color(1f, 0.9f, 0.55f, 1f), TextAnchor.MiddleRight);

@@ -1228,7 +1228,11 @@ namespace ProjectX.Core
         }
 #endif
 
-        public void AddPlayerExperience(uint amount) => services.Player.AddExperience(amount);
+        public void AddPlayerExperience(uint amount)
+        {
+            // Unity's /306 snapshot already includes reward experience. Legacy deltas must not double-credit it.
+            if(!services.JingJie.HasAuthoritativeState)services.Player.AddExperience(amount);
+        }
         public void SetPlayerPower(double value)
         {
             ulong previous = services.Player.Power;
@@ -5947,7 +5951,7 @@ namespace ProjectX.Core
             }
             else if (services.Player.Level < FunctionUnlockCatalog.Resolve(1180).OpenLevel)
             {
-                ShowToast($"{FunctionUnlockCatalog.Resolve(1180).OpenLevel}级开启，上仙请升级", 2f);
+                ShowToast($"{CultivationDisplay.Name(FunctionUnlockCatalog.Resolve(1180).OpenLevel)}开启，上仙请提升境界", 2f);
                 return;
             }
 
@@ -6692,7 +6696,7 @@ namespace ProjectX.Core
 
         private void ShowHeroBook()
         {
-            if (!IsHeroBookUnlocked()) { ShowToast($"{FunctionUnlockCatalog.Resolve(1090).OpenLevel}级开启神将图鉴", 2f); return; }
+            if (!IsHeroBookUnlocked()) { ShowToast($"{CultivationDisplay.Name(FunctionUnlockCatalog.Resolve(1090).OpenLevel)}开启神将图鉴", 2f); return; }
             EnsureHeroPresenter();
             heroBookView = heroBookView ?? services.UiAssets.InstantiateUnity("HeroBook", oneLevelFrameView.GameObject.transform);
             Transform overlayRoot = GetDynamicUiRoot();
@@ -7803,11 +7807,11 @@ namespace ProjectX.Core
             help.SetActive(true);
             oneLevelFrameView.BindClick(helpPath, () => errorPresenter?.ShowHelp(
                 kind == HeroEquipmentKind.Equipment
-                    ? "装备强化分为普通（+1），暴击（+2），大暴击（+3），强化上限不超过主角等级的2倍。\n" +
+                    ? "装备强化分为普通（+1），暴击（+2），大暴击（+3），强化上限不超过主角境界阶数的2倍。\n" +
                       "装备精炼等级上限由装备品质决定。\n" +
                       "橙色以上装备可以进行装备觉醒，觉醒需消耗装备碎片及觉醒石。\n" +
                       "红色以上装备可以进行装备神铸，神铸需消耗对应装备碎片。"
-                    : "法宝强化分为普通（+1），暴击（+2），大暴击（+3），强化上限不超过主角等级的2倍。\n" +
+                    : "法宝强化分为普通（+1），暴击（+2），大暴击（+3），强化上限不超过主角境界阶数的2倍。\n" +
                       "法宝精炼消耗精炼石，精炼等级上限为25级。"));
         }
 
@@ -8565,7 +8569,7 @@ namespace ProjectX.Core
                 id => InvokeLuaOrFail(onGameplayEntered, "Gameplay.Entered", (double)id),
                 definition =>
                 {
-                    string message = $"达到{definition.OpenLevel}级后解锁{definition.Name}";
+                    string message = $"达到{CultivationDisplay.Name(definition.OpenLevel)}后解锁{definition.Name}";
                     ShowToast(message, 3f);
                     SetStatus($"Gameplay locked: id={definition.Id}, requiredLevel={definition.OpenLevel}, currentLevel={services.Player.Level}.");
                 },

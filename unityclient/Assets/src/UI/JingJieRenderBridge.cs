@@ -21,23 +21,20 @@ namespace ProjectX.UI
         private readonly BagStore bag;
         private readonly IUiResourceProvider resources;
         private readonly Action requestUpgrade;
-        private readonly Action<JingJieDefinition> showMaterial;
         private readonly Action<string> feedback;
-        private readonly List<GameObject> generatedRows = new List<GameObject>();
         private readonly List<GameObject> previewRows = new List<GameObject>();
-        private readonly Color levelDefaultColor;
-        private readonly Color powerDefaultColor;
-        private readonly Color materialDefaultColor;
-        private readonly Color goldDefaultColor;
         private readonly GameObject effectRoot;
         private readonly Animator effectPlayer;
         private readonly JingJieEffectLifetime effectLifetime;
+        private readonly JingJieIncomeView income;
+        private readonly Text experienceRequirement;
+        private readonly Button previewControl;
         private JingJieDefinition nextDefinition;
 
         public JingJieRenderBridge(UnityUiView view, UnityUiView preview, JingJieViewState state,
             JingJieConfigData config, PlayerStore player, CurrencyStore currencies, BagStore bag,
             IUiResourceProvider resources, Action requestUpgrade,
-            Action<JingJieDefinition> showMaterial, Action<string> feedback)
+            Action<string> feedback)
         {
             this.view = view ?? throw new ArgumentNullException(nameof(view));
             this.preview = preview ?? throw new ArgumentNullException(nameof(preview));
@@ -48,78 +45,48 @@ namespace ProjectX.UI
             this.bag = bag ?? throw new ArgumentNullException(nameof(bag));
             this.resources = resources ?? throw new ArgumentNullException(nameof(resources));
             this.requestUpgrade = requestUpgrade ?? throw new ArgumentNullException(nameof(requestUpgrade));
-            this.showMaterial = showMaterial ?? throw new ArgumentNullException(nameof(showMaterial));
             this.feedback = feedback ?? (_ => { });
 
-            Button leftHelp = RequireButton(view, Root + "/Panel_L/title_bg/Btn_xiangxi");
-            Button endHelp = RequireButton(view, Root + "/Panel_End/title_bg/Btn_xiangxi");
+            // The authored preview button may be reparented without changing its identity.
+            previewControl = view.GameObject.GetComponentsInChildren<Button>(true)
+                .SingleOrDefault(button => button.name == "Btn_xiangxi")
+                ?? throw new InvalidOperationException("Jingjie prefab preview button Btn_xiangxi is missing.");
             Button upgrade = RequireButton(view, Root + "/Panel_tupo/Button");
             Button material = RequireButton(view, Root + "/Panel_tupo/bg_cost/btn_Material");
-            leftHelp.onClick.RemoveAllListeners();
-            endHelp.onClick.RemoveAllListeners();
+            previewControl.onClick.RemoveAllListeners();
             upgrade.onClick.RemoveAllListeners();
             material.onClick.RemoveAllListeners();
-            leftHelp.onClick.AddListener(ShowPreview);
-            endHelp.onClick.AddListener(ShowPreview);
+            previewControl.onClick.AddListener(ShowPreview);
             upgrade.onClick.AddListener(() => this.requestUpgrade());
-            material.onClick.AddListener(() => { if (nextDefinition != null) this.showMaterial(nextDefinition); });
             preview.BindClick("Layer/Popup/Btn_close", HidePreview, true);
-
-            levelDefaultColor = RequireText(view, Root + "/Panel_tupo/bg_limit/Panel_level/Text/value").color;
-            powerDefaultColor = RequireText(view, Root + "/Panel_tupo/bg_limit/Panel_zhanli/Text/value").color;
-            materialDefaultColor = RequireText(view, Root + "/Panel_tupo/bg_cost/btn_Material/Value").color;
-            goldDefaultColor = RequireText(view, Root + "/Panel_tupo/bg_cost/xiaohao/Num").color;
 
             GameObject effect = Require(view, Root + "/effect_jingjietupo_1");
             effectRoot = effect;
-            RuntimeAnimatorController breakthroughController =
-                ProjectX.UI.UnityAssetReference.LoadAsset<RuntimeAnimatorController>("Animations/JingJie/JingJieBreakthrough");
-            Sprite[] breakthroughSprites = ProjectX.UI.UnityAssetReference.LoadAll<Sprite>("Art/UI/JingJie/JingJieBreakthroughAtlas");
-            if (breakthroughController == null || breakthroughSprites.Length != 19)
-                throw new InvalidOperationException("Unity JingJie breakthrough animation assets are incomplete.");
-            Array.Sort(breakthroughSprites, (left, right) => string.CompareOrdinal(left.name, right.name));
-            GameObject nativeEffect = new GameObject("UnityNativeBreakthroughEffect", typeof(RectTransform));
-            RectTransform nativeEffectTransform = nativeEffect.GetComponent<RectTransform>();
-            nativeEffectTransform.SetParent(effect.transform, false);
-            nativeEffectTransform.anchorMin = Vector2.zero;
-            nativeEffectTransform.anchorMax = Vector2.one;
-            nativeEffectTransform.offsetMin = Vector2.zero;
-            nativeEffectTransform.offsetMax = Vector2.zero;
-            Animator animator = nativeEffect.AddComponent<Animator>();
-            if (animator == null || nativeEffect.GetComponent<Animator>() == null)
-                throw new InvalidOperationException("Unity JingJie Animator component could not be attached.");
-            effectPlayer = animator;
-            effectPlayer.runtimeAnimatorController = breakthroughController;
-            effectPlayer.applyRootMotion = false;
-            effectPlayer.enabled = false;
-            GameObject effectPart = new GameObject("Part", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            RectTransform effectPartTransform = effectPart.GetComponent<RectTransform>();
-            effectPartTransform.SetParent(nativeEffect.transform, false);
-            effectPartTransform.anchorMin = effectPartTransform.anchorMax = new Vector2(.5f, .5f);
-            effectPartTransform.pivot = new Vector2(.5f, .5f);
-            effectPartTransform.sizeDelta = breakthroughSprites[0].rect.size;
-            Image effectPartImage = effectPart.GetComponent<Image>();
-            effectPartImage.sprite = breakthroughSprites[0];
-            effectPartImage.raycastTarget = false;
-            effectPartImage.preserveAspect = true;
-            effectLifetime = effect.GetComponent<JingJieEffectLifetime>() ?? effect.AddComponent<JingJieEffectLifetime>();
-            effect.SetActive(false);
+            effectPlayer = effect.GetComponentInChildren<Animator>(true)
+                ?? throw new InvalidOperationException("Jingjie prefab breakthrough Animator is missing.");
+            effectLifetime = effect.GetComponent<JingJieEffectLifetime>()
+                ?? throw new InvalidOperationException("Jingjie prefab breakthrough lifetime is missing.");
 
             state.Changed += Render;
             player.Changed += Render;
             currencies.Changed += Render;
             bag.Changed += Render;
-            RenderPreview();
+            Transform expectation = Require(view, Root + "/expect").transform;
+            Text rate = expectation.GetComponentsInChildren<Text>(true).FirstOrDefault(t => string.Equals(t.name, "num", StringComparison.OrdinalIgnoreCase));
+            income = view.GameObject.GetComponent<JingJieIncomeView>()
+                ?? throw new InvalidOperationException("Jingjie prefab income component is missing.");
+            income.Bind(state, expectation.GetComponent<Scrollbar>(), rate);
+            experienceRequirement = RequireText(view, Root + "/Panel_tupo/bg_limit/ExperienceRequirement");
             Render();
         }
 
         public bool IsVisible => view.GameObject.activeInHierarchy;
         public bool IsPreviewVisible => preview.GameObject.activeInHierarchy;
         public int CurrentId => state.CurrentId;
-        public int PreviewRowCount => previewRows.Count;
+        public int PreviewRowCount => previewRows.Count > 0 ? config.Count : 0;
         public bool HasNextDefinition => nextDefinition != null;
         public bool IsUpgradeEffectVisible => effectPlayer != null && effectPlayer.gameObject.activeInHierarchy;
-        public Button PreviewControl => RequireButton(view, Root + "/Panel_L/title_bg/Btn_xiangxi");
+        public Button PreviewControl => previewControl;
         public Button PreviewCloseControl => RequireButton(preview, "Layer/Popup/Btn_close");
         public Button MaterialControl => RequireButton(view, Root + "/Panel_tupo/bg_cost/btn_Material");
         public Button UpgradeControl => RequireButton(view, Root + "/Panel_tupo/Button");
@@ -130,8 +97,7 @@ namespace ProjectX.UI
             player.Changed -= Render;
             currencies.Changed -= Render;
             bag.Changed -= Render;
-            ClearRows(generatedRows);
-            ClearRows(previewRows);
+            previewRows.Clear();
         }
 
         public void Show()
@@ -149,25 +115,23 @@ namespace ProjectX.UI
         public void ShowPreview()
         {
             preview.ShowPopup();
+            Canvas.ForceUpdateCanvases();
+            RenderPreview();
         }
+
 
         public void HidePreview() => preview.SetVisible(false);
 
         public bool TryBeginUpgrade()
         {
             config.TryGet(state.CurrentId + 1, out JingJieDefinition target);
-            int owned = target != null && target.MaterialId > 0 ? bag.GetTotalQuantityByItemId(target.MaterialId) : 0;
-            JingJieUpgradeBlock block = JingJieUpgradeEligibility.Evaluate(state, target,
-                player.Level, player.Power, currencies.Gold, owned);
+            JingJieUpgradeBlock block = JingJieUpgradeEligibility.Evaluate(state, target);
             switch (block)
             {
                 case JingJieUpgradeBlock.Synchronizing: feedback("境界数据同步中"); return false;
                 case JingJieUpgradeBlock.Maximum: feedback("已达到最高境界"); return false;
                 case JingJieUpgradeBlock.Pending: return false;
-                case JingJieUpgradeBlock.Level: feedback($"角色等级达到{target.LevelLimit}级后可突破"); return false;
-                case JingJieUpgradeBlock.Power: feedback($"战力达到{target.PowerLimit}后可突破"); return false;
-                case JingJieUpgradeBlock.Material: feedback("突破材料不足"); return false;
-                case JingJieUpgradeBlock.Gold: feedback("金币不足"); return false;
+                case JingJieUpgradeBlock.Experience: feedback("修为不足"); return false;
             }
             return state.BeginUpgrade();
         }
@@ -176,41 +140,21 @@ namespace ProjectX.UI
         {
             if (view.GameObject == null) return;
             bool atMaximum = state.HasAuthoritativeState && state.CurrentId >= config.Count;
-            SetActive(view, Root + "/Panel_L", !atMaximum);
-            SetActive(view, Root + "/Panel_R", !atMaximum);
-            SetActive(view, Root + "/Panel_End", atMaximum);
-            SetActive(view, Root + "/Image_jiantou", !atMaximum);
-            if (atMaximum)
-            {
-                RenderStage(Root + "/Panel_End", config.Get(config.Count), true);
-                RenderBreakthrough(null);
-            }
-            else
-            {
-                bool empty = !state.HasAuthoritativeState || state.CurrentId == 0;
-                SetActive(view, Root + "/Panel_L/Panel_0", empty);
-                SetActive(view, Root + "/Panel_L/bg_L", !empty);
-                SetActive(view, Root + "/Panel_L/Panel_shuxing", !empty);
-                if (!empty) RenderStage(Root + "/Panel_L", config.Get(state.CurrentId), false);
-                JingJieDefinition target = config.Get(Math.Max(1, state.CurrentId + 1));
-                RenderStage(Root + "/Panel_R", target, false);
-                RenderBreakthrough(target);
-            }
+            bool empty = !state.HasAuthoritativeState || state.CurrentId == 0;
+            JingJieDefinition current = empty ? null : config.Get(state.CurrentId);
+            JingJieDefinition target = atMaximum ? null : config.Get(Math.Max(1, state.CurrentId + 1));
+            SetActive(view, Root + "/Panel_L", true);
+            SetActive(view, Root + "/Panel_L/Panel_0", empty);
+            SetActive(view, Root + "/Panel_L/bg_L", !empty);
+            if (current != null) RenderStage(current);
+            RenderAttributeComparison(current, target);
+            RenderBreakthrough(target);
             if (IsVisible && state.ConsumeUpgradeEffect()) PlayUpgradeEffect();
-
-            if (atMaximum)
-            {
-                RetireGeneratedAttributeMetadata(view, Root + "/Panel_End/Panel_shuxing", true);
-            }
-            else
-            {
-                RetireGeneratedAttributeMetadata(view, Root + "/Panel_L/Panel_shuxing");
-                RetireGeneratedAttributeMetadata(view, Root + "/Panel_R/Panel_shuxing");
-            }
         }
 
-        private void RenderStage(string panelPath, JingJieDefinition definition, bool endPanel)
+        private void RenderStage(JingJieDefinition definition)
         {
+            string panelPath = Root + "/Panel_L";
             string iconPath = panelPath + "/bg_L/Icon";
             Image icon = Require(view, iconPath).GetComponent<Image>();
             if (definition.Icon != null && definition.Icon.StartsWith("role_{sex}_", StringComparison.Ordinal))
@@ -223,6 +167,9 @@ namespace ProjectX.UI
                     RoleSpinePortrait portrait = anchor.GetComponent<RoleSpinePortrait>()
                         ?? anchor.gameObject.AddComponent<RoleSpinePortrait>();
                     portrait.Show(definition.Icon, player.Sex);
+                    RoleCultivationAura aura = anchor.GetComponent<RoleCultivationAura>()
+                        ?? throw new InvalidOperationException("Jingjie prefab aura component is missing.");
+                    aura.Show(definition.VisualStage, QualityColor(definition.Quality));
                 }
             }
             else
@@ -234,141 +181,96 @@ namespace ProjectX.UI
             }
             Text name = RequireText(view, panelPath + "/bg_L/Panel_name/name");
             name.text = definition.Name;
-            name.color = QualityColor(definition.Quality);
-            Text title = RequireText(view, panelPath + "/Panel_shuxing/Text");
-            title.text = definition.Name + "加成";
-            string listPath = panelPath + "/Panel_shuxing/Attr_List";
-            Transform list = Require(view, listPath).transform;
-            Transform template = endPanel
-                ? Require(view, listPath + "/Attribute1").transform
-                : Require(view, panelPath + "/Panel_shuxing/Attribute1").transform;
-            PopulateAttributes(list, template, definition.Attributes, generatedRows);
+        }
+
+        private void RenderAttributeComparison(JingJieDefinition current, JingJieDefinition target)
+        {
+            Transform comparison = Require(view, Root + "/AttributeComparison").transform;
+            SetText(comparison, "CurrentStage", current?.Name ?? "境界同步中");
+            SetText(comparison, "NextStage", target?.Name ?? "已达最高境界");
+            int[][] currentAttributes = current?.Attributes ?? Array.Empty<int[]>();
+            int[][] targetAttributes = target?.Attributes ?? Array.Empty<int[]>();
+            int[] types = currentAttributes.Concat(targetAttributes).Where(a => a != null && a.Length >= 2)
+                .Select(a => a[0]).Distinct().ToArray();
+            for (int index = 0; index < 7; index++)
+            {
+                Transform row = comparison.Find("Attr_List/Attribute" + (index + 1))
+                    ?? throw new InvalidOperationException("Jingjie prefab comparison row is missing.");
+                row.gameObject.SetActive(index < types.Length);
+                if (index >= types.Length) continue;
+                int type = types[index];
+                int before = currentAttributes.FirstOrDefault(a => a != null && a.Length >= 2 && a[0] == type)?[1] ?? 0;
+                int after = targetAttributes.FirstOrDefault(a => a != null && a.Length >= 2 && a[0] == type)?[1] ?? 0;
+                SetText(row, "Value_0", HeroBookCatalog.AttributeName(type));
+                SetText(row, "Value_1", FormatAttribute(type, before));
+                SetText(row, "Value_2", target == null ? "—" : FormatAttribute(type, after));
+                SetText(row, "Value_3", target == null ? string.Empty : FormatAttribute(type, after - before));
+                row.Find("To").gameObject.SetActive(target != null);
+                row.Find("Image").gameObject.SetActive(target != null && after > before);
+            }
         }
 
         private void RenderBreakthrough(JingJieDefinition target)
         {
             nextDefinition = target;
             bool available = target != null;
-            SetActive(view, Root + "/Panel_tupo/bg_limit", available);
-            SetActive(view, Root + "/Panel_tupo/bg_cost", available);
+            SetActive(view, Root + "/Panel_tupo/bg_limit", available || state.HasAuthoritativeState);
             SetActive(view, Root + "/Panel_tupo/Button", available);
             SetActive(view, Root + "/Panel_tupo/Panel_end", !available);
-            if (!available) return;
-
-            Text level = RequireText(view, Root + "/Panel_tupo/bg_limit/Panel_level/Text/value");
-            Text power = RequireText(view, Root + "/Panel_tupo/bg_limit/Panel_zhanli/Text/value");
-            Text material = RequireText(view, Root + "/Panel_tupo/bg_cost/btn_Material/Value");
-            Text gold = RequireText(view, Root + "/Panel_tupo/bg_cost/xiaohao/Num");
-            bool hasMaterialCost = target.MaterialId > 0 && target.MaterialAmount > 0;
-            int owned = hasMaterialCost ? bag.GetTotalQuantityByItemId(target.MaterialId) : 0;
-            level.text = target.LevelLimit.ToString();
-            power.text = target.PowerLimit.ToString();
-            material.text = hasMaterialCost ? $"{owned}/{target.MaterialAmount}" : string.Empty;
-            gold.text = target.GoldAmount.ToString();
-            level.color = player.Level < target.LevelLimit ? Color.red : levelDefaultColor;
-            power.color = player.Power < (ulong)target.PowerLimit ? Color.red : powerDefaultColor;
-            material.color = hasMaterialCost && owned < target.MaterialAmount ? Color.red : materialDefaultColor;
-            gold.color = currencies.Gold < target.GoldAmount ? Color.red : goldDefaultColor;
-            GameObject materialObject = Require(view, Root + "/Panel_tupo/bg_cost/btn_Material");
-            materialObject.SetActive(hasMaterialCost);
-            if (hasMaterialCost)
+            if (!available)
             {
-                Image materialIcon = materialObject.GetComponent<Image>();
-                int picture = 3014 + Math.Max(0, Math.Min(4, target.MaterialId - 861));
-                materialIcon.sprite = resources.LoadItemIcon(picture);
-                materialIcon.enabled = materialIcon.sprite != null;
-                materialIcon.preserveAspect = true;
-                materialIcon.rectTransform.sizeDelta = new Vector2(55f, 55f);
+                experienceRequirement.gameObject.SetActive(true);
+                experienceRequirement.text = $"累计修为 {state.Experience:N0}";
+                return;
             }
-            RequireButton(view, Root + "/Panel_tupo/Button").interactable = !state.UpgradePending;
+
+            experienceRequirement.gameObject.SetActive(true);
+            experienceRequirement.text = state.HasAuthoritativeState
+                ? $"修为 {state.Experience:N0} / {state.RequiredExperience:N0}" : "修为同步中";
+            bool big = state.HasAuthoritativeState && config.Get(state.CurrentId).Stage == 10;
+            Button upgrade = RequireButton(view, Root + "/Panel_tupo/Button");
+            foreach (Text label in upgrade.GetComponentsInChildren<Text>(true)) label.text = big ? "渡劫" : "升级";
+            upgrade.interactable = state.HasAuthoritativeState && !state.UpgradePending && state.Experience >= state.RequiredExperience;
         }
 
         private void RenderPreview()
         {
-            ClearRows(previewRows);
+            previewRows.Clear();
             Transform list = Require(preview, "Layer/Popup/ListView").transform;
-            GameObject template = Require(preview, "Layer/Popup/Panel_1");
-            template.SetActive(false);
-            RectTransform templateRect = template.GetComponent<RectTransform>();
-            float rowHeight = Math.Max(150f, templateRect.rect.height > 1f ? templateRect.rect.height : templateRect.sizeDelta.y);
+            JingJiePreviewScroller scroller = list.GetComponent<JingJiePreviewScroller>()
+                ?? throw new InvalidOperationException("Jingjie preview prefab scroller is missing.");
             int index = 0;
-            foreach (JingJieDefinition definition in config.Items)
+            foreach (JingJieDefinition definition in config.Items.Take(8))
             {
-                GameObject row = UnityEngine.Object.Instantiate(template, list, false);
-                row.name = $"Panel_{definition.Id}";
+                GameObject row = list.Find($"PreviewRow{index + 1}")?.gameObject
+                    ?? throw new InvalidOperationException("Jingjie preview prefab row is missing.");
                 row.SetActive(true);
-                RectTransform rect = row.GetComponent<RectTransform>();
-                rect.anchorMin = rect.anchorMax = new Vector2(.5f, 1f);
-                rect.pivot = new Vector2(.5f, 1f);
-                rect.anchoredPosition = new Vector2(0f, -rowHeight * index);
-                SetText(row.transform, "title_bg/value", definition.Name, QualityColor(definition.Quality));
-                RectTransform nameRect = row.transform.Find("title_bg/value") as RectTransform;
-                if (nameRect != null)
-                {
-                    nameRect.anchorMin = nameRect.anchorMax = new Vector2(.5f, .5f);
-                    nameRect.pivot = new Vector2(.5f, .5f);
-                    nameRect.anchoredPosition = Vector2.zero;
-                    Text nameText = nameRect.GetComponent<Text>();
-                    if (nameText != null)
-                    {
-                        nameText.horizontalOverflow = HorizontalWrapMode.Overflow;
-                        nameText.verticalOverflow = VerticalWrapMode.Overflow;
-                        nameText.alignment = TextAnchor.MiddleCenter;
-                    }
-                }
-                for (int attrIndex = 0; attrIndex < 7; attrIndex++)
-                {
-                    int[] attribute = definition.Attributes != null && attrIndex < definition.Attributes.Length
-                        ? definition.Attributes[attrIndex] : null;
-                    Transform label = row.transform.Find($"Attribute{attrIndex + 1}");
-                    if (label == null) continue;
-                    label.gameObject.SetActive(attribute != null && attribute.Length >= 2);
-                    if (attribute == null || attribute.Length < 2) continue;
-                    Text key = label.GetComponent<Text>();
-                    Text value = label.Find("Value")?.GetComponent<Text>();
-                    if (key != null) key.text = HeroBookCatalog.AttributeName(attribute[0]) + "：";
-                    if (value != null) value.text = FormatAttribute(attribute[0], attribute[1]);
-                }
+                BindPreviewRow(row.transform, definition.Id - 1);
                 previewRows.Add(row);
                 index++;
             }
-            JingJiePreviewScroller scroller = list.GetComponent<JingJiePreviewScroller>()
-                ?? list.gameObject.AddComponent<JingJiePreviewScroller>();
             scroller.Configure(previewRows.Select(row => row.GetComponent<RectTransform>()),
-                Math.Max(0f, rowHeight * config.Count - ((RectTransform)list).rect.height));
+                config.Count, BindPreviewRow);
         }
 
-        private void PopulateAttributes(Transform list, Transform template, int[][] attributes,
-            List<GameObject> owner)
+        private void BindPreviewRow(Transform row, int index)
         {
-            foreach (GameObject row in owner.Where(row => row != null && row.transform.parent == list).ToArray())
+            JingJieDefinition definition = config.Get(index + 1);
+            SetText(row, "title_bg/value", definition.Name);
+            for (int attrIndex = 0; attrIndex < 7; attrIndex++)
             {
-                owner.Remove(row);
-                UnityEngine.Object.Destroy(row);
-            }
-            template.gameObject.SetActive(false);
-            RectTransform templateRect = template as RectTransform;
-            float rowHeight = Math.Max(28f, templateRect != null && templateRect.rect.height > 1f
-                ? templateRect.rect.height : 28f);
-            int index = 0;
-            foreach (int[] attribute in attributes ?? Array.Empty<int[]>())
-            {
+                int[] attribute = definition.Attributes != null && attrIndex < definition.Attributes.Length ? definition.Attributes[attrIndex] : null;
+                Transform label = row.Find($"Attribute{attrIndex + 1}");
+                if (label == null) continue;
+                label.gameObject.SetActive(attribute != null && attribute.Length >= 2);
                 if (attribute == null || attribute.Length < 2) continue;
-                GameObject row = UnityEngine.Object.Instantiate(template.gameObject, list, false);
-                row.name = $"Attribute{index + 1}";
-                row.SetActive(true);
-                RectTransform rect = row.GetComponent<RectTransform>();
-                rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
-                rect.pivot = new Vector2(0f, 1f);
-                rect.anchoredPosition = new Vector2(6f, -rowHeight * index);
-                Text label = row.GetComponent<Text>();
-                Text value = row.transform.Find("Value")?.GetComponent<Text>();
-                if (label != null) label.text = HeroBookCatalog.AttributeName(attribute[0]) + "：";
+                Text key = label.GetComponent<Text>();
+                Text value = label.Find("Value")?.GetComponent<Text>();
+                if (key != null) key.text = HeroBookCatalog.AttributeName(attribute[0]) + "：";
                 if (value != null) value.text = FormatAttribute(attribute[0], attribute[1]);
-                owner.Add(row);
-                index++;
             }
         }
+
 
         private void PlayUpgradeEffect()
         {
@@ -382,7 +284,7 @@ namespace ProjectX.UI
         private static string FormatAttribute(int type, int value) =>
             type >= 10 ? $"{value / 100d:0.##}%" : value.ToString();
 
-        private static Color QualityColor(int quality)
+        public static Color QualityColor(int quality)
         {
             switch (quality)
             {
@@ -411,12 +313,11 @@ namespace ProjectX.UI
                 : panelPath + "/Attribute1").transform;
         }
         private static void SetActive(UnityUiView target, string path, bool active) => Require(target, path).SetActive(active);
-        private static void SetText(Transform root, string path, string value, Color color)
+        private static void SetText(Transform root, string path, string value)
         {
             Text text = root.Find(path)?.GetComponent<Text>();
             if (text == null) return;
             text.text = value;
-            text.color = color;
         }
         private static void ClearRows(List<GameObject> rows)
         {
@@ -425,53 +326,4 @@ namespace ProjectX.UI
         }
     }
 
-    internal sealed class JingJieEffectLifetime : MonoBehaviour
-    {
-        private Coroutine routine;
-        public void HideAfter(float seconds)
-        {
-            if (routine != null) StopCoroutine(routine);
-            routine = StartCoroutine(HideRoutine(seconds));
-        }
-        private IEnumerator HideRoutine(float seconds)
-        {
-            yield return new WaitForSecondsRealtime(seconds);
-            gameObject.SetActive(false);
-            routine = null;
-        }
-    }
-
-    internal sealed class JingJiePreviewScroller : MonoBehaviour, IBeginDragHandler, IDragHandler, IScrollHandler
-    {
-        private readonly List<RectTransform> rows = new List<RectTransform>();
-        private readonly List<Vector2> origins = new List<Vector2>();
-        private float maxOffset;
-        private float offset;
-
-        public void Configure(IEnumerable<RectTransform> values, float maximum)
-        {
-            rows.Clear(); origins.Clear();
-            foreach (RectTransform row in values.Where(value => value != null))
-            {
-                rows.Add(row);
-                origins.Add(row.anchoredPosition);
-            }
-            maxOffset = Mathf.Max(0f, maximum);
-            offset = 0f;
-            Apply();
-            Image hit = GetComponent<Image>() ?? gameObject.AddComponent<Image>();
-            hit.color = Color.clear;
-            hit.raycastTarget = true;
-        }
-
-        public void OnBeginDrag(PointerEventData eventData) { }
-        public void OnDrag(PointerEventData eventData) => Move(eventData.delta.y);
-        public void OnScroll(PointerEventData eventData) => Move(-eventData.scrollDelta.y * 35f);
-        private void Move(float delta) { offset = Mathf.Clamp(offset + delta, 0f, maxOffset); Apply(); }
-        private void Apply()
-        {
-            for (int index = 0; index < rows.Count; index++)
-                if (rows[index] != null) rows[index].anchoredPosition = origins[index] + new Vector2(0f, offset);
-        }
-    }
 }

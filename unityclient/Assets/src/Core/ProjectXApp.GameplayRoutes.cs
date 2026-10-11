@@ -33,7 +33,7 @@ namespace ProjectX.Core
             { Fail($"Gameplay route config is missing id={functionId}."); return; }
             if (decision.Status == GameplayRouteDecisionStatus.LockedByLevel)
             {
-                ShowToast($"{definition.OpenLevel}级开启", 2f);
+                ShowToast($"{CultivationDisplay.Name(definition.OpenLevel)}开启", 2f);
                 return;
             }
             if (decision.Status == GameplayRouteDecisionStatus.ValidationBoundary)

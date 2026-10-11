@@ -610,6 +610,7 @@ namespace ProjectX.Core
         {
             localServerSupervisor?.Tick();
             services?.Tick();
+            TickCultivationPresentation();
             loadingPresenter?.Tick();
             MaintainHeroEquipmentCultivationState();
             toastPresenter?.Tick();

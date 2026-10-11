@@ -224,7 +224,8 @@ namespace ProjectX.UI
         public void Render()
         {
             nameText.text = player.Name ?? string.Empty;
-            levelText.text = player.Level.ToString();
+            levelText.text = realm?.HasAuthoritativeState == true ? realmConfig.Get(realm.CurrentId).Name : CultivationDisplay.Name(player.Level);
+            levelText.horizontalOverflow = HorizontalWrapMode.Overflow;
             vipText.text = "贵族" + player.VipLevel;
             bool compactPower = player.Power >= 1000000;
             powerText.text = compactPower ? (player.Power / 10000UL).ToString() : player.Power.ToString();
@@ -241,6 +242,13 @@ namespace ProjectX.UI
                     ? realmConfig.Get(realm.CurrentId).Icon : RoleVisualCatalog.Current.CreationDefault.Template;
                 var visual = RoleVisualCatalog.Current.Resolve(template);
                 mainRole.Show(template, player.Sex);
+                if (realm.HasAuthoritativeState)
+                {
+                    JingJieDefinition stage = realmConfig.Get(realm.CurrentId);
+                    RoleCultivationAura aura = mainRole.GetComponent<RoleCultivationAura>()
+                        ?? throw new InvalidOperationException("Main prefab aura component is missing.");
+                    aura.Show(stage.VisualStage, JingJieRenderBridge.QualityColor(stage.Quality));
+                }
                 if (portrait != null) portrait.sprite = resources.LoadSprite(visual.AvatarKey(player.Sex));
             }
             else if (portrait != null) portrait.sprite = resources.LoadPlayerRoundPortrait(player.Head);
@@ -249,8 +257,9 @@ namespace ProjectX.UI
             staminaText.text = $"{Math.Max(0, currencies.Stamina)}/{StaminaLimit}";
             if (experienceBar != null)
             {
-                int limit = Math.Max(1, WorldVisualCatalog.GetPlayerExperienceLimit(player.Level));
-                experienceBar.fillAmount = Mathf.Clamp01((float)player.Experience / limit);
+                ulong limit = realm?.HasAuthoritativeState == true ? Math.Max(1UL, realm.RequiredExperience)
+                    : (ulong)Math.Max(1, WorldVisualCatalog.GetPlayerExperienceLimit(player.Level));
+                experienceBar.fillAmount = Mathf.Clamp01((float)((double)player.Experience / limit));
             }
         }
 
@@ -371,7 +380,8 @@ namespace ProjectX.UI
         {
             detail = string.Empty;
             if (!player.IsLoaded || string.IsNullOrEmpty(player.Name)) { detail = "player snapshot is not loaded"; return false; }
-            if (nameText.text != player.Name || levelText.text != player.Level.ToString()) { detail = "name/level HUD mismatch"; return false; }
+            string expectedLevel = realm?.HasAuthoritativeState == true ? realmConfig.Get(realm.CurrentId).Name : CultivationDisplay.Name(player.Level);
+            if (nameText.text != player.Name || levelText.text != expectedLevel) { detail = "name/realm HUD mismatch"; return false; }
             if (vipText.text != "贵族" + player.VipLevel) { detail = "VIP HUD mismatch"; return false; }
             if (goldText.text != FormatGold(currencies.Gold)) { detail = "gold HUD mismatch"; return false; }
             if (premiumText.text != Math.Max(0, currencies.Premium).ToString()) { detail = "premium HUD mismatch"; return false; }

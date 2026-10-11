@@ -796,7 +796,7 @@ namespace ProjectX.UI
             Image experience = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/bg_Bar/ExpBar")?.GetComponent<Image>();
             if (experience != null)
                 experience.fillAmount = maximum == 0 ? 0f : Mathf.Clamp01((float)hero.Experience / maximum);
-            SetText(level, "Layer/shenjiangInfoUI/Info/cailiao/Tips/value", player.Level.ToString());
+            SetText(level, "Layer/shenjiangInfoUI/Info/cailiao/Tips/value", CultivationDisplay.Name(player.Level));
             int[] ids = { 834, 835, 836, 837 };
             int[] pictures = { 3105, 3107, 3101, 3106 };
             for (int i = 0; i < ids.Length; i++)
@@ -1076,7 +1076,7 @@ namespace ProjectX.UI
                 heroName.SetAllDirty();
             }
             SetText(autoLevel, "Layer/bg/Text_3_0_0", hero.Level.ToString());
-            SetText(autoLevel, "Layer/bg/cailiao_0/value", player.Level.ToString());
+            SetText(autoLevel, "Layer/bg/cailiao_0/value", CultivationDisplay.Name(player.Level));
 
             Transform portraitHost = autoLevel.FindNode("Layer/IconColor")?.transform;
             Image portraitBackground = portraitHost?.GetComponent<Image>();

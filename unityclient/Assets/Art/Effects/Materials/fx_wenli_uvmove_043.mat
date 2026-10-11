@@ -1,0 +1,82 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: fx_wenli_uvmove_043
+  m_Shader: {fileID: 4800000, guid: bcd7b1541cf6ea743bff7ce77f486d53, type: 3}
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _AlphaG:
+        m_Texture: {fileID: 2800000, guid: ba1388bbc7703a3468a4ad8425cff8a8, type: 3}
+        m_Scale: {x: 0.2, y: 0.4}
+        m_Offset: {x: 0, y: 0}
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 079901be18c870a409ef1ae6b50542e3, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DissolveTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskTex:
+        m_Texture: {fileID: 2800000, guid: fc975288656841f43ae1ba348d6b1032, type: 3}
+        m_Scale: {x: 0.59, y: 0.37}
+        m_Offset: {x: 0, y: 0}
+    - _TurbulenceTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - DstBlend: 10
+    - SrcBlend: 5
+    - _AlphaSpeedX: -2.15
+    - _AlphaSpeedY: 0
+    - _AnDissolve: -3
+    - _BaseMapBrightness: 1
+    - _BaseMapPannerX: 0
+    - _BaseMapPannerY: 0
+    - _BaseMapPower: 1
+    - _Colorpower: 1.79
+    - _Cull: 0
+    - _Cutoff: 0.5
+    - _DeBlackBG: 0
+    - _DisSoftness: 0.1
+    - _DissolvePannerX: 0
+    - _DissolvePannerY: 0
+    - _FScale: 1
+    - _InvFade: 1
+    - _IsCoustom: 0
+    - _IsDoubleFace: 0
+    - _IsFresnel: 0
+    - _MainTexSpeedX: 0
+    - _MainTexSpeedY: 0
+    - _MaskTexPannerX: -0.5
+    - _MaskTexPannerY: 0
+    - _TurbulenceStrength: 0
+    - _TurbulenceTexPannerX: 0
+    - _TurbulenceTexPannerY: 0
+    - _ZWrite: 0
+    m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 1, b: 1, a: 0.46666667}
+    - _FColor: {r: 1, g: 1, b: 1, a: 1}
+    - _FaceInColor: {r: 1, g: 1, b: 1, a: 1}
+    - _FaceOurColor: {r: 1, g: 1, b: 1, a: 1}
+    - _PointMove: {r: 0, g: 0, b: 0, a: 0}
+    - _TintColor: {r: 0.6792453, g: 0.6792453, b: 0.6792453, a: 0.5}
+  m_BuildTextureStacks: []

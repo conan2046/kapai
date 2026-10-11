@@ -12,8 +12,9 @@
 - 头像位于 `Assets/Art/Portraits/Players`；主界面 `role` 与左上头像按保存的性别、当前境界同步切换。尚未取得境界快照或境界为0时使用创角默认外观。
 - Spine 实例挂在持久化的 `SpineAnchor` 空节点下：创角 `Role/SpineAnchor`、主界面 `role/SpineAnchor`、境界各 `Icon/SpineAnchor`。直接在这三份界面 Prefab 中调整空节点的位置、缩放、旋转；代码与资源重建均不覆盖这些值，不自动适配大小。
 - Spine 源资产位于 `Assets/Art/Spine`，保持自身 Atlas，不纳入静态 UI SpriteAtlas。运行库位于 `Assets/Plugins/Spine`。
-- 原 Excel 的消耗列仍是历史数据。本阶段只导出 `icon`，保留现有客户端/服务端属性、门槛及金币消耗；服务端转换器跳过此工作簿。
-- 定向导出：`& .\unitydata\tools\Export-UnityClientData.ps1 -OnlyJingJieVisuals`；仅外观表使用 `-OnlyRoleVisuals`。全量客户端导出也执行同一校验。
+- `jingjie_config.xlsx` 已更新为550小阶正式表；第二页`RuntimeRules`维护在线5秒、离线48小时100%、乌云3秒、雷击与结算间隔及成功显示气血下限。旧等级／战力门槛与材料金币消耗退役。
+- 完整双端定向导出：`& .\unitydata\tools\Export-UnityJingJieData.ps1`；只校验加`-ValidateOnly`。客户端入口支持`-OnlyJingJie`（兼容旧`-OnlyJingJieVisuals`），服务端入口支持`-OnlyJingJie`；仅外观表仍用`-OnlyRoleVisuals`。
+- 新境界表由Unity专用类型校验／导出器处理，跳过旧通用转换器；生成客户端`Configs/jingjie.json`与`jingjie-rules.json`、服务端`jingjie_config.json`与`jingjie_rules.json`。业务实现进度见`docs/unityclient/JINGJIE_REWORK_PROGRESS.md`；配置导出不代表新版运行逻辑已完成。
 - 资源导入后使用菜单 `Tools/ProjectX 资源/构建境界 Spine 展示预制体` 重建展示预制体及引用。
 - `role.unitypackage` 里的 `zmls_001` 缺失贴图，H 盘原工程同样缺失；此资源未用于境界，不能选作可播放资源。
 

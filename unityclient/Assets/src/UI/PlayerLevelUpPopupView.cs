@@ -21,7 +21,7 @@ namespace ProjectX.UI
 
         public void Show(int currentLevel, int staminaBefore, int staminaAfter)
         {
-            SetText("Panel_shengji/Panel_gongxi/Num", currentLevel.ToString());
+            SetText("Panel_shengji/Panel_gongxi/Num", CultivationDisplay.Name(currentLevel));
             SetText("Panel_shengji/Panel_tili/Image_tili/Text1", staminaBefore.ToString());
             SetText("Panel_shengji/Panel_tili/Image_tili/Text2", staminaAfter.ToString());
 
@@ -39,7 +39,7 @@ namespace ProjectX.UI
                 FunctionUnlockDefinition definition = upcoming[i];
                 SetText(rowPath + "/Text", definition.Name);
                 SetText(rowPath + "/Text_2", definition.OpenLevel <= currentLevel
-                    ? string.Empty : $"{definition.OpenLevel}级开启");
+                    ? string.Empty : $"{CultivationDisplay.Name(definition.OpenLevel)}开启");
                 Image iconImage = view.FindNode(rowPath + "/Icon")?.GetComponent<Image>();
                 if (iconImage == null)
                     throw new InvalidOperationException($"Player level-up icon binding is missing: {rowPath}/Icon");

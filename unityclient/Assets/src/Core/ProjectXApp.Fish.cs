@@ -129,7 +129,7 @@ namespace ProjectX.Core
             int openLevel = FunctionUnlockCatalog.Resolve(32).OpenLevel;
             EnsureErrorPresenter();
             errorPresenter.ShowHelp(
-                $"{openLevel}级开启；每轮消耗100金币；10~20秒随机完成；\n" +
+                $"{CultivationDisplay.Name(openLevel)}开启；每轮消耗100金币；10~20秒随机完成；\n" +
                 "可提前收网，成功率=已用时/本轮时长；\n" +
                 "同鱼单格最多999条；鱼篓最多9999格，满后新增鱼直接舍弃。");
         }

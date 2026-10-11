@@ -6,6 +6,7 @@ namespace ProjectX.Core
     {
         public bool HandleBack()
         {
+            if (cultivationPresenter?.IsRunning == true) return true;
             if (oldMemoryPresenter?.IsVisible == true)
             {
                 CloseOldMemoryMenu();

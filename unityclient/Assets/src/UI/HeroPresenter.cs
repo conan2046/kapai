@@ -239,7 +239,7 @@ namespace ProjectX.UI
             {
                 Transform chooseLocked = row.Find("Choose");
                 if (chooseLocked != null) chooseLocked.gameObject.SetActive(false);
-                rowButton.onClick.AddListener(() => feedback($"{openLevel}级开启，上仙请升级"));
+                rowButton.onClick.AddListener(() => feedback($"{CultivationDisplay.Name(openLevel)}开启，上仙请提升境界"));
                 row.gameObject.name = $"FormationLocked_{slot.Position}";
                 return;
             }

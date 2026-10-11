@@ -730,7 +730,7 @@ namespace ProjectX.UI
             }
             if (player.Level < chapter.OpenLevel)
             {
-                feedback?.Invoke($"达到{chapter.OpenLevel}级后开启");
+                feedback?.Invoke($"达到{CultivationDisplay.Name(chapter.OpenLevel)}后开启");
                 return false;
             }
             return true;

@@ -272,7 +272,7 @@ namespace ProjectX.UI
             Text taskName = FindDirect(card, "TaskName")?.GetComponent<Text>();
             if (isLocked && taskName != null) taskName.color = LockedColor;
             Transform openLevel = FindDirect(card, "OpenLevel");
-            SetText(openLevel, $"{value.Definition.OpenLevel}级开启");
+            SetText(openLevel, $"{CultivationDisplay.Name(value.Definition.OpenLevel)}开启");
             SetVisible(openLevel, isLocked);
             Text openLevelText = openLevel?.GetComponent<Text>();
             if (openLevelText != null) openLevelText.color = LockedColor;

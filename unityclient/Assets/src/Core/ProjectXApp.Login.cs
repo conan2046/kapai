@@ -309,11 +309,13 @@ namespace ProjectX.Core
             services.Player.Initialize(roleId, name, unchecked((byte)sex), unchecked((byte)model),
                 unchecked((byte)head), unchecked((ushort)level), checked((ulong)experience),
                 checked((ulong)power), potential, soul, unchecked((ushort)packageCapacity));
+            if(services.JingJie.HasAuthoritativeState)
+                services.Player.ApplyCultivation(checked((ushort)services.JingJie.CurrentId),services.JingJie.Experience,services.JingJie.Power);
             services.Currencies.Initialize(money, premium, boundPremium, soul, guildContribution);
             services.Mails.ConfigureAccount(roleId);
             if (singlePlayerTitleEnabled && activeSaveSlotId > 0)
             {
-                singlePlayerSaves.UpdatePlayer(activeSaveSlotId, roleId, name, model, level, checked((ulong)power));
+                singlePlayerSaves.UpdatePlayer(activeSaveSlotId, roleId, name, model, services.Player.Level, services.Player.Power);
                 if (singlePlayerSaves.ActiveSlotId != activeSaveSlotId)
                     singlePlayerSaves.BeginSession(activeSaveSlotId);
             }
