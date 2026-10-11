@@ -1,6 +1,6 @@
 # Shared narrow reader for client visual tables. Row 1 is keys, rows 2..4 are
 # export scope, descriptions and types; data begins at row 5.
-function Read-UnityVisualExcelRows([string]$Path, [int]$SheetIndex = 1) {
+function Read-UnityVisualExcelRows([string]$Path, [int]$SheetIndex = 1, [string]$SheetName, [switch]$RejectFormulas) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [IO.Compression.ZipFile]::OpenRead($Path)
     try {
@@ -18,7 +18,21 @@ function Read-UnityVisualExcelRows([string]$Path, [int]$SheetIndex = 1) {
             $shared = @($strings.SelectNodes('//s:si', $stringNs) | ForEach-Object { $_.InnerText })
         }
         if ($SheetIndex -lt 1) { throw 'Excel sheet index must be positive.' }
-        $sheet = Read-VisualExcelPart ('xl/worksheets/sheet{0}.xml' -f $SheetIndex)
+        $sheetPart = 'xl/worksheets/sheet{0}.xml' -f $SheetIndex
+        if ($SheetName) {
+            $workbook = Read-VisualExcelPart 'xl/workbook.xml'
+            $workbookNs = [Xml.XmlNamespaceManager]::new($workbook.NameTable)
+            $workbookNs.AddNamespace('s', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main')
+            $matches = @($workbook.SelectNodes('//s:sheets/s:sheet', $workbookNs) | Where-Object { $_.name -ceq $SheetName })
+            if ($matches.Count -ne 1) { throw "Missing/duplicate Excel sheet: $SheetName" }
+            $id = $matches[0].GetAttribute('id','http://schemas.openxmlformats.org/officeDocument/2006/relationships')
+            $relations = Read-VisualExcelPart 'xl/_rels/workbook.xml.rels'
+            $relation = @($relations.Relationships.Relationship | Where-Object Id -eq $id)
+            if ($relation.Count -ne 1) { throw "Missing Excel sheet relationship: $SheetName" }
+            $target = [string]$relation[0].Target
+            $sheetPart = if ($target.StartsWith('/')) { $target.TrimStart('/') } else { 'xl/' + $target }
+        }
+        $sheet = Read-VisualExcelPart $sheetPart
         $ns = [Xml.XmlNamespaceManager]::new($sheet.NameTable)
         $ns.AddNamespace('s', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main')
         function Read-VisualExcelCell($Cell) {
@@ -29,12 +43,15 @@ function Read-UnityVisualExcelRows([string]$Path, [int]$SheetIndex = 1) {
         $headers = @{}
         $rows = @($sheet.SelectNodes('//s:sheetData/s:row', $ns))
         foreach ($cell in $rows[0].SelectNodes('s:c', $ns)) {
-            $headers[[regex]::Match($cell.r,'^[A-Z]+').Value] = Read-VisualExcelCell $cell
+            $key = Read-VisualExcelCell $cell
+            if ($RejectFormulas -and $key -and $key -in $headers.Values) { throw "Duplicate Excel column: $key" }
+            $headers[[regex]::Match($cell.r,'^[A-Z]+').Value] = $key
         }
         foreach ($row in $rows) {
             if ([int]$row.r -lt 5) { continue }
             $record = [ordered]@{}
             foreach ($cell in $row.SelectNodes('s:c', $ns)) {
+                if ($RejectFormulas -and $cell.SelectSingleNode('s:f',$ns)) { throw "Formula cache is not a Unity source value: $SheetName $($cell.r)" }
                 $column = [regex]::Match($cell.r,'^[A-Z]+').Value
                 if ($headers.ContainsKey($column) -and $headers[$column]) {
                     $record[$headers[$column]] = Read-VisualExcelCell $cell

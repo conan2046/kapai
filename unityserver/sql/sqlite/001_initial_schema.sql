@@ -2052,6 +2052,7 @@ END;
 COMMIT;
 
 -- BEGIN GENERATED HAPPYWHEEL SEED
+DELETE FROM zha_dan_info WHERE type=2;
 INSERT INTO zha_dan_info (id,type,award,num,petQt,petQtLv,rate,isJinPin,isShow,notice) VALUES
 (29001,2,60000,100000,0,0,2500,0,1,'0'),
 (29002,2,851,10,0,0,1800,0,1,'0'),
@@ -2063,43 +2064,23 @@ INSERT INTO zha_dan_info (id,type,award,num,petQt,petQtLv,rate,isJinPin,isShow,n
 (29008,2,401,1,0,0,400,0,1,'0'),
 (29009,2,402,1,0,0,300,0,1,'0'),
 (29010,2,403,1,0,0,200,0,1,'0')
-ON CONFLICT(id) DO UPDATE SET
-  type=excluded.type, award=excluded.award, num=excluded.num,
-  petQt=excluded.petQt, petQtLv=excluded.petQtLv, rate=excluded.rate,
-  isJinPin=excluded.isJinPin, isShow=excluded.isShow, notice=excluded.notice;
+ON CONFLICT(id) DO UPDATE SET type=excluded.type,award=excluded.award,num=excluded.num,petQt=excluded.petQt,petQtLv=excluded.petQtLv,rate=excluded.rate,isJinPin=excluded.isJinPin,isShow=excluded.isShow,notice=excluded.notice;
 -- END GENERATED HAPPYWHEEL SEED
 
 -- BEGIN GENERATED UNITY ANSWER SETTINGS SEED
 INSERT INTO answer_settings (id,daily_attempt_limit,fallback_reward_type,fallback_reward_amount) VALUES
 (1,1,60000,1000)
-ON CONFLICT(id) DO UPDATE SET
-  daily_attempt_limit=excluded.daily_attempt_limit,
-  fallback_reward_type=excluded.fallback_reward_type,
-  fallback_reward_amount=excluded.fallback_reward_amount;
+ON CONFLICT(id) DO UPDATE SET daily_attempt_limit=excluded.daily_attempt_limit,fallback_reward_type=excluded.fallback_reward_type,fallback_reward_amount=excluded.fallback_reward_amount;
 -- END GENERATED UNITY ANSWER SETTINGS SEED
 
 -- BEGIN GENERATED UNITY FISH SEED
 INSERT INTO fish_settings (id,gold_cost,cycle_min_seconds,cycle_max_seconds,basket_capacity,fish_stack_limit,auto_continue) VALUES
 (1,100,10,20,9999,999,1)
-ON CONFLICT(id) DO UPDATE SET
-  gold_cost=excluded.gold_cost,
-  cycle_min_seconds=excluded.cycle_min_seconds,
-  cycle_max_seconds=excluded.cycle_max_seconds,
-  basket_capacity=excluded.basket_capacity,
-  fish_stack_limit=excluded.fish_stack_limit,
-  auto_continue=excluded.auto_continue;
-
+ON CONFLICT(id) DO UPDATE SET gold_cost=excluded.gold_cost,cycle_min_seconds=excluded.cycle_min_seconds,cycle_max_seconds=excluded.cycle_max_seconds,basket_capacity=excluded.basket_capacity,fish_stack_limit=excluded.fish_stack_limit,auto_continue=excluded.auto_continue;
 INSERT INTO fish_position (id,scene_id,map_id,x,y,dir,flip,fishing_shape_id) VALUES
 (1,54,33,1086,619,2,1,2000)
-ON CONFLICT(id) DO UPDATE SET
-  scene_id=excluded.scene_id,
-  map_id=excluded.map_id,
-  x=excluded.x,
-  y=excluded.y,
-  dir=excluded.dir,
-  flip=excluded.flip,
-  fishing_shape_id=excluded.fishing_shape_id;
-
+ON CONFLICT(id) DO UPDATE SET scene_id=excluded.scene_id,map_id=excluded.map_id,x=excluded.x,y=excluded.y,dir=excluded.dir,flip=excluded.flip,fishing_shape_id=excluded.fishing_shape_id;
+DELETE FROM fish_reward;
 INSERT INTO fish_reward (id,item_id,weight,enabled,sort,use_reward_id) VALUES
 (1,580,50,1,1,0),
 (2,581,35,1,2,0),
@@ -2111,12 +2092,7 @@ INSERT INTO fish_reward (id,item_id,weight,enabled,sort,use_reward_id) VALUES
 (8,10584,15,1,8,0),
 (9,10585,5,1,9,0),
 (10,10586,1,1,10,0)
-ON CONFLICT(id) DO UPDATE SET
-  item_id=excluded.item_id,
-  weight=excluded.weight,
-  enabled=excluded.enabled,
-  sort=excluded.sort,
-  use_reward_id=excluded.use_reward_id;
+ON CONFLICT(id) DO UPDATE SET item_id=excluded.item_id,weight=excluded.weight,enabled=excluded.enabled,sort=excluded.sort,use_reward_id=excluded.use_reward_id;
 -- END GENERATED UNITY FISH SEED
 
 -- BEGIN GENERATED QUESTION BANK SEED

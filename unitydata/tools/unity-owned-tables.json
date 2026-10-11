@@ -1,0 +1,1677 @@
+{
+  "schemaVersion": 1,
+  "groups": [
+    {
+      "group": "Fish",
+      "workbook": "fish_config.xlsx",
+      "sheets": [
+        {
+          "name": "fish_settings",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "gold_cost": "number",
+            "cycle_min_seconds": "number",
+            "cycle_max_seconds": "number",
+            "basket_capacity": "number",
+            "fish_stack_limit": "number",
+            "auto_continue": "number"
+          },
+          "sheetIndex": 1,
+          "integerColumns": [
+            "id",
+            "gold_cost",
+            "cycle_min_seconds",
+            "cycle_max_seconds",
+            "basket_capacity",
+            "fish_stack_limit",
+            "auto_continue"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {},
+          "client": true,
+          "output": "fish_settings.json",
+          "sql": {
+            "table": "fish_settings",
+            "columns": [
+              "id",
+              "gold_cost",
+              "cycle_min_seconds",
+              "cycle_max_seconds",
+              "basket_capacity",
+              "fish_stack_limit",
+              "auto_continue"
+            ],
+            "key": "id",
+            "delete": false
+          }
+        },
+        {
+          "name": "fish_position",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "scene_id": "number",
+            "map_id": "number",
+            "x": "number",
+            "y": "number",
+            "dir": "number",
+            "flip": "number",
+            "fishing_shape_id": "number",
+            "map_resource": "string"
+          },
+          "clientOnlyColumns": [
+            "map_resource"
+          ],
+          "sheetIndex": 2,
+          "integerColumns": [
+            "id",
+            "scene_id",
+            "map_id",
+            "x",
+            "y",
+            "dir",
+            "flip",
+            "fishing_shape_id"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {},
+          "client": true,
+          "output": "fish_position.json",
+          "sql": {
+            "table": "fish_position",
+            "columns": [
+              "id",
+              "scene_id",
+              "map_id",
+              "x",
+              "y",
+              "dir",
+              "flip",
+              "fishing_shape_id"
+            ],
+            "key": "id",
+            "delete": false
+          }
+        },
+        {
+          "name": "fish_reward",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "item_id": "number",
+            "weight": "number",
+            "enabled": "number",
+            "sort": "number",
+            "use_reward_id": "number"
+          },
+          "sheetIndex": 3,
+          "integerColumns": [
+            "id",
+            "item_id",
+            "weight",
+            "enabled",
+            "sort",
+            "use_reward_id"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {},
+          "client": true,
+          "output": "fish_reward.json",
+          "sql": {
+            "table": "fish_reward",
+            "columns": [
+              "id",
+              "item_id",
+              "weight",
+              "enabled",
+              "sort",
+              "use_reward_id"
+            ],
+            "key": "id",
+            "delete": true
+          }
+        }
+      ],
+      "seed": {
+        "name": "fish.sql",
+        "marker": "GENERATED UNITY FISH SEED"
+      }
+    },
+    {
+      "group": "Answer",
+      "workbook": "answer_config.xlsx",
+      "sheets": [
+        {
+          "name": "answer-settings",
+          "kind": "csv",
+          "columns": {
+            "id": "number",
+            "daily_attempt_limit": "number",
+            "fallback_reward_type": "number",
+            "fallback_reward_amount": "number"
+          },
+          "sheetIndex": 1,
+          "integerColumns": [
+            "id",
+            "daily_attempt_limit",
+            "fallback_reward_type",
+            "fallback_reward_amount"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {},
+          "client": false,
+          "output": "answer-settings.csv",
+          "sql": {
+            "table": "answer_settings",
+            "columns": [
+              "id",
+              "daily_attempt_limit",
+              "fallback_reward_type",
+              "fallback_reward_amount"
+            ],
+            "key": "id"
+          }
+        },
+        {
+          "name": "question",
+          "kind": "csv",
+          "columns": {
+            "id": "number",
+            "question": "string",
+            "answer1": "string",
+            "answer2": "string",
+            "answer3": "string",
+            "answer4": "string"
+          },
+          "sheetIndex": 2,
+          "integerColumns": [
+            "id"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {},
+          "client": false,
+          "output": "question.csv",
+          "sql": {
+            "table": "question",
+            "columns": [
+              "id",
+              "question",
+              "answer1",
+              "answer2",
+              "answer3",
+              "answer4"
+            ],
+            "delete": true,
+            "sequence": true
+          }
+        }
+      ],
+      "seeds": [
+        {
+          "name": "answer_settings.sql",
+          "marker": "GENERATED UNITY ANSWER SETTINGS SEED",
+          "sheet": "answer-settings"
+        },
+        {
+          "name": "question.sql",
+          "marker": "GENERATED QUESTION BANK SEED",
+          "sheet": "question"
+        }
+      ]
+    },
+    {
+      "group": "HappyWheel",
+      "workbook": "happywheel_config.xlsx",
+      "sheets": [
+        {
+          "name": "happywheel-settings",
+          "kind": "csv",
+          "columns": {
+            "enabled": "number",
+            "reward_type": "number",
+            "cost_item_id": "number",
+            "single_draw_count": "number",
+            "single_key_cost": "number",
+            "multi_draw_count": "number",
+            "multi_key_cost": "number",
+            "score_per_draw": "number",
+            "score_ext32_idx": "number",
+            "daily_reset_ext32_idx": "number",
+            "history_limit": "number",
+            "display_slot_count": "number",
+            "insufficient_tip": "string"
+          },
+          "sheetIndex": 1,
+          "integerColumns": [
+            "enabled",
+            "reward_type",
+            "cost_item_id",
+            "single_draw_count",
+            "single_key_cost",
+            "multi_draw_count",
+            "multi_key_cost",
+            "score_per_draw",
+            "score_ext32_idx",
+            "daily_reset_ext32_idx",
+            "history_limit",
+            "display_slot_count"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {},
+          "client": false,
+          "output": "happywheel-settings.csv",
+          "jsonOutput": "happywheel.json"
+        },
+        {
+          "name": "happywheel-rewards",
+          "kind": "csv",
+          "columns": {
+            "id": "number",
+            "type": "number",
+            "award": "number",
+            "num": "number",
+            "petQt": "number",
+            "petQtLv": "number",
+            "rate": "number",
+            "isJinPin": "number",
+            "isShow": "number",
+            "notice": "number",
+            "name": "string"
+          },
+          "sheetIndex": 2,
+          "integerColumns": [
+            "id",
+            "type",
+            "award",
+            "num",
+            "petQt",
+            "petQtLv",
+            "rate",
+            "isJinPin",
+            "isShow",
+            "notice"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {},
+          "client": false,
+          "output": "happywheel-rewards.csv",
+          "sql": {
+            "table": "zha_dan_info",
+            "columns": [
+              "id",
+              "type",
+              "award",
+              "num",
+              "petQt",
+              "petQtLv",
+              "rate",
+              "isJinPin",
+              "isShow",
+              "notice"
+            ],
+            "key": "id",
+            "deleteWhere": "type=2",
+            "textColumns": [
+              "notice"
+            ]
+          }
+        }
+      ],
+      "seed": {
+        "name": "happywheel.sql",
+        "marker": "GENERATED HAPPYWHEEL SEED"
+      }
+    },
+    {
+      "group": "FaBaoSearch",
+      "workbook": "fabao_looting.xlsx",
+      "sheets": [
+        {
+          "name": "fabao_looting",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "item": "number",
+            "ratio": "number"
+          },
+          "sheetIndex": 1,
+          "integerColumns": [
+            "id",
+            "item",
+            "ratio"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {},
+          "client": false,
+          "output": "fabao_looting.json"
+        }
+      ]
+    },
+    {
+      "group": "HeroCombat",
+      "workbook": "hero_combat.xlsx",
+      "sheets": [
+        {
+          "name": "equipment_affix",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "key": "string",
+            "name": "string",
+            "parts": "json",
+            "quality_min": "number",
+            "passive_skill_id": "number",
+            "event": "string",
+            "value1": "json",
+            "value2": "json",
+            "duration": "number",
+            "per_turn_limit": "number",
+            "per_battle_limit": "number",
+            "conflict_group": "string",
+            "desc": "string"
+          },
+          "sheetIndex": 1,
+          "integerColumns": [
+            "id",
+            "quality_min",
+            "passive_skill_id",
+            "duration",
+            "per_turn_limit",
+            "per_battle_limit"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {
+            "parts": [
+              "array"
+            ],
+            "value1": [
+              "array"
+            ],
+            "value2": [
+              "array"
+            ]
+          },
+          "client": false,
+          "output": "equipment_affix.json"
+        },
+        {
+          "name": "hero_skill_role",
+          "kind": "json",
+          "columns": {
+            "hero_id": "number",
+            "regular_skill_id": "number",
+            "tactic_skill_id": "number",
+            "tactic_cost": "number",
+            "build_a": "string",
+            "build_b": "string"
+          },
+          "sheetIndex": 2,
+          "integerColumns": [
+            "hero_id",
+            "regular_skill_id",
+            "tactic_skill_id",
+            "tactic_cost"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {},
+          "client": false,
+          "output": "hero_skill_role.json"
+        },
+        {
+          "name": "hero_build_profile",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "hero_id": "number",
+            "hero_name": "string",
+            "branch": "string",
+            "name": "string",
+            "core_affixes": "json",
+            "support_tags": "json",
+            "strategy_hint": "string"
+          },
+          "sheetIndex": 3,
+          "integerColumns": [
+            "id",
+            "hero_id"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {
+            "core_affixes": [
+              "array"
+            ],
+            "support_tags": [
+              "array"
+            ]
+          },
+          "client": true,
+          "output": "hero_build_profile.json"
+        }
+      ]
+    },
+    {
+      "group": "Attributes",
+      "workbook": "attr_type.xlsx",
+      "sheets": [
+        {
+          "name": "attr_type",
+          "kind": "json",
+          "columns": {
+            "attrType": "number",
+            "attrName": "string",
+            "powerRatio": "number"
+          },
+          "sheetIndex": 1,
+          "integerColumns": [
+            "attrType",
+            "powerRatio"
+          ],
+          "numericStringColumns": [],
+          "jsonKinds": {},
+          "primaryColumn": "attrType",
+          "client": false,
+          "output": "attr_type.json"
+        }
+      ]
+    },
+    {
+      "group": "CasualGameplay",
+      "workbook": "casual_gameplay.xlsx",
+      "sheets": [
+        {
+          "name": "yaoqianshu",
+          "kind": "xml",
+          "columns": {
+            "type": "string",
+            "times": "string",
+            "cost_type": "string",
+            "cost_value": "string",
+            "get_type": "string",
+            "get_value": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 1,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "type",
+            "times",
+            "cost_type",
+            "cost_value",
+            "get_type",
+            "get_value"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "yaoqianshu.xml"
+        },
+        {
+          "name": "chuangguan",
+          "kind": "xml",
+          "columns": {
+            "map": "string",
+            "position": "string",
+            "etype": "string",
+            "rand": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 2,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "map"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "chuangguan.xml"
+        },
+        {
+          "name": "chuangguan_event",
+          "kind": "xml",
+          "columns": {
+            "type": "string",
+            "desc": "string",
+            "pic": "string",
+            "level_reward": "string",
+            "rewardid-count-type": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 3,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "type",
+            "level_reward",
+            "rewardid-count-type"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "chuangguan_event.xml"
+        }
+      ]
+    },
+    {
+      "group": "RoleBattle",
+      "workbook": "role_battle.xlsx",
+      "sheets": [
+        {
+          "name": "role_basic_config",
+          "kind": "xml",
+          "columns": {
+            "profession": "string",
+            "attack_type": "string",
+            "mingzhonglv": "string",
+            "shanbilv": "string",
+            "baojilv": "string",
+            "kangbaolv": "string",
+            "baojishanghai": "string",
+            "zengshanglv": "string",
+            "wumianlv": "string",
+            "famianlv": "string",
+            "lianjilv": "string",
+            "kanglianlv": "string",
+            "lianjishanghai": "string",
+            "fanjilv": "string",
+            "kangfanlv": "string",
+            "fanjishanghia": "string",
+            "fanzhenlv": "string",
+            "kangzhenlv": "string",
+            "fanzhenshanghai": "string",
+            "fumianqianghua": "string",
+            "fumiandikang": "string",
+            "skill": "string",
+            "skill_cv": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 1,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "profession",
+            "attack_type",
+            "mingzhonglv",
+            "shanbilv",
+            "baojilv",
+            "kangbaolv",
+            "baojishanghai",
+            "zengshanglv",
+            "wumianlv",
+            "famianlv",
+            "lianjilv",
+            "kanglianlv",
+            "lianjishanghai",
+            "fanjilv",
+            "kangfanlv",
+            "fanjishanghia",
+            "fanzhenlv",
+            "kangzhenlv",
+            "fanzhenshanghai",
+            "fumianqianghua",
+            "fumiandikang"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "role_basic_config.xml"
+        },
+        {
+          "name": "role_level_attr",
+          "kind": "xml",
+          "columns": {
+            "profession": "string",
+            "level": "string",
+            "gongji": "string",
+            "wufang": "string",
+            "fashang": "string",
+            "qixue": "string",
+            "sudu": "string",
+            "mingzhong": "string",
+            "shanbi": "string",
+            "baoji": "string",
+            "kangbao": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 2,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "profession",
+            "level",
+            "gongji",
+            "wufang",
+            "fashang",
+            "qixue",
+            "sudu",
+            "mingzhong",
+            "shanbi",
+            "baoji",
+            "kangbao"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "role_level_attr.xml"
+        },
+        {
+          "name": "role_skill_LvUp",
+          "kind": "xml",
+          "columns": {
+            "skill_idx": "string",
+            "level": "string",
+            "learn_level": "string",
+            "cost": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 3,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "skill_idx",
+            "level",
+            "learn_level"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "role_skill_LvUp.xml"
+        },
+        {
+          "name": "pet_basic_config",
+          "kind": "xml",
+          "columns": {
+            "id": "string",
+            "pic": "string",
+            "name": "string",
+            "type": "string",
+            "chuzhanLevel": "string",
+            "quality": "string",
+            "initstar": "string",
+            "skill": "string",
+            "recommend_skill": "string",
+            "feature": "string",
+            "face": "string",
+            "itemId": "string",
+            "trans_itemnum": "string",
+            "attack_type": "string",
+            "gongji": "string",
+            "wufang": "string",
+            "fashang": "string",
+            "qixue": "string",
+            "sudu": "string",
+            "mingzhong": "string",
+            "shanbi": "string",
+            "baoji": "string",
+            "kangbao": "string",
+            "gongji_lv": "string",
+            "wufang_lv": "string",
+            "fafang_lv": "string",
+            "qixue_lv": "string",
+            "sudu_lv": "string",
+            "mingzhong_lv": "string",
+            "shanbi_lv": "string",
+            "baoji_lv": "string",
+            "kangbao_lv": "string",
+            "mingzhonglv": "string",
+            "shanblv": "string",
+            "baojilv": "string",
+            "kangbaolv": "string",
+            "baojishanghai": "string",
+            "zengshanglv": "string",
+            "wumianlv": "string",
+            "famianlv": "string",
+            "lianjilv": "string",
+            "kanglianlv": "string",
+            "lianjishanghai": "string",
+            "fanjilv": "string",
+            "kangfanlv": "string",
+            "fanjishanghia": "string",
+            "fanzhenlv": "string",
+            "kangzhenlv": "string",
+            "fanzhenshanghai": "string",
+            "fumianqianghua": "string",
+            "fumiandikang": "string",
+            "cv": "string",
+            "tujian": "string",
+            "skill_cv": "string",
+            "suit_tuijian": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 4,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "id",
+            "pic",
+            "type",
+            "chuzhanLevel",
+            "quality",
+            "initstar",
+            "face",
+            "itemId",
+            "trans_itemnum",
+            "attack_type",
+            "gongji",
+            "wufang",
+            "fashang",
+            "qixue",
+            "sudu",
+            "mingzhong",
+            "shanbi",
+            "baoji",
+            "kangbao",
+            "gongji_lv",
+            "wufang_lv",
+            "fafang_lv",
+            "qixue_lv",
+            "sudu_lv",
+            "mingzhong_lv",
+            "shanbi_lv",
+            "baoji_lv",
+            "kangbao_lv",
+            "mingzhonglv",
+            "shanblv",
+            "baojilv",
+            "kangbaolv",
+            "baojishanghai",
+            "zengshanglv",
+            "wumianlv",
+            "famianlv",
+            "lianjilv",
+            "kanglianlv",
+            "lianjishanghai",
+            "fanjilv",
+            "kangfanlv",
+            "fanjishanghia",
+            "fanzhenlv",
+            "kangzhenlv",
+            "fanzhenshanghai",
+            "fumianqianghua",
+            "fumiandikang",
+            "tujian"
+          ],
+          "jsonKinds": {},
+          "client": true,
+          "output": "pet_basic_config.xml"
+        },
+        {
+          "name": "skill_basic",
+          "kind": "xml",
+          "columns": {
+            "id": "string",
+            "type": "string",
+            "name": "string",
+            "effect": "string",
+            "cd": "string",
+            "desc": "string",
+            "skill_pic": "string",
+            "skill_type": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 5,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "id",
+            "type",
+            "cd"
+          ],
+          "jsonKinds": {},
+          "client": true,
+          "output": "skill_basic.xml"
+        },
+        {
+          "name": "skill_active_effect",
+          "kind": "xml",
+          "columns": {
+            "id": "string",
+            "type": "string",
+            "target_type": "string",
+            "target_range": "string",
+            "target_select": "string",
+            "target_num": "string",
+            "buffid": "string",
+            "para1_name": "string",
+            "para1": "string",
+            "para1_lv": "string",
+            "para2_name": "string",
+            "para2": "string",
+            "para2_lv": "string",
+            "para3_name": "string",
+            "para3": "string",
+            "para3_lv": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 6,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "id",
+            "type",
+            "target_type",
+            "target_range",
+            "target_select",
+            "target_num",
+            "buffid",
+            "para1",
+            "para1_lv",
+            "para2",
+            "para2_lv",
+            "para3",
+            "para3_lv"
+          ],
+          "jsonKinds": {},
+          "client": true,
+          "output": "skill_active_effect.xml"
+        },
+        {
+          "name": "skill_additive_effect",
+          "kind": "xml",
+          "columns": {
+            "id": "string",
+            "show_str": "string",
+            "trigger": "string",
+            "type": "string",
+            "buffid": "string",
+            "para1_name": "string",
+            "para1": "string",
+            "para1_lv": "string",
+            "para2_name": "string",
+            "para2": "string",
+            "para2_lv": "string",
+            "para3_name": "string",
+            "para3": "string",
+            "para3_lv": "string",
+            "para4_name": "string",
+            "para4": "string",
+            "para4_lv": "string",
+            "para5_name": "string",
+            "para5": "string",
+            "para5_lv": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 7,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "id",
+            "trigger",
+            "type",
+            "buffid",
+            "para1",
+            "para1_lv",
+            "para2",
+            "para2_lv",
+            "para3",
+            "para3_lv",
+            "para4",
+            "para4_lv",
+            "para5",
+            "para5_lv"
+          ],
+          "jsonKinds": {},
+          "client": true,
+          "output": "skill_additive_effect.xml"
+        },
+        {
+          "name": "skill_buff",
+          "kind": "xml",
+          "columns": {
+            "id": "string",
+            "name": "string",
+            "type": "string",
+            "Issuperpose": "string",
+            "mutex_buffid": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 8,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "id",
+            "type",
+            "Issuperpose"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "skill_buff.xml"
+        },
+        {
+          "name": "fight_special_config",
+          "kind": "xml",
+          "columns": {
+            "id": "string",
+            "zhenfa_id": "string",
+            "zhenfa_level": "string",
+            "index1": "string",
+            "index2": "string",
+            "index3": "string",
+            "index4": "string",
+            "index5": "string",
+            "fight_dialog_id": "string",
+            "user_zhenfa_id": "string",
+            "user_zhenfa_level": "string",
+            "user_idx": "string",
+            "zhuzhan_id": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 9,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "id",
+            "zhenfa_id",
+            "index1",
+            "index2",
+            "index3",
+            "index4",
+            "index5",
+            "fight_dialog_id",
+            "user_zhenfa_id",
+            "user_idx",
+            "zhuzhan_id"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "fight_special_config.xml"
+        },
+        {
+          "name": "fight_dialog",
+          "kind": "xml",
+          "columns": {
+            "dialogid": "string",
+            "show_turn": "string",
+            "group": "string",
+            "order": "string",
+            "zhenfa_idx": "string",
+            "dialog": "string",
+            "time": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 10,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "dialogid",
+            "show_turn",
+            "group",
+            "order",
+            "zhenfa_idx",
+            "time"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "fight_dialog.xml"
+        },
+        {
+          "name": "fight_zhuzhan",
+          "kind": "xml",
+          "columns": {
+            "zhuzhan_id": "string",
+            "zhuzhan_turn": "string",
+            "group": "string",
+            "zhenfa_idx": "string",
+            "type": "string",
+            "unit_id": "string",
+            "pet_star": "string",
+            "pet_level": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 11,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "zhuzhan_id",
+            "zhuzhan_turn",
+            "group",
+            "zhenfa_idx",
+            "type",
+            "unit_id",
+            "pet_star",
+            "pet_level"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "fight_zhuzhan.xml"
+        },
+        {
+          "name": "monster_boss_vary_attr",
+          "kind": "xml",
+          "columns": {
+            "strength_type": "string",
+            "level": "string",
+            "attack": "string",
+            "wufang": "string",
+            "fafang": "string",
+            "qixue": "string",
+            "sudu": "string",
+            "mingzhong": "string",
+            "shanbi": "string",
+            "baoji": "string",
+            "kangbao": "string",
+            "mingzhonglv": "string",
+            "shanblv": "string",
+            "baojilv": "string",
+            "kangbaolv": "string",
+            "baojishanghai": "string",
+            "zengshanglv": "string",
+            "wumianlv": "string",
+            "famianlv": "string",
+            "lianjilv": "string",
+            "kanglianlv": "string",
+            "lianjishanghai": "string",
+            "fanjilv": "string",
+            "kangfanlv": "string",
+            "fanjishanghia": "string",
+            "fanzhenlv": "string",
+            "kangzhenlv": "string",
+            "fanzhenshanghai": "string",
+            "fumianqianghua": "string",
+            "fumiandikang": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 12,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "strength_type",
+            "level",
+            "attack",
+            "wufang",
+            "fafang",
+            "qixue",
+            "sudu",
+            "mingzhong",
+            "shanbi",
+            "baoji",
+            "kangbao",
+            "mingzhonglv",
+            "shanblv",
+            "baojilv",
+            "kangbaolv",
+            "baojishanghai",
+            "zengshanglv",
+            "wumianlv",
+            "famianlv",
+            "lianjilv",
+            "kanglianlv",
+            "lianjishanghai",
+            "fanjilv",
+            "kangfanlv",
+            "fanjishanghia",
+            "fanzhenlv",
+            "kangzhenlv",
+            "fanzhenshanghai",
+            "fumianqianghua",
+            "fumiandikang"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "monster_boss_vary_attr.xml"
+        },
+        {
+          "name": "pet_born_skill_LvUp",
+          "kind": "xml",
+          "columns": {
+            "skill_idx": "string",
+            "level": "string",
+            "learn_level": "string",
+            "cost": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 13,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "skill_idx",
+            "level",
+            "learn_level"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_born_skill_LvUp.xml"
+        },
+        {
+          "name": "pet_skill_LvUp",
+          "kind": "xml",
+          "columns": {
+            "id": "string",
+            "srclevel": "string",
+            "cost": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 14,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "id",
+            "srclevel"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_skill_LvUp.xml"
+        },
+        {
+          "name": "pet_skill_add",
+          "kind": "xml",
+          "columns": {
+            "item_id": "string",
+            "skill_id": "string",
+            "skill_level": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 15,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "item_id",
+            "skill_id",
+            "skill_level"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_skill_add.xml"
+        },
+        {
+          "name": "pet_quality",
+          "kind": "xml",
+          "columns": {
+            "quality": "string",
+            "total_cost_ratio": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 16,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "quality",
+            "total_cost_ratio"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_quality.xml"
+        },
+        {
+          "name": "pet_star",
+          "kind": "xml",
+          "columns": {
+            "star": "string",
+            "star_ratio": "string",
+            "step_ratio": "string",
+            "total_cost": "string",
+            "level_limit": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 17,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "star",
+            "star_ratio",
+            "step_ratio",
+            "total_cost",
+            "level_limit"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_star.xml"
+        },
+        {
+          "name": "pet_star_step",
+          "kind": "xml",
+          "columns": {
+            "step": "string",
+            "attr": "string",
+            "attr_ratio": "string",
+            "cost_ratio": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 18,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "step",
+            "attr",
+            "attr_ratio",
+            "cost_ratio"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_star_step.xml"
+        },
+        {
+          "name": "pet_xiulian",
+          "kind": "xml",
+          "columns": {
+            "quality": "string",
+            "level": "string",
+            "index1_attr": "string",
+            "index1_level": "string",
+            "index2_attr": "string",
+            "index2_level": "string",
+            "index3_attr": "string",
+            "index3_level": "string",
+            "index4_attr": "string",
+            "index4_level": "string",
+            "index5_attr": "string",
+            "index5_level": "string",
+            "cost_item": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 19,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "quality",
+            "level",
+            "index1_level",
+            "index2_level",
+            "index3_level",
+            "index4_level",
+            "index5_level"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_xiulian.xml"
+        },
+        {
+          "name": "pet_type_attr_ratio",
+          "kind": "xml",
+          "columns": {
+            "type": "string",
+            "attackRatio": "string",
+            "wufangRatio": "string",
+            "fafangRatio": "string",
+            "suduRatio": "string",
+            "qixueRatio": "string",
+            "mingzhongRatio": "string",
+            "shanbiRatio": "string",
+            "baojiRatio": "string",
+            "kangbaoRatio": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 20,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "type",
+            "attackRatio",
+            "wufangRatio",
+            "fafangRatio",
+            "suduRatio",
+            "qixueRatio",
+            "mingzhongRatio",
+            "shanbiRatio",
+            "baojiRatio",
+            "kangbaoRatio"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_type_attr_ratio.xml"
+        },
+        {
+          "name": "pet_xuemai",
+          "kind": "xml",
+          "columns": {
+            "level": "string",
+            "exp": "string",
+            "baihu_type1": "string",
+            "baihu_val1": "string",
+            "baihu_type2": "string",
+            "baihu_val2": "string",
+            "xuanwu_type1": "string",
+            "xuanwu_val1": "string",
+            "xuanwu_type2": "string",
+            "xuanwu_val2": "string",
+            "zhuque_type1": "string",
+            "zhuque_val1": "string",
+            "zhuque_type2": "string",
+            "zhuque_val2": "string",
+            "qinglong_type1": "string",
+            "qinglong_val1": "string",
+            "qinglong_type2": "string",
+            "qinglong_val2": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 21,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "level",
+            "exp",
+            "baihu_type1",
+            "baihu_val1",
+            "baihu_type2",
+            "baihu_val2",
+            "xuanwu_type1",
+            "xuanwu_val1",
+            "xuanwu_type2",
+            "xuanwu_val2",
+            "zhuque_type1",
+            "zhuque_val1",
+            "zhuque_type2",
+            "zhuque_val2",
+            "qinglong_type1",
+            "qinglong_val1",
+            "qinglong_type2",
+            "qinglong_val2"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_xuemai.xml"
+        },
+        {
+          "name": "equip_qianghua",
+          "kind": "xml",
+          "columns": {
+            "equip_pos": "string",
+            "qianghua_level": "string",
+            "basicSuccRatio": "string",
+            "cost": "string",
+            "itemSuccRatio": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 22,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "equip_pos",
+            "qianghua_level",
+            "basicSuccRatio"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "equip_qianghua.xml"
+        },
+        {
+          "name": "equip_qianghua_attr",
+          "kind": "xml",
+          "columns": {
+            "type": "string",
+            "qianghua_level": "string",
+            "attr": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 23,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "type",
+            "qianghua_level"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "equip_qianghua_attr.xml"
+        },
+        {
+          "name": "equip_shengjie",
+          "kind": "xml",
+          "columns": {
+            "equip_pos": "string",
+            "level": "string",
+            "cost": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 24,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "equip_pos",
+            "level"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "equip_shengjie.xml"
+        },
+        {
+          "name": "equip_cuilian_attr",
+          "kind": "xml",
+          "columns": {
+            "type": "string",
+            "attr1_level": "string",
+            "attr1_type": "string",
+            "attr1_max": "string",
+            "attr2_level": "string",
+            "attr2_type": "string",
+            "attr2_max": "string",
+            "attr3_level": "string",
+            "attr3_type": "string",
+            "attr3_max": "string",
+            "attr4_level": "string",
+            "attr4_type": "string",
+            "attr4_max": "string",
+            "attr5_level": "string",
+            "attr5_type": "string",
+            "attr5_max": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 25,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "type",
+            "attr1_level",
+            "attr1_type",
+            "attr1_max",
+            "attr2_level",
+            "attr2_type",
+            "attr2_max",
+            "attr3_level",
+            "attr3_type",
+            "attr3_max",
+            "attr4_level",
+            "attr4_type",
+            "attr4_max"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "equip_cuilian_attr.xml"
+        },
+        {
+          "name": "equip_xilian",
+          "kind": "xml",
+          "columns": {
+            "equip_pos": "string",
+            "cost": "string",
+            "random_attr_num": "string",
+            "ratio_pool": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 26,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "equip_pos"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "equip_xilian.xml"
+        },
+        {
+          "name": "equip_xilian_attr",
+          "kind": "xml",
+          "columns": {
+            "type": "string",
+            "attr_pool": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 27,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "type"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "equip_xilian_attr.xml"
+        },
+        {
+          "name": "title_config",
+          "kind": "xml",
+          "columns": {
+            "id": "string",
+            "name": "string",
+            "desc": "string",
+            "attr": "string",
+            "Isshow": "string",
+            "is_forever": "string",
+            "continue_time": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 28,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "id",
+            "Isshow",
+            "is_forever",
+            "continue_time"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "title_config.xml"
+        },
+        {
+          "name": "pet_draw_basic",
+          "kind": "xml",
+          "columns": {
+            "kind": "string",
+            "name": "string",
+            "open_level": "string",
+            "type": "string",
+            "need_item_id": "string",
+            "need_item_num": "string",
+            "need_yuanbao": "string",
+            "must_be_out_times": "string",
+            "orange_pet_num": "string",
+            "save_times_ext8": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 29,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "kind",
+            "open_level",
+            "type",
+            "need_item_id",
+            "need_item_num",
+            "need_yuanbao",
+            "must_be_out_times",
+            "orange_pet_num",
+            "save_times_ext8"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_draw_basic.xml"
+        },
+        {
+          "name": "pet_draw_config",
+          "kind": "xml",
+          "columns": {
+            "kind": "string",
+            "type": "string",
+            "award": "string",
+            "quanzhong": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 30,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "kind",
+            "type",
+            "quanzhong"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "pet_draw_config.xml"
+        },
+        {
+          "name": "fengshen_shilian",
+          "kind": "xml",
+          "columns": {
+            "id": "string",
+            "boss_id": "string",
+            "fight_id": "string",
+            "recommend_pets": "string",
+            "open_weekday": "string",
+            "reward_show": "string",
+            "level_reward_1": "string",
+            "level_reward_2": "string",
+            "level_reward_3": "string",
+            "desc": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 31,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "id",
+            "boss_id",
+            "fight_id",
+            "level_reward_1",
+            "level_reward_2",
+            "level_reward_3"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "fengshen_shilian.xml"
+        },
+        {
+          "name": "tongtiantower",
+          "kind": "xml",
+          "columns": {
+            "id": "string",
+            "first_reward": "string",
+            "normal_reward": "string",
+            "target_reward": "string",
+            "name": "string"
+          },
+          "rootTag": "CONFIGS",
+          "rootAttributes": {},
+          "rowTag": "CONTENT",
+          "sheetIndex": 32,
+          "integerColumns": [],
+          "numericStringColumns": [
+            "id"
+          ],
+          "jsonKinds": {},
+          "client": false,
+          "output": "tongtiantower.xml"
+        }
+      ]
+    }
+  ]
+}

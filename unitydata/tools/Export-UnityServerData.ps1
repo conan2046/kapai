@@ -3,10 +3,15 @@ param(
     [switch]$CleanOutput,
     [switch]$ApplyGeneratedJson,
     [int]$TimeoutSeconds = 120,
-    [switch]$OnlyJingJie
+    [switch]$OnlyJingJie,
+    [string]$DataGroup
 )
 
 $ErrorActionPreference = 'Stop'
+if ($DataGroup) {
+    & (Join-Path $PSScriptRoot 'Export-UnityOwnedTables.ps1') -Root $Root -Group $DataGroup -Mode Server -ApplyRuntime:$ApplyGeneratedJson.IsPresent
+    return
+}
 if ($OnlyJingJie) {
     & (Join-Path $PSScriptRoot 'Export-UnityJingJieData.ps1') -Root $Root -Mode Server
     return
@@ -32,6 +37,14 @@ $authoritativeNames = @(
     'xiulian.json'
 )
 $reportPath = Join-Path $Root '.local\unityserver-export\latest.json'
+$ownedManifest = Get-Content (Join-Path $PSScriptRoot 'unity-owned-tables.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+$ownedWorkbooks = @($ownedManifest.groups.workbook)
+$ownedJsonNames = @(foreach ($group in $ownedManifest.groups) {
+    foreach ($sheet in $group.sheets) {
+        if ($sheet.kind -eq 'json') { $sheet.output }
+        if ($sheet.jsonOutput) { $sheet.jsonOutput }
+    }
+})
 
 foreach ($required in @($excel, $vendor, $baseline, $authoritativeRoot)) {
     if (-not (Test-Path -LiteralPath $required)) {
@@ -44,7 +57,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $stage 'excel') | Out-Null
 Copy-Item -LiteralPath $vendor -Destination (Join-Path $stage 'xl转表.exe') -Force
 Get-ChildItem -LiteralPath $excel -Recurse -File | ForEach-Object {
     # JingJie uses the Unity-owned typed exporter; role visuals remain client-only.
-    if ($_.Name -in @('jingjie_config.xlsx','role_visual.xlsx')) { return }
+    if ($_.Name -in (@('jingjie_config.xlsx','role_visual.xlsx') + $ownedWorkbooks)) { return }
     $relative = $_.FullName.Substring($excel.Length).TrimStart('\', '/')
     $target = Join-Path (Join-Path $stage 'excel') $relative
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
@@ -120,10 +133,12 @@ foreach ($name in $authoritativeNames) {
     }
 }
 
+& (Join-Path $PSScriptRoot 'Export-UnityOwnedTables.ps1') -Root $Root -Mode Server -ApplyRuntime:$false
 $unresolvedDrift = @()
 foreach ($file in Get-ChildItem -LiteralPath $generated -Recurse -File) {
     $relative = $file.FullName.Substring($generated.Length).TrimStart('\', '/')
     $target = Join-Path $baseline $relative
+    if ($relative -in $ownedJsonNames) { continue } # These Unity-owned sources intentionally replace their baseline on apply.
     if (-not (Test-Path -LiteralPath $target)) {
         $unresolvedDrift += [pscustomobject]@{ path = $relative; kind = 'missing-baseline' }
     } elseif ((Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash -ne
@@ -139,6 +154,7 @@ $report = [ordered]@{
     generatedOutput = 'unitydata/export/server/generated/json_server'
     baselineRuntime = 'unityserver/config/json'
     generatedFileCount = $generatedFiles.Count
+    unityOwnedGroupCount = $ownedManifest.groups.Count
     excelDriftCount = $excelDrift.Count
     authoritativeOverrideCount = $authoritativeOverrides.Count
     unresolvedDriftCount = $unresolvedDrift.Count
@@ -162,6 +178,7 @@ if ($ApplyGeneratedJson) {
         }
     }
     $report.applied = $true
+    & (Join-Path $PSScriptRoot 'Export-UnityOwnedTables.ps1') -Root $Root -Mode Server -ApplyRuntime:$true
     [IO.File]::WriteAllText($reportPath, ($report | ConvertTo-Json -Depth 8) + "`n", [Text.UTF8Encoding]::new($false))
 }
 

@@ -4,10 +4,15 @@ param(
     [switch]$OnlyWorldBoxRewards,
     [switch]$OnlyJingJieVisuals,
     [switch]$OnlyRoleVisuals,
-    [switch]$OnlyJingJie
+    [switch]$OnlyJingJie,
+    [string]$DataGroup
 )
 
 $ErrorActionPreference = 'Stop'
+if ($DataGroup) {
+    & (Join-Path $PSScriptRoot 'Export-UnityOwnedTables.ps1') -Root $Root -Group $DataGroup -Mode Client
+    return
+}
 . (Join-Path $PSScriptRoot 'Read-UnityVisualExcel.ps1')
 
 $Root = [System.IO.Path]::GetFullPath($Root)
@@ -105,6 +110,8 @@ if ($OnlyWorldBoxRewards) {
 
 Export-RoleVisuals
 Export-JingJieVisuals
+
+& (Join-Path $PSScriptRoot 'Export-UnityOwnedTables.ps1') -Root $Root -Mode Client -ApplyRuntime:$false
 
 # Client visual metadata is independent from server operation costs and attributes.
 $equipmentVisuals = Get-Content -LiteralPath (Join-Path $Root 'unitydata\export\client\visuals\equipment-icons.json') -Raw -Encoding UTF8 | ConvertFrom-Json

@@ -24,13 +24,13 @@ unitydata/export/client/source
     -> unityclient/Assets/Resources/ProjectXData
 ```
 
-`export/client/source` 是本次客户端迁移建立的 Unity 独立基线快照，包含 54 个当前 Unity 运行所需的数据文件。后续策划 Excel 和 Unity 专用导出工具应接入此目录，不再从 Cocos 或旧服务端目录复制。
+`export/client/source` 是 Unity 独立客户端数据源，截至2026-10-11包含61个运行数据文件。下文列出的Unity自有工作簿先经类型导出器生成对应数据，其余历史快照继续复制；不再从Cocos或旧服务端目录补输入。
 
 宝箱预览表 `World/reward_fixed_dat.txt` 由客户端导出工具从 Unity Excel 的服务端中间产物 `export/server/generated/json_server/reward_fixed.json` 生成，并检查与 `unityserver/config/json/reward_fixed.json` 一致，避免客户端预览与实际奖励不同。仅同步该表可用 `Export-UnityClientData.ps1 -OnlyWorldBoxRewards`。
 
 全量导出校验相对路径与文件哈希；内容未变时不重写文件。`-CleanOutput` 仅删除输出目录内数据源已不存在的数据文件，保留目录和全部 `.meta`，避免已有 Unity GUID/Importer 配置丢失。宝箱模式只同步宝箱预览表，不清理其他输出。
 
-历史 Fish G0 同步入口 `tools/unity-migration/Sync-FishConfig.mjs` 已停用并归档，不再向原版 `server` 或旧 Unity Assets 目录回填。钓鱼客户端三表使用当前独立数据源；服务端三表暂保留 `unityserver/config/json` 基线，尚未接入 Unity 专用 Excel 导出，不能把历史 G0 数据当作当前导出输入。
+历史 Fish G0 同步入口 `tools/unity-migration/Sync-FishConfig.mjs` 已停用并归档。钓鱼现由`excel/fish_config.xlsx`维护，客户端JSON、服务端JSON及真正业务使用的SQLite种子统一生成；不再向原版`server`或旧Unity Assets目录回填。
 
 ```powershell
 & .\unitydata\tools\Export-UnityClientData.ps1
@@ -64,11 +64,45 @@ unitydata/excel/*.xlsx
     -> unityserver/config/json
 ```
 
-`unitydata/excel` 保存 Unity 自有的 58 个正式 Excel 输入副本，转换器也复制到 Unity 工具目录，不依赖外部 `concept` 路径。`unitydata/export/server/generated/json_server` 是每次导表的原始中间产物。
+`unitydata/excel` 保存Unity正式Excel输入（截至2026-10-11递归共68个文件，其中8个为本轮新增工作簿）。旧通用转换器只处理其合同内的旧工作簿；`unity-owned-tables.json`登记的工作簿由`Export-UnityOwnedTables.ps1`处理，境界及角色外观沿用专用导出器，均不依赖外部`concept`路径。
 
 `unitydata/export/server/authoritative/json` 保存当前 Unity 服务端基线中的 11 张权威快照：`daily`、`drop_matching`、`function`、`item`、`level_reward`、`mission_dialog`、`reward`、`sevendays`、`shop_config`、`shop`、`xiulian`。这些表以现有服务器数据为准，覆盖原始 Excel 转换结果；原始 Excel 差异仍记录在 `.local/unityserver-export/latest.json`，但不会再阻断导表。使用 `-ApplyGeneratedJson` 会把合并后的结果同步到 `unityserver/config/json`。
 
-服务端 XML 与地图文件暂保持已验收基线，待补齐对应 XML/地图专用转换器后再纳入同一条链路。服务端运行所需的 3 个 DLL 位于 `unityserver/runtime`，不属于策划数据表。
+已登记的35张服务端XML接入Unity工作簿；其余XML和地图仍保留历史基线。服务端运行所需的3个DLL位于`unityserver/runtime`，不属于策划数据表。
+
+## Unity 自有表：修改和导出
+
+| 数据组 | 正式工作簿 | 内容 |
+|---|---|---|
+| Fish | `excel/fish_config.xlsx` | 参数、钓位、10种鱼奖励；钓位`map_resource`只输出客户端 |
+| Answer | `excel/answer_config.xlsx` | 每日次数/兜底奖励、38道题及选项 |
+| HappyWheel | `excel/happywheel_config.xlsx` | 转盘参数、10项奖励 |
+| FaBaoSearch | `excel/fabao_looting.xlsx` | 264条法宝搜索配置 |
+| HeroCombat | `excel/hero_combat.xlsx` | 48词缀、59神将技能定位、24配装建议 |
+| Attributes | `excel/attr_type.xlsx` | 41条属性/战力系数 |
+| CasualGameplay | `excel/casual_gameplay.xlsx` | 摇钱树、闯关地图/事件三表 |
+| RoleBattle | `excel/role_battle.xlsx` | 角色/神将/装备/战斗基础、旧培养、称号、旧抽宠、试炼/塔初始化共32表；只接通数据，不恢复旧入口 |
+
+工作簿遵循现有四行表头：第1行字段键、第2行导出范围、第3行说明、第4行类型，第5行起为数据。键和Sheet名称属于运行合同；新增记录应完整填写各字段。`json`列填写合法JSON数组/对象；XML复合属性继续保留原字符串。XML中的原空占位行保留。导出按Sheet名称定位，不依赖标签顺序；含公式的配置单元格会被拒绝，防止读到陈旧公式缓存。
+
+```powershell
+# 定向双端导出：写生成目录、Unity运行配置和SQLite种子/初始化结构
+& .\unitydata\tools\Export-UnityOwnedTables.ps1 -Group Fish
+# 只核对，不写文件
+& .\unitydata\tools\Export-UnityOwnedTables.ps1 -Group Fish -ValidateOnly
+# 所有登记表；Group省略也等价All
+& .\unitydata\tools\Export-UnityOwnedTables.ps1 -Group All
+# 只生成服务端产物，暂不同步运行配置/初始化结构
+& .\unitydata\tools\Export-UnityOwnedTables.ps1 -Mode Server -ApplyRuntime:$false
+```
+
+全量客户端/服务端入口自动纳入这些组。`Export-UnityClientData.ps1 -DataGroup Fish`只同步客户端；`Export-UnityServerData.ps1 -DataGroup Fish`只生成服务端中间产物，添加`-ApplyGeneratedJson`才同步服务端JSON/XML/CSV和SQLite种子。
+
+SQLite链：源表→`export/server/generated/sqlite/*.sql`→`unityserver/sql/sqlite/seeds/*.sql`和`001_initial_schema.sql`的对应标记段。真实启动路径由`LocalServerSupervisor`传入该结构文件，服务端启动执行整份结构，所以改表后需要重新启动单机服务端才能更新已存在存档中的配置行。导表不连接或修改当前玩家存档；种子只更新所属配置表，保留鱼篓等玩家状态。鱼种删除与题库替换会清除所属配置表旧行，转盘奖励只替换`type=2`所属行。
+
+维护源唯一是上述Excel。`unityserver/config/source/*.csv`是兼容输出，不能再当独立编辑源；`tools/local/Export-QuestionBank.ps1`、`Export-AnswerSettings.ps1`、`Export-HappyWheelConfig.ps1`继续服务旧server链，不作为Unity入口。
+
+只读/隔离测试：使用可用Python运行`unitydata/tools/tests/test_unity_owned_tables.py`。测试在工程`.local/unitydata-closure-tests`构建副本，以真实导出脚本及内存SQLite检验改表传播、非法输入无写入、重复导出、鱼种删除、客户端专属字段和XML占位行；不启动游戏。
 
 导表命令：
 
