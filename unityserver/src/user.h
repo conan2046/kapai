@@ -536,6 +536,7 @@ class CUser
 public:
     CUser();
     friend class CUnityJingJieService;
+    friend class CUnityGardenService;
     ~CUser();
     void SetSock(int);
     int GetSock();

@@ -8,6 +8,9 @@ namespace ProjectX.UI
         public static void Initialize(GameObject root)
         {
             if (root == null) return;
+            // DongFu owns all presentation in its prefabs, including button transitions.
+            // Do not add shared feedback that changes Transform.localScale at runtime.
+            if (root.GetComponent<DongFuScreen>() != null || root.GetComponent<DongFuHomeScreen>() != null || root.GetComponent<GardenScreen>() != null) return;
             if (root.GetComponent<UiButtonFeedbackScope>() == null)
                 root.AddComponent<UiButtonFeedbackScope>();
 

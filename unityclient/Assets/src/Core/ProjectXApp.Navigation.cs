@@ -6,6 +6,12 @@ namespace ProjectX.Core
     {
         public bool HandleBack()
         {
+            if (IsGardenOpen) { gardenScreen.Back(); return true; }
+            if (IsDongFuOpen)
+            {
+                dongFuScreen.Back();
+                return true;
+            }
             if (cultivationPresenter?.IsRunning == true) return true;
             if (oldMemoryPresenter?.IsVisible == true)
             {
@@ -238,6 +244,18 @@ namespace ProjectX.Core
             {
                 gameplayContentView?.SetVisible(true);
                 Canvas.ForceUpdateCanvases();
+            }
+            else if (popped && services.UiStack.Current == gardenView)
+            {
+                RestoreGardenFrame();
+            }
+            else if (popped && services.UiStack.Current == dongFuView)
+            {
+                RestoreDongFuFrame();
+            }
+            else if(popped&&services.UiStack.Current==dongFuSubView)
+            {
+                RestoreDongFuSubFrame();
             }
             return popped;
         }

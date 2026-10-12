@@ -8,7 +8,56 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Read-UnityVisualExcel.ps1')
+# Scoped append/update of garden items from the formal item workbook. Preserve the
+# frozen legacy records; do not run the legacy converter across unrelated tables.
+if ($Group -eq 'GardenItems') {
+    $gardenItemIds=@{}
+    foreach($crop in @(Read-UnityVisualExcelRows (Join-Path $Root 'unitydata/excel/dongfu_config.xlsx') 2 -SheetName 'dongfu_crop')) {
+        if([string]$crop.enabled -ne '1') { continue }
+        $gardenItemIds[[string]$crop.seed_item_id]=$true
+        $outputs=ConvertFrom-Json -InputObject ([string]$crop.outputs) -NoEnumerate
+        foreach($pair in $outputs) { $gardenItemIds[[string]$pair[0]]=$true }
+    }
+    if(-not $gardenItemIds.Count) { throw 'No enabled garden crop item references.' }
+    $sourceRows = @(Read-UnityVisualExcelRows (Join-Path $Root 'unitydata/excel/item.xlsx'))
+    $records = @(foreach ($r in $sourceRows) {
+        if (-not $gardenItemIds.ContainsKey([string]$r.id)) { continue }
+        $record=[ordered]@{}
+        foreach($key in @('id','name','des','pic','quality','type','use_type','sub_value','limit_lv','limit_time','sell','sort_priority','jiage','item_from','item_source','script','use_jump')) {
+            if($key -in @('name','des','item_from','item_source')) { $record[$key]=[string]$r[$key] }
+            elseif($key -in @('sub_value','limit_time')) {
+                $cell=[string]$r[$key]
+                if([string]::IsNullOrWhiteSpace($cell)){$record[$key]=@()}
+                else{$record[$key]=ConvertFrom-Json -InputObject $cell -NoEnumerate}
+                if($key -eq 'sub_value' -and $record[$key].Count -and $record[$key][0] -isnot [System.Collections.IList]) {
+                    $record[$key]=,@($record[$key])
+                }
+            }
+            else {
+                $cell=[string]$r[$key]
+                if([string]::IsNullOrWhiteSpace($cell) -and $key -in @('use_jump','script','sell','jiage','sort_priority','limit_lv')){$cell='0'}
+                $record[$key]=[long]::Parse($cell)
+            }
+        }
+        $record
+    })
+    if($records.Count -ne $gardenItemIds.Count) { throw 'Garden formal item records are missing or duplicated.' }
+    $base=Join-Path $Root 'unityserver/config/json/item.json'
+    $items=@(Get-Content -LiteralPath $base -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable | Where-Object { -not $gardenItemIds.ContainsKey([string]$_.id) }) + $records
+    if(-not $ValidateOnly) {
+        $json=(ConvertTo-Json -InputObject $items -Depth 32 -Compress)+"`n"
+        foreach($path in @('unityserver/config/json/item.json','unitydata/export/server/generated/json_server/item.json','unitydata/export/server/source/authoritative/json/item.json','unityclient/Assets/Resources/ProjectXData/Configs/item.json','unitydata/export/client/source/Configs/item.json')) {
+            $target=Join-Path $Root $path
+            if(Test-Path -LiteralPath (Split-Path $target -Parent)) { [IO.File]::WriteAllText($target,$json,[Text.UTF8Encoding]::new($false)) }
+        }
+    }
+    Write-Output "GardenItems: $($records.Count) formal item records exported; legacy records retained."
+    return
+}
 $manifest = Get-Content (Join-Path $PSScriptRoot 'unity-owned-tables.json') -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+if ($Group -eq 'DongFu' -and $Mode -eq 'Both' -and -not $ValidateOnly) {
+    & $PSCommandPath -Root $Root -Group GardenItems -Mode Both
+}
 $groups = @($manifest.groups | Where-Object { $Group -eq 'All' -or $_.group -eq $Group })
 if (-not $groups.Count) { throw "Unknown Unity data group: $Group" }
 $writes = [Collections.Generic.List[object]]::new()
@@ -78,6 +127,10 @@ function Read-Rows($Sheet, [string]$Workbook) {
     return ,$result.ToArray()
 }
 function Check-Group($Name,$Tables) {
+    if ($Name -eq 'DongFu') {
+        . (Join-Path $PSScriptRoot 'Test-UnityDongFuTables.ps1')
+        Test-UnityDongFuTables $Tables $Root
+    }
     if ($Name -eq 'Fish') {
         if ($Tables.fish_settings.Count -ne 1 -or $Tables.fish_position.Count -ne 1) { throw 'Fish requires one settings and position row.' }
         $s=$Tables.fish_settings[0]; $p=$Tables.fish_position[0]

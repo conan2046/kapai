@@ -9,7 +9,8 @@ namespace ProjectX.UI
         Standard,
         Fish,
         FishBasket,
-        FengShenStory
+        FengShenStory,
+        DongFu
     }
 
     public sealed class OneLevelFrameCoordinator
@@ -45,24 +46,25 @@ namespace ProjectX.UI
                 return;
             }
 
-            NormalizeFrameRect();
+            if (mode != OneLevelFrameMode.DongFu) NormalizeFrameRect();
             View.SetVisible(true);
             bool standard = mode == OneLevelFrameMode.Standard;
             bool fish = mode == OneLevelFrameMode.Fish;
             bool fengShenStory = mode == OneLevelFrameMode.FengShenStory;
+            bool dongFu = mode == OneLevelFrameMode.DongFu;
             SetActive("Layer/Bg", standard || fengShenStory);
-            SetActive("Layer/Panel_12", standard || fish);
+            SetActive("Layer/Panel_12", standard || fish || dongFu);
             SetActive("Layer/Panel_12/BlackBg", false);
             SetActive("Layer/Panel_12/Bg", standard);
-            SetActive("Layer/Panel_12/Title", standard || fish);
+            SetActive("Layer/Panel_12/Title", standard || fish || dongFu);
             SetActive("Layer/Panel_12/Bg/Btn_ListView", standard);
             SetActive("Layer/Panel_12/Bg/Btn_ListView/Panel_10", standard);
             SetActive("Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1", standard);
             SetActive("Layer/Panel_12/SubBtnList", false);
-            SetActive("Layer/GoldCheck", standard);
-            SetActive("Layer/GoldCheck/GoldIcon1", standard);
-            SetActive("Layer/GoldCheck/GoldIcon3", standard);
-            SetActive("Layer/GoldCheck/GoldIcon4", standard);
+            SetActive("Layer/GoldCheck", standard || dongFu);
+            SetActive("Layer/GoldCheck/GoldIcon1", standard || dongFu);
+            SetActive("Layer/GoldCheck/GoldIcon3", standard || dongFu);
+            SetActive("Layer/GoldCheck/GoldIcon4", standard || dongFu);
         }
 
         private void NormalizeFrameRect()

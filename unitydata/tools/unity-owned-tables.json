@@ -2,6 +2,343 @@
   "schemaVersion": 1,
   "groups": [
     {
+      "group": "DongFu",
+      "workbook": "dongfu_config.xlsx",
+      "sheets": [
+        {
+          "name": "dongfu_building",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "name": "string",
+            "function_type": "string",
+            "open_level": "number",
+            "level": "number",
+            "next_id": "number",
+            "cost_items": "json",
+            "enabled": "number"
+          },
+          "sheetIndex": 1,
+          "integerColumns": [
+            "id",
+            "open_level",
+            "level",
+            "next_id",
+            "enabled"
+          ],
+          "jsonKinds": {
+            "cost_items": [
+              "array"
+            ]
+          },
+          "client": true,
+          "output": "dongfu_building.json"
+        },
+        {
+          "name": "dongfu_crop",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "name": "string",
+            "seed_item_id": "number",
+            "building_id": "number",
+            "grow_seconds": "number",
+            "outputs": "json",
+            "icon_key": "string",
+            "enabled": "number",
+            "initial_resource_key": "string",
+            "middle_resource_key": "string",
+            "mature_resource_key": "string",
+            "middle_progress_bp": "number",
+            "water_after_seconds": "number",
+            "bug_after_seconds": "number",
+            "abnormal_extension_bp": "number",
+            "seed_price_gold": "number"
+          },
+          "sheetIndex": 2,
+          "integerColumns": [
+            "id",
+            "seed_item_id",
+            "building_id",
+            "grow_seconds",
+            "enabled",
+            "middle_progress_bp",
+            "water_after_seconds",
+            "bug_after_seconds",
+            "abnormal_extension_bp",
+            "seed_price_gold"
+          ],
+          "jsonKinds": {
+            "outputs": [
+              "array"
+            ]
+          },
+          "client": true,
+          "output": "dongfu_crop.json"
+        },
+        {
+          "name": "dongfu_garden_level",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "level": "number",
+            "plot_count": "number",
+            "waiting_capacity": "number",
+            "cost_items": "json",
+            "enabled": "number"
+          },
+          "sheetIndex": 3,
+          "integerColumns": [
+            "id",
+            "level",
+            "plot_count",
+            "waiting_capacity",
+            "enabled"
+          ],
+          "jsonKinds": {
+            "cost_items": [
+              "array"
+            ]
+          },
+          "client": true,
+          "output": "dongfu_garden_level.json"
+        },
+        {
+          "name": "dongfu_recipe",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "name": "string",
+            "kind": "string",
+            "building_id": "number",
+            "learn_item_id": "number",
+            "cost_items": "json",
+            "duration_seconds": "number",
+            "batch_limit": "number",
+            "batch_cost_bp": "number",
+            "output_item_id": "number",
+            "equip_template_id": "number",
+            "quality": "number",
+            "output_count": "number",
+            "enabled": "number"
+          },
+          "sheetIndex": 4,
+          "integerColumns": [
+            "id",
+            "building_id",
+            "learn_item_id",
+            "duration_seconds",
+            "batch_limit",
+            "batch_cost_bp",
+            "output_item_id",
+            "equip_template_id",
+            "quality",
+            "output_count",
+            "enabled"
+          ],
+          "jsonKinds": {
+            "cost_items": [
+              "array"
+            ]
+          },
+          "client": true,
+          "output": "dongfu_recipe.json"
+        },
+        {
+          "name": "dongfu_effect",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "item_id": "number",
+            "effect_kind": "string",
+            "target_scope": "string",
+            "attributes": "json",
+            "experience": "number",
+            "limit_group": "string",
+            "limit_count": "number",
+            "enabled": "number"
+          },
+          "sheetIndex": 5,
+          "integerColumns": [
+            "id",
+            "item_id",
+            "experience",
+            "limit_count",
+            "enabled"
+          ],
+          "jsonKinds": {
+            "attributes": [
+              "array"
+            ]
+          },
+          "client": true,
+          "output": "dongfu_effect.json"
+        },
+        {
+          "name": "dongfu_spirit_level",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "level": "number",
+            "next_id": "number",
+            "cost_items": "json",
+            "growth_reduction_bp": "number",
+            "yield_bonus_bp": "number",
+            "combat_attributes": "json",
+            "target_scope": "string",
+            "enabled": "number"
+          },
+          "sheetIndex": 6,
+          "integerColumns": [
+            "id",
+            "level",
+            "next_id",
+            "growth_reduction_bp",
+            "yield_bonus_bp",
+            "enabled"
+          ],
+          "jsonKinds": {
+            "cost_items": [
+              "array"
+            ],
+            "combat_attributes": [
+              "array"
+            ]
+          },
+          "client": true,
+          "output": "dongfu_spirit_level.json"
+        },
+        {
+          "name": "dongfu_book_set",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "name": "string",
+            "book_ids": "json",
+            "quality": "number",
+            "open_level": "number",
+            "icon_key": "string",
+            "sort_order": "number",
+            "enabled": "number"
+          },
+          "sheetIndex": 7,
+          "integerColumns": [
+            "id",
+            "quality",
+            "open_level",
+            "sort_order",
+            "enabled"
+          ],
+          "jsonKinds": {
+            "book_ids": [
+              "array"
+            ]
+          },
+          "client": true,
+          "output": "dongfu_book_set.json"
+        },
+        {
+          "name": "dongfu_book",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "name": "string",
+            "item_id": "number",
+            "set_id": "number",
+            "icon_key": "string",
+            "sort_order": "number",
+            "enabled": "number"
+          },
+          "sheetIndex": 8,
+          "integerColumns": [
+            "id",
+            "item_id",
+            "set_id",
+            "sort_order",
+            "enabled"
+          ],
+          "jsonKinds": {},
+          "client": true,
+          "output": "dongfu_book.json"
+        },
+        {
+          "name": "dongfu_book_reward",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "set_id": "number",
+            "condition_kind": "string",
+            "required_count": "number",
+            "required_book_ids": "json",
+            "attributes": "json",
+            "target_scope": "string",
+            "enabled": "number"
+          },
+          "sheetIndex": 9,
+          "integerColumns": [
+            "id",
+            "set_id",
+            "required_count",
+            "enabled"
+          ],
+          "jsonKinds": {
+            "required_book_ids": [
+              "array"
+            ],
+            "attributes": [
+              "array"
+            ]
+          },
+          "client": true,
+          "output": "dongfu_book_reward.json"
+        },
+        {
+          "name": "dongfu_settings",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "schema_version": "number",
+            "offline_cap_seconds": "number",
+            "offline_efficiency_bp": "number",
+            "auto_plant": "number",
+            "activation_mode": "string",
+            "task_bonus_mode": "string",
+            "enabled": "number"
+          },
+          "sheetIndex": 10,
+          "integerColumns": [
+            "id",
+            "schema_version",
+            "offline_cap_seconds",
+            "offline_efficiency_bp",
+            "auto_plant",
+            "enabled"
+          ],
+          "jsonKinds": {},
+          "client": true,
+          "output": "dongfu_settings.json"
+        },
+        {
+          "name": "dongfu_garden_plot",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "unlock_realm_id": "number",
+            "enabled": "number"
+          },
+          "sheetIndex": 11,
+          "integerColumns": [
+            "id",
+            "unlock_realm_id",
+            "enabled"
+          ],
+          "jsonKinds": {},
+          "client": true,
+          "output": "dongfu_garden_plot.json"
+        }
+      ]
+    },
+    {
       "group": "Fish",
       "workbook": "fish_config.xlsx",
       "sheets": [

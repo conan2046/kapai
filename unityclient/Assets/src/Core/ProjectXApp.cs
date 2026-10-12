@@ -4043,6 +4043,7 @@ namespace ProjectX.Core
 
         private void DispatchToLua(ushort command, LegacyTcpMessage message)
         {
+            if (command == 324) { ApplyGardenPacket(message); return; }
             if (command == 38 && message.Remaining > 0)
             {
                 int start = message.Position;
@@ -4293,6 +4294,7 @@ namespace ProjectX.Core
         public void BindPlayerHudControls()
         {
             if (mainView == null) return;
+            BindDongFuEntry();
             BindJingJieEntry();
             BindBagClick(autoInvoke: false);
             // The Main Character entry now owns this route; keep the old HUD button hidden.

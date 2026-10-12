@@ -26,6 +26,8 @@ namespace ProjectX.Core
             int picture, int quality, int useType, int useJump, int sortPriority,
             int itemType, string itemFrom, string choices, string sources)
         {
+            ResolveNativeBagMaterial(itemId, ref itemName, ref description, ref picture, ref quality,
+                ref useType, ref useJump, ref sortPriority, ref itemType, ref itemFrom);
             pendingBagItems.Add(new BagItemRecord(slot, itemId, quantity, itemName, description,
                 picture, quality, useType, useJump, sortPriority, itemType, itemFrom, choices, sources));
         }
@@ -226,11 +228,23 @@ namespace ProjectX.Core
             int picture, int quality, int useType, int useJump, int sortPriority,
             int itemType, string itemFrom, string choices, string sources)
         {
+            ResolveNativeBagMaterial(itemId, ref itemName, ref description, ref picture, ref quality,
+                ref useType, ref useJump, ref sortPriority, ref itemType, ref itemFrom);
             services.Bag.Upsert(new BagItemRecord(slot, itemId, quantity, itemName, description,
                 picture, quality, useType, useJump, sortPriority, itemType, itemFrom, choices, sources));
         }
 
         public void RemoveBagItem(int slot) => services.Bag.Remove(slot);
+        private void ResolveNativeBagMaterial(int itemId, ref string name, ref string description,
+            ref int picture, ref int quality, ref int useType, ref int useJump, ref int sortPriority,
+            ref int itemType, ref string itemFrom)
+        {
+            if (!string.IsNullOrEmpty(name)) return;
+            EquipmentMaterialDefinition item = services.EquipmentCatalog.GetItem(itemId);
+            if (item == null) return;
+            name=item.Name;description=item.Description;picture=item.Picture;quality=item.Quality;
+            useType=item.UseType;useJump=item.UseJump;sortPriority=item.SortPriority;itemType=item.Type;itemFrom=item.ItemFrom;
+        }
         public int GetBagCount() => services.Bag.Count;
         public int GetBagQuantity(int slot) => services.Bag.GetQuantity(slot);
         public int GetBagItemId(int slot) => services.Bag.TryGet(slot, out BagItemRecord item) ? item.ItemId : 0;

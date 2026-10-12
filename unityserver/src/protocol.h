@@ -439,6 +439,7 @@ const int MSG_GUANQIA = 320;      // 关卡
 const int MSG_SPIRIT = 321;       // 体力
 const int MSG_HERO_BOOK = 322;       // 图鉴
 const int MSG_BLOOD_FIGHT = 323;       // 血战
+const int MSG_UNITY_GARDEN = 324;      // Unity/Steam 灵园
 
 
 

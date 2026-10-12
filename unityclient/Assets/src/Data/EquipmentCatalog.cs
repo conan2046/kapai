@@ -112,6 +112,10 @@ namespace ProjectX.Data
         [JsonProperty("quality")] public int Quality { get; set; }
         [JsonProperty("type")] public int Type { get; set; }
         [JsonProperty("sub_value")] public int[][] Values { get; set; }
+        [JsonProperty("use_type")] public int UseType { get; set; }
+        [JsonProperty("use_jump")] public int UseJump { get; set; }
+        [JsonProperty("sort_priority")] public int SortPriority { get; set; }
+        [JsonProperty("item_from")] public string ItemFrom { get; set; }
         public int RefineExperience => Values != null && Values.Length > 0 && Values[0] != null && Values[0].Length > 1
             ? Values[0][1] : 0;
     }

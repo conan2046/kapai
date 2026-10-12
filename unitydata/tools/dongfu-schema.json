@@ -1,0 +1,658 @@
+{
+  "schemaVersion": 1,
+  "tables": [
+    {
+      "name": "dongfu_building",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "建筑ID"
+        },
+        {
+          "key": "name",
+          "type": "string",
+          "description": "建筑名"
+        },
+        {
+          "key": "function_type",
+          "type": "string",
+          "description": "garden/spirit/alchemy/forge/library"
+        },
+        {
+          "key": "open_level",
+          "type": "number",
+          "description": "玩家开放等级"
+        },
+        {
+          "key": "level",
+          "type": "number",
+          "description": "建筑等级"
+        },
+        {
+          "key": "next_id",
+          "type": "number",
+          "description": "下一等级记录ID，0封顶"
+        },
+        {
+          "key": "cost_items",
+          "type": "json",
+          "description": "升级消耗[[item_id,数量]]"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        "灵植园",
+        "garden",
+        1,
+        1,
+        0,
+        "[]",
+        0
+      ]
+    },
+    {
+      "name": "dongfu_crop",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "灵植ID"
+        },
+        {
+          "key": "name",
+          "type": "string",
+          "description": "灵植名称"
+        },
+        {
+          "key": "seed_item_id",
+          "type": "number",
+          "description": "种子正式item ID"
+        },
+        {
+          "key": "building_id",
+          "type": "number",
+          "description": "所需建筑记录ID"
+        },
+        {
+          "key": "grow_seconds",
+          "type": "number",
+          "description": "基础成长秒数"
+        },
+        {
+          "key": "outputs",
+          "type": "json",
+          "description": "收获[[item_id,数量]]"
+        },
+        {
+          "key": "icon_key",
+          "type": "string",
+          "description": "当前资源引用键"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        },
+        {
+          "key": "initial_resource_key",
+          "type": "string",
+          "description": "初期资源键"
+        },
+        {
+          "key": "middle_resource_key",
+          "type": "string",
+          "description": "中期资源键"
+        },
+        {
+          "key": "mature_resource_key",
+          "type": "string",
+          "description": "成熟期资源键"
+        },
+        {
+          "key": "middle_progress_bp",
+          "type": "number",
+          "description": "中期起点万分比"
+        },
+        {
+          "key": "water_after_seconds",
+          "type": "number",
+          "description": "缺水触发秒，0关闭"
+        },
+        {
+          "key": "bug_after_seconds",
+          "type": "number",
+          "description": "虫害触发秒，0关闭"
+        },
+        {
+          "key": "abnormal_extension_bp",
+          "type": "number",
+          "description": "异常时间延长万分比，不叠加"
+        },
+        {
+          "key": "seed_price_gold",
+          "type": "number",
+          "description": "种子金币售价，0不可购买"
+        }
+      ],
+      "disabledExample": [
+        1,
+        "未启用灵植",
+        0,
+        1,
+        60,
+        "[]",
+        "",
+        0,
+        "Art/UI/ui_jingji/ui_jingji_qi1",
+        "Art/UI/ui_jingji/ui_jingji_qi1",
+        "Art/UI/ui_jingji/ui_jingji_qi1",
+        5000,
+        0,
+        0,
+        2000,
+        0
+      ]
+    },
+    {
+      "name": "dongfu_garden_level",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "等级记录ID"
+        },
+        {
+          "key": "level",
+          "type": "number",
+          "description": "灵田等级"
+        },
+        {
+          "key": "plot_count",
+          "type": "number",
+          "description": "并行格子数"
+        },
+        {
+          "key": "waiting_capacity",
+          "type": "number",
+          "description": "等待批次数"
+        },
+        {
+          "key": "cost_items",
+          "type": "json",
+          "description": "升级[[item_id,数量]]"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        1,
+        4,
+        2,
+        "[]",
+        0
+      ]
+    },
+    {
+      "name": "dongfu_recipe",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "配方ID"
+        },
+        {
+          "key": "name",
+          "type": "string",
+          "description": "配方名称"
+        },
+        {
+          "key": "kind",
+          "type": "string",
+          "description": "alchemy/forge"
+        },
+        {
+          "key": "building_id",
+          "type": "number",
+          "description": "所需建筑记录ID"
+        },
+        {
+          "key": "learn_item_id",
+          "type": "number",
+          "description": "学习道具正式item ID"
+        },
+        {
+          "key": "cost_items",
+          "type": "json",
+          "description": "单次[[item_id,数量]]"
+        },
+        {
+          "key": "duration_seconds",
+          "type": "number",
+          "description": "单次基础秒数"
+        },
+        {
+          "key": "batch_limit",
+          "type": "number",
+          "description": "最大批次数"
+        },
+        {
+          "key": "batch_cost_bp",
+          "type": "number",
+          "description": "材料倍率万分比10000不打折"
+        },
+        {
+          "key": "output_item_id",
+          "type": "number",
+          "description": "丹药item ID，装备则0"
+        },
+        {
+          "key": "equip_template_id",
+          "type": "number",
+          "description": "当前装备模板ID，丹药则0"
+        },
+        {
+          "key": "quality",
+          "type": "number",
+          "description": "配方固定品质，当前品质枚举"
+        },
+        {
+          "key": "output_count",
+          "type": "number",
+          "description": "单次结果数量"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        "未启用丹方",
+        "alchemy",
+        3,
+        0,
+        "[]",
+        60,
+        1,
+        10000,
+        0,
+        0,
+        0,
+        1,
+        0
+      ]
+    },
+    {
+      "name": "dongfu_effect",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "效果ID"
+        },
+        {
+          "key": "item_id",
+          "type": "number",
+          "description": "使用道具ID"
+        },
+        {
+          "key": "effect_kind",
+          "type": "string",
+          "description": "permanent_attribute/experience"
+        },
+        {
+          "key": "target_scope",
+          "type": "string",
+          "description": "lineup或player_experience"
+        },
+        {
+          "key": "attributes",
+          "type": "json",
+          "description": "永久[[现有属性ID,增量]]"
+        },
+        {
+          "key": "experience",
+          "type": "number",
+          "description": "一次性经验数量"
+        },
+        {
+          "key": "limit_group",
+          "type": "string",
+          "description": "跨品质共享使用上限组"
+        },
+        {
+          "key": "limit_count",
+          "type": "number",
+          "description": "最大服用次数"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        0,
+        "permanent_attribute",
+        "lineup",
+        "[]",
+        0,
+        "",
+        1,
+        0
+      ]
+    },
+    {
+      "name": "dongfu_spirit_level",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "等级记录ID"
+        },
+        {
+          "key": "level",
+          "type": "number",
+          "description": "阵法等级"
+        },
+        {
+          "key": "next_id",
+          "type": "number",
+          "description": "下级记录ID，0满级"
+        },
+        {
+          "key": "cost_items",
+          "type": "json",
+          "description": "升级[[item_id,数量]]"
+        },
+        {
+          "key": "growth_reduction_bp",
+          "type": "number",
+          "description": "成长时长缩短万分比"
+        },
+        {
+          "key": "yield_bonus_bp",
+          "type": "number",
+          "description": "额外产量万分比"
+        },
+        {
+          "key": "combat_attributes",
+          "type": "json",
+          "description": "本级累计[[现有属性ID,值]]"
+        },
+        {
+          "key": "target_scope",
+          "type": "string",
+          "description": "固定lineup：上阵神将"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        1,
+        0,
+        "[]",
+        0,
+        0,
+        "[]",
+        "lineup",
+        0
+      ]
+    },
+    {
+      "name": "dongfu_book_set",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "书套ID"
+        },
+        {
+          "key": "name",
+          "type": "string",
+          "description": "书套名称"
+        },
+        {
+          "key": "book_ids",
+          "type": "json",
+          "description": "本套不同书目ID列表，N派生"
+        },
+        {
+          "key": "quality",
+          "type": "number",
+          "description": "当前品质枚举"
+        },
+        {
+          "key": "open_level",
+          "type": "number",
+          "description": "玩家开放等级"
+        },
+        {
+          "key": "icon_key",
+          "type": "string",
+          "description": "正式图标引用键"
+        },
+        {
+          "key": "sort_order",
+          "type": "number",
+          "description": "排序"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        "未启用书套",
+        "[1]",
+        0,
+        1,
+        "",
+        1,
+        0
+      ]
+    },
+    {
+      "name": "dongfu_book",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "唯一书目ID"
+        },
+        {
+          "key": "name",
+          "type": "string",
+          "description": "书籍名称"
+        },
+        {
+          "key": "item_id",
+          "type": "number",
+          "description": "正式书籍道具ID"
+        },
+        {
+          "key": "set_id",
+          "type": "number",
+          "description": "归属书套ID"
+        },
+        {
+          "key": "icon_key",
+          "type": "string",
+          "description": "正式图标引用键"
+        },
+        {
+          "key": "sort_order",
+          "type": "number",
+          "description": "套内顺序"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        "未启用书籍",
+        0,
+        1,
+        "",
+        1,
+        0
+      ]
+    },
+    {
+      "name": "dongfu_book_reward",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "永久奖励唯一ID"
+        },
+        {
+          "key": "set_id",
+          "type": "number",
+          "description": "书套ID"
+        },
+        {
+          "key": "condition_kind",
+          "type": "string",
+          "description": "book/count/combination/complete"
+        },
+        {
+          "key": "required_count",
+          "type": "number",
+          "description": "count所需不同书目数"
+        },
+        {
+          "key": "required_book_ids",
+          "type": "json",
+          "description": "book/combination指定书目"
+        },
+        {
+          "key": "attributes",
+          "type": "json",
+          "description": "独立增量[[现有属性ID,值]]"
+        },
+        {
+          "key": "target_scope",
+          "type": "string",
+          "description": "固定lineup：上阵神将"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        1,
+        "complete",
+        0,
+        "[]",
+        "[]",
+        "lineup",
+        0
+      ]
+    },
+    {
+      "name": "dongfu_settings",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "唯一设置ID1"
+        },
+        {
+          "key": "schema_version",
+          "type": "number",
+          "description": "配置结构版本"
+        },
+        {
+          "key": "offline_cap_seconds",
+          "type": "number",
+          "description": "离线计时上限秒"
+        },
+        {
+          "key": "offline_efficiency_bp",
+          "type": "number",
+          "description": "离线工作效率万分比"
+        },
+        {
+          "key": "auto_plant",
+          "type": "number",
+          "description": "0禁用自动种植1启用"
+        },
+        {
+          "key": "activation_mode",
+          "type": "string",
+          "description": "manual手动激活"
+        },
+        {
+          "key": "task_bonus_mode",
+          "type": "string",
+          "description": "snapshot启动时冻结加成"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        1,
+        0,
+        10000,
+        0,
+        "manual",
+        "snapshot",
+        0
+      ]
+    },
+    {
+      "name": "dongfu_garden_plot",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "预制体地块ID1..36"
+        },
+        {
+          "key": "unlock_realm_id",
+          "type": "number",
+          "description": "正式境界ID，达标自动解锁"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "启用0/1"
+        }
+      ],
+      "disabledExample": [
+        1,
+        1,
+        0
+      ]
+    }
+  ]
+}

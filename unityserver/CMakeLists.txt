@@ -11,6 +11,9 @@ file(GLOB SERVER_SRC CONFIGURE_DEPENDS
 )
 
 add_executable(kapai ${SERVER_SRC})
+add_executable(kapai_garden_growth_tests tests/garden_growth_tests.cpp)
+enable_testing()
+add_test(NAME garden_growth COMMAND kapai_garden_growth_tests)
 target_compile_definitions(kapai PRIVATE PROJECTX_UNITY_SERVER=1)
 
 if(MSVC)
