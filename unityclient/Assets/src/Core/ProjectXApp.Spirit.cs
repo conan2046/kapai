@@ -55,7 +55,7 @@ namespace ProjectX.Core
             string id=Guid.NewGuid().ToString("N");var payload=new JObject{["request_id"]=id,["revision"]=revision};if(operation==2)payload["root_type"]=rootType;var msg=LegacyTcpMessage.New();msg.WriteWord(325);msg.WriteByte(operation);msg.WriteString(payload.ToString(Formatting.None));
             spiritPending=id;spiritPendingOperation=operation;spiritDeadline=Time.realtimeSinceStartup+8;
             if(operation!=0)spiritScreen.SetPending();
-            try{services.Network.Send(msg);}catch(Exception e){spiritPending=null;spiritScreen.Fail("聚灵阵请求失败："+e.Message);}
+            try{services.Network.Send(msg);}catch(Exception e){spiritPending=null;spiritScreen.Fail("聚灵阵请求失败："+e.Message);spiritNextPoll=Time.realtimeSinceStartup+1;}
         }
         private void ApplySpiritPacket(LegacyTcpMessage message)
         {
@@ -69,6 +69,13 @@ namespace ProjectX.Core
         private void ScheduleSpiritProduction(SpiritEnvelope state)
         {
             spiritNextPoll=float.PositiveInfinity;
+            // A rejected upgrade still carries an authoritative snapshot, but
+            // its error disables actions until a successful read clears it.
+            // Reads failing repeatedly use a slower retry to avoid a tight loop.
+            if(!string.IsNullOrEmpty(state.Error)){
+                spiritNextPoll=Time.realtimeSinceStartup+(state.Operation==0?5f:1f);
+                return;
+            }
             if(state.Configured&&state.Unlocked&&string.IsNullOrEmpty(state.Error)
                 &&long.TryParse(state.Spirit,out long owned)&&long.TryParse(state.Storage,out long capacity)&&(capacity==0||owned<capacity))
                 spiritNextPoll=Time.realtimeSinceStartup+Mathf.Max(0.05f,(state.ProductionPeriodMs-state.ProductionElapsedMs)/1000f);

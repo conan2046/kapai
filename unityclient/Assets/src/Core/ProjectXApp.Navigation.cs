@@ -6,7 +6,12 @@ namespace ProjectX.Core
     {
         public bool HandleBack()
         {
-            if (IsSpiritOpen) { spiritScreen.Back(); return true; }
+            if (IsSpiritOpen)
+            {
+                if (IsErrorVisible) errorPresenter.Hide();
+                else spiritScreen.Back();
+                return true;
+            }
             if (IsGardenOpen) { gardenScreen.Back(); return true; }
             if (IsDongFuOpen)
             {
@@ -245,6 +250,10 @@ namespace ProjectX.Core
             {
                 gameplayContentView?.SetVisible(true);
                 Canvas.ForceUpdateCanvases();
+            }
+            else if (popped && services.UiStack.Current == spiritView)
+            {
+                RestoreSpiritFrame();
             }
             else if (popped && services.UiStack.Current == gardenView)
             {

@@ -200,10 +200,11 @@ function M.onPacket(command, message)
         -- Draw and equipment use /8 only as authoritative counts for their own
         -- surfaces. Those background snapshots must update the store without
         -- opening the ordinary item bag or reconfiguring the shared OneLevelLayer.
+        local spiritSnapshotOnly = Bridge:IsSpiritActive() and not M.requested
         local headerOnly = M.happyWheelKeyRequested or M.drawHeaderRequested or M.xunBaoHeaderRequested
             or M.redDotRequested
             or M.equipmentSnapshotCallback ~= nil
-            or Bridge:IsDrawActive() or Bridge:IsSpiritActive()
+            or Bridge:IsDrawActive() or spiritSnapshotOnly
         local serverCount = readFullPackage(message, true, headerOnly)
         local renderedCount = Bridge:GetBagCount()
         if M.redDotRequested then
@@ -240,7 +241,7 @@ function M.onPacket(command, message)
         M.requested = false
         -- Spirit upgrades send a full package after commit or rollback. Keep
         -- those unsolicited snapshots data-only while the array is visible.
-        if Bridge:IsSpiritActive() then return true end
+        if spiritSnapshotOnly then return true end
         if M.g4Stage == "await_reopen_full" then
             M.g4Stage = "await_reconnect"
             Bridge:BeginBagDisconnectValidation()
