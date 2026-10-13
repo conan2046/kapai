@@ -4044,6 +4044,7 @@ namespace ProjectX.Core
         private void DispatchToLua(ushort command, LegacyTcpMessage message)
         {
             if (command == 324) { ApplyGardenPacket(message); return; }
+            if (command == 325) { ApplySpiritPacket(message); return; }
             if (command == 38 && message.Remaining > 0)
             {
                 int start = message.Position;

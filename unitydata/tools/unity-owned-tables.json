@@ -180,33 +180,30 @@
           "columns": {
             "id": "number",
             "level": "number",
-            "next_id": "number",
+            "storage": "number",
             "cost_items": "json",
-            "growth_reduction_bp": "number",
-            "yield_bonus_bp": "number",
-            "combat_attributes": "json",
-            "target_scope": "string",
+            "spirit_per_second": "number",
             "enabled": "number"
           },
           "sheetIndex": 6,
           "integerColumns": [
             "id",
             "level",
-            "next_id",
-            "growth_reduction_bp",
-            "yield_bonus_bp",
+            "storage",
+            "spirit_per_second",
             "enabled"
           ],
           "jsonKinds": {
             "cost_items": [
               "array"
-            ],
-            "combat_attributes": [
-              "array"
             ]
           },
           "client": true,
-          "output": "dongfu_spirit_level.json"
+          "output": "dongfu_spirit_level.json",
+          "blankDefaults": {
+            "enabled": 0,
+            "cost_items": "[]"
+          }
         },
         {
           "name": "dongfu_book_set",
@@ -335,6 +332,45 @@
           "jsonKinds": {},
           "client": true,
           "output": "dongfu_garden_plot.json"
+        },
+        {
+          "name": "dongfu_spirit_root_level",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "root_type": "number",
+            "level": "number",
+            "name": "string",
+            "spirit_cost": "resource-cost",
+            "cost_items": "json",
+            "growth_reduction_bp": "number",
+            "yield_bonus_bp": "number",
+            "combat_attributes": "json",
+            "target_positions": "json",
+            "enabled": "number"
+          },
+          "sheetIndex": 7,
+          "integerColumns": [
+            "id",
+            "root_type",
+            "level",
+            "growth_reduction_bp",
+            "yield_bonus_bp",
+            "enabled"
+          ],
+          "jsonKinds": {
+            "cost_items": [
+              "array"
+            ],
+            "combat_attributes": [
+              "array"
+            ],
+            "target_positions": [
+              "array"
+            ]
+          },
+          "client": true,
+          "output": "dongfu_spirit_root_level.json"
         }
       ]
     },

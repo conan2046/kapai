@@ -1,6 +1,7 @@
 #include "pack_deal.h"
 #include "jingjie_unity.h"
 #include "garden_unity.h"
+#include "spirit_unity.h"
 #include "singleton.h"
 #include "protocol.h"
 #include "online_user.h"
@@ -434,6 +435,7 @@ CPackageDeal::CPackageDeal():
 	cmdFun.push_back(SCommand{MSG_XIANYUAN,boost::bind(&CPackageDeal::ServerXianYuan,this,_1,_2)});
 	cmdFun.push_back(SCommand{MSG_JINGJIE,boost::bind(&CPackageDeal::JingJieOption,this,_1,_2)});
 	cmdFun.push_back(SCommand{MSG_UNITY_GARDEN,boost::bind(&CPackageDeal::GardenOption,this,_1,_2)});
+	cmdFun.push_back(SCommand{MSG_UNITY_DONGFU_SPIRIT,boost::bind(&CPackageDeal::DongFuSpiritOption,this,_1,_2)});
 	cmdFun.push_back(SCommand{MSG_NEW_SHENQI,boost::bind(&CPackageDeal::ServerNewShenQi,this,_1,_2)});
 	cmdFun.push_back(SCommand{MSG_TRANSFORM,boost::bind(&CPackageDeal::ServerTransFormOption,this,_1,_2)});
 	cmdFun.push_back(SCommand{MSG_WEIXIN_SHARE_REWARD,boost::bind(&CPackageDeal::SendWeiXinReward,this,_1,_2)});
@@ -23821,6 +23823,14 @@ void CPackageDeal::GardenOption(CNetMessage *pMsg,int sock)
 	GET_USER
 	uint8 operation=0;string payload;msg>>operation>>payload;
 	CUnityGardenService::Handle(pUser,operation,payload);
+}
+
+void CPackageDeal::DongFuSpiritOption(CNetMessage *pMsg,int sock)
+{
+	GET_MSG
+	GET_USER
+	uint8 operation=0;string payload;msg>>operation>>payload;
+	CUnitySpiritService::Handle(pUser,operation,payload);
 }
 
 void CPackageDeal::ChongZhiToOtherOption(CNetMessage *pMsg,int sock)

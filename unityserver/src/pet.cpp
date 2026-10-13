@@ -1520,6 +1520,7 @@ bool SPet::GetAttrList(CUser *pUser, vector<SAttrData> &baseAttr, vector<SAttrDa
 	}
 	CEquipManeger& emgr = pUser->GetPetEquipMgr();
 	uint8 czPos = pUser->GetChuZhanIdx(id);
+	if(czPos>0){auto spiritAttributes=CUnitySpiritService::CombatAttributes(pUser,czPos);MergeAttrList(extAttr,spiritAttributes);}
 	emgr.GetEquipAttr(czPos, extAttr);
 	emgr.GetSuitSkills(czPos, otherSkill);
 	map<uint16, SSkillData> tmpSkills;
@@ -1627,7 +1628,7 @@ bool SPet::Init(CUser *pUser,bool updateBreak)
 	basicAttr.wufang = basicAttr.wufangBase * (basicAttr.wufangRatio / 10000.0) + basicAttr.wufangEx;
 	basicAttr.fafang = basicAttr.fafangBase * (basicAttr.fafangRatio / 10000.0) + basicAttr.fafangEx;
 	basicAttr.maxHp = basicAttr.maxHpBase * (basicAttr.maxHpRatio / 10000.0) + basicAttr.maxHpEx;
-	basicAttr.speed = GetAttrValue(extAttrs, EAT_SuDu) + GetAttrValue(extAttrs, EAT_SuDu);
+	basicAttr.speed = (GetAttrValue(baseAttr, EAT_SuDu) + GetAttrValue(extAttrs, EAT_SuDu)) * (1.0 + (GetAttrValue(baseAttr,EAT_SuDuAdd)+GetAttrValue(extAttrs,EAT_SuDuAdd))/10000.0);
 	basicAttr.mingzhong = GetAttrValue(baseAttr, EAT_MingZhong) + GetAttrValue(extAttrs, EAT_MingZhong);
 	basicAttr.shanbi = GetAttrValue(baseAttr, EAT_ShanBi) + GetAttrValue(extAttrs, EAT_ShanBi);
 	basicAttr.baoji = GetAttrValue(baseAttr, EAT_BaoJi) + GetAttrValue(extAttrs, EAT_BaoJi);

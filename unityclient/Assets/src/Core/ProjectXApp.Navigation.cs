@@ -6,6 +6,7 @@ namespace ProjectX.Core
     {
         public bool HandleBack()
         {
+            if (IsSpiritOpen) { spiritScreen.Back(); return true; }
             if (IsGardenOpen) { gardenScreen.Back(); return true; }
             if (IsDongFuOpen)
             {

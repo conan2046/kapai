@@ -61,6 +61,7 @@ namespace ProjectX.Core
         private void ShowDongFuBuilding(int building)
         {
             if(building==0){ShowGarden();return;}
+            if(building==1){ShowSpirit();return;}
             if(building<1||building>=DongFuPageKeys.Length)return;
             if(!dongFuPages.TryGetValue(building,out UnityUiView page)||!page.IsAlive)
             {

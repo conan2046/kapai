@@ -10,10 +10,11 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Read-UnityVisualExcel.ps1')
 # Scoped append/update of garden items from the formal item workbook. Preserve the
 # frozen legacy records; do not run the legacy converter across unrelated tables.
-if ($Group -eq 'GardenItems') {
+if ($Group -in @('GardenItems','SpiritItems')) {
     $gardenItemIds=@{}
+    if($Group -eq 'SpiritItems') { $gardenItemIds['60054']=$true }
     foreach($crop in @(Read-UnityVisualExcelRows (Join-Path $Root 'unitydata/excel/dongfu_config.xlsx') 2 -SheetName 'dongfu_crop')) {
-        if([string]$crop.enabled -ne '1') { continue }
+        if($Group -eq 'SpiritItems' -or [string]$crop.enabled -ne '1') { continue }
         $gardenItemIds[[string]$crop.seed_item_id]=$true
         $outputs=ConvertFrom-Json -InputObject ([string]$crop.outputs) -NoEnumerate
         foreach($pair in $outputs) { $gardenItemIds[[string]$pair[0]]=$true }
@@ -51,12 +52,13 @@ if ($Group -eq 'GardenItems') {
             if(Test-Path -LiteralPath (Split-Path $target -Parent)) { [IO.File]::WriteAllText($target,$json,[Text.UTF8Encoding]::new($false)) }
         }
     }
-    Write-Output "GardenItems: $($records.Count) formal item records exported; legacy records retained."
+    Write-Output "${Group}: $($records.Count) formal item records exported; legacy records retained."
     return
 }
 $manifest = Get-Content (Join-Path $PSScriptRoot 'unity-owned-tables.json') -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
 if ($Group -eq 'DongFu' -and $Mode -eq 'Both' -and -not $ValidateOnly) {
     & $PSCommandPath -Root $Root -Group GardenItems -Mode Both
+    & $PSCommandPath -Root $Root -Group SpiritItems -Mode Both
 }
 $groups = @($manifest.groups | Where-Object { $Group -eq 'All' -or $_.group -eq $Group })
 if (-not $groups.Count) { throw "Unknown Unity data group: $Group" }
@@ -91,12 +93,18 @@ function Read-Rows($Sheet, [string]$Workbook) {
         foreach ($k in $Sheet.columns.Keys) {
             if (-not $r.Contains($k)) { throw "Missing field $($Sheet.name).$k" }
             $raw = [string]$r[$k]
+            if([string]::IsNullOrWhiteSpace($raw) -and $Sheet.blankDefaults -and $Sheet.blankDefaults.ContainsKey($k)) { $raw=[string]$Sheet.blankDefaults[$k] }
             $v[$k] = switch ($Sheet.columns[$k]) {
                 'number' {
                     if ($raw -notmatch '^-?\d+(\.\d+)?$') { throw "Invalid number $($Sheet.name).${k}=$raw" }
                     if ($Sheet.integerColumns -and $k -in $Sheet.integerColumns -and $raw -notmatch '^-?\d+$') { throw "Expected integer $($Sheet.name).$k" }
                     if ($raw -match '^-?\d+$') { [long]::Parse($raw,$culture) }
                     else { [decimal]::Parse($raw,$culture) }
+                }
+                'resource-cost' {
+                    if([string]::IsNullOrWhiteSpace($raw)) { $null }
+                    elseif($raw -match '^60054;([0-9]+)$') { ,@([long]60054,[long]::Parse($Matches[1],$culture)) }
+                    else { throw "Expected 60054;quantity or blank: $($Sheet.name).$k=$raw" }
                 }
                 'bool' {
                     if ($raw -notin @('0','1','true','false')) { throw "Invalid boolean $($Sheet.name).$k" }

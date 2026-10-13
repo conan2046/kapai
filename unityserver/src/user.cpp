@@ -19512,8 +19512,10 @@ void CUser::ActiveJingJie()
 
 void CUser::InitJingJie()   //读档
 {
+    CUnitySpiritService::Load(this);
 	if(!CUnityJingJieService::Instance().Load(this))
 		cout<<"[UnityJingJie] authoritative state load failed role="<<GetRoleId()<<endl;
+	for(auto& entry:m_pet)if(entry.second)entry.second->Init(this); // rebuild before the login snapshot, without sending early packets
 }
 
 void CUser::SendJingJieInfo()
@@ -21338,6 +21340,7 @@ void CUser::GetAutoUseItemAward(uint16 itemId,uint16 itemNum,vector<SAwardData> 
 
 bool CUser::AddMaterial(uint32 type, int value, bool isFight,bool showMsg, int star/* = 1*/)
 {
+	if(type == 60054) return CUnitySpiritService::ChangeResource(this,value);
 	if(value == 0)
 		return true;
 	
@@ -21539,6 +21542,7 @@ void CUser::AddMaterial(SAwardData& ad, bool isFight/* = false*/, bool showMsg/*
 
 bool CUser::SubMaterial(uint32 type, uint32 value, bool showMsg/* = true*/)
 {
+	if(type == 60054) return CUnitySpiritService::ChangeResource(this,-static_cast<int64>(value));
 	if (value == 0)
 		return true;
 
@@ -21726,6 +21730,7 @@ int CUser::AddArenaRankAward(uint32 rank)
 
 uint32 CUser::GetMaterial(uint32 type)
 {
+	if(type == 60054) return static_cast<uint32>(std::min<int64>(CUnitySpiritService::Resource(this),UINT32_MAX));
 	switch (type)
 	{
 	case HDAT_MONEY:

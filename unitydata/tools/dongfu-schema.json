@@ -360,47 +360,32 @@
         {
           "key": "id",
           "type": "number",
-          "description": "等级记录ID"
+          "description": "记录ID"
         },
         {
           "key": "level",
           "type": "number",
-          "description": "阵法等级"
+          "description": "聚灵阵等级，自动升到level+1"
         },
         {
-          "key": "next_id",
+          "key": "storage",
           "type": "number",
-          "description": "下级记录ID，0满级"
+          "description": "灵气存储上限"
         },
         {
           "key": "cost_items",
           "type": "json",
-          "description": "升级[[item_id,数量]]"
+          "description": "当前升级材料，空数组表示满级"
         },
         {
-          "key": "growth_reduction_bp",
+          "key": "spirit_per_second",
           "type": "number",
-          "description": "成长时长缩短万分比"
-        },
-        {
-          "key": "yield_bonus_bp",
-          "type": "number",
-          "description": "额外产量万分比"
-        },
-        {
-          "key": "combat_attributes",
-          "type": "json",
-          "description": "本级累计[[现有属性ID,值]]"
-        },
-        {
-          "key": "target_scope",
-          "type": "string",
-          "description": "固定lineup：上阵神将"
+          "description": "历史字段名，表示每5秒产出灵气数量"
         },
         {
           "key": "enabled",
           "type": "number",
-          "description": "0未启用1启用"
+          "description": "0未启用1启用，空视为0"
         }
       ],
       "disabledExample": [
@@ -410,8 +395,6 @@
         "[]",
         0,
         0,
-        "[]",
-        "lineup",
         0
       ]
     },
@@ -651,6 +634,79 @@
       "disabledExample": [
         1,
         1,
+        0
+      ]
+    },
+    {
+      "name": "dongfu_spirit_root_level",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "灵根等级记录ID"
+        },
+        {
+          "key": "root_type",
+          "type": "number",
+          "description": "1金2木3水4火5土"
+        },
+        {
+          "key": "level",
+          "type": "number",
+          "description": "该灵根等级，建议初始0级"
+        },
+        {
+          "key": "name",
+          "type": "string",
+          "description": "当前等级名称，显示在灵根图标中"
+        },
+        {
+          "key": "spirit_cost",
+          "type": "resource-cost",
+          "description": "Excel填60054;数量，导出为[60054,数量]，留空导出null表示满级"
+        },
+        {
+          "key": "cost_items",
+          "type": "json",
+          "description": "当前等级升级需要的[[道具ID,数量]]"
+        },
+        {
+          "key": "growth_reduction_bp",
+          "type": "number",
+          "description": "该灵根当前等级的成长时长缩短万分比"
+        },
+        {
+          "key": "yield_bonus_bp",
+          "type": "number",
+          "description": "该灵根当前等级的额外收获万分比"
+        },
+        {
+          "key": "combat_attributes",
+          "type": "json",
+          "description": "本级新增[[属性ID,值]]，按目标站位逐级累加"
+        },
+        {
+          "key": "target_positions",
+          "type": "json",
+          "description": "本级属性目标站位[1..5]，无属性可填[]"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        1,
+        0,
+        0,
+        0,
+        "[]",
+        0,
+        0,
+        "[]",
+        "[1,2,3,4,5]",
         0
       ]
     }

@@ -10,6 +10,9 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
                 if (-not $row.Contains($field.key)) { throw "DongFu missing field: $($definition.name).$($field.key)" }
                 $value = $row[$field.key]
                 if ($field.type -eq 'number' -and $value -lt 0) { throw "DongFu negative field: $($field.key)" }
+                if ($field.type -eq 'resource-cost' -and $null -ne $value) {
+                    if($value -isnot [array] -or $value.Count -ne 2 -or $value[0] -ne 60054 -or "$($value[1])" -notmatch '^\d+$') { throw 'Spirit cost must be [60054,nonnegative quantity] or null.' }
+                }
                 if ($field.type -eq 'json') {
                     if ($value -isnot [array]) { throw "DongFu expected array: $($field.key)" }
                     if ($field.key -in @('cost_items','outputs','attributes','combat_attributes')) {
@@ -35,15 +38,16 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
         dongfu_building=@{function_type=@('garden','spirit','alchemy','forge','library')}
         dongfu_recipe=@{kind=@('alchemy','forge')}
         dongfu_effect=@{effect_kind=@('permanent_attribute','experience');target_scope=@('lineup','player_experience')}
-        dongfu_spirit_level=@{target_scope=@('lineup')}
         dongfu_book_reward=@{condition_kind=@('book','count','combination','complete');target_scope=@('lineup')}
         dongfu_settings=@{activation_mode=@('manual');task_bonus_mode=@('snapshot')}
     }
     foreach ($table in $enumFields.Keys) { foreach ($row in $Tables[$table]) { foreach ($key in $enumFields[$table].Keys) {
         if ($row[$key] -notin $enumFields[$table][$key]) { throw "DongFu unknown enum: ${table}.${key}" }
     } } }
-    foreach ($row in $Tables.dongfu_spirit_level) {
+    foreach ($row in $Tables.dongfu_spirit_root_level) {
         if ($row.growth_reduction_bp -ge 10000) { throw 'DongFu growth reduction must be below 10000.' }
+        if (@($row.target_positions | Where-Object {$_ -gt 5}).Count) { throw 'Spirit target positions must be 1..5.' }
+        if ($row.combat_attributes.Count -and -not $row.target_positions.Count) { throw 'Spirit combat attributes require target positions.' }
     }
     foreach ($row in $Tables.dongfu_recipe) {
         if ($row.duration_seconds -lt 1 -or $row.batch_limit -lt 1 -or $row.batch_cost_bp -lt 1 -or $row.batch_cost_bp -gt 10000 -or $row.output_count -lt 1) { throw 'DongFu invalid recipe time/batch/count.' }
@@ -67,6 +71,53 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
         foreach ($field in @('cost_items','outputs')) { if ($row.Contains($field)) { foreach ($pair in $row[$field]) { Require-DongFuItem $pair[0] } } }
     } }
     foreach ($row in $active.dongfu_crop.Values) { Require-DongFuItem $row.seed_item_id; Require-DongFuRef 'dongfu_building' $row.building_id; if ($row.grow_seconds -lt 1 -or -not $row.outputs.Count) { throw 'DongFu active crop has no time/output.' } }
+    function Check-SpiritCosts($row) {
+        foreach($pair in $row.cost_items){if($pair[1] -gt [int]::MaxValue -or $pair[0] -gt 65535 -or ($pair[0] -ge 60000 -and $pair[0] -notin @(60000,60001,60003,60054))){throw 'Spirit costs support inventory, gold, yuanbao and spirit.'}}
+    }
+    $levels=@{}
+    foreach($row in $active.dongfu_spirit_level.Values){
+        foreach($field in @('id','level','spirit_per_second')){if($row[$field] -ge [int]::MaxValue){throw "Spirit field exceeds bounds: $field"}}
+        if($levels.ContainsKey([string]$row.level)){throw 'Spirit level numbers must be unique.'}
+        $levels[[string]$row.level]=$row;Check-SpiritCosts $row
+    }
+    if($levels.Count){
+        $buildings=@($active.dongfu_building.Values | Where-Object {$_.function_type -eq 'spirit'})
+        if($buildings.Count -ne 1 -or $buildings[0].open_level -lt 1){throw 'Spirit requires one enabled building and positive opening level.'}
+        $ordered=@($levels.Values | Sort-Object { [long]$_['level'] })
+        for($i=0;$i -lt $ordered.Count;$i++){
+            $row=$ordered[$i];$next=if($i+1 -lt $ordered.Count){$ordered[$i+1]}else{$null}
+            if($row.cost_items.Count -and (!$next -or $next.level -ne $row.level+1 -or $next.storage -lt $row.storage)){throw 'Spirit next grade must exist, be consecutive and retain capacity.'}
+            if(!$row.cost_items.Count -and $next){throw 'Spirit maximum grade must be last.'}
+        }
+    }
+    if($active.dongfu_spirit_root_level.Count -and !$levels.Count){throw 'Spirit roots require array levels.'}
+    $rootLevels=@{};$totals=@{};$maximumGrowth=@{};$maximumYield=@{}
+    foreach($row in $active.dongfu_spirit_root_level.Values){
+        if($row.root_type -lt 1 -or $row.root_type -gt 5 -or [string]::IsNullOrWhiteSpace($row.name)){throw 'Spirit root type/name invalid.'}
+        foreach($field in @('id','level','growth_reduction_bp','yield_bonus_bp')){if($row[$field] -ge [int]::MaxValue){throw "Spirit root field exceeds bounds: $field"}}
+        $key="$($row.root_type)/$($row.level)"
+        if($rootLevels.ContainsKey($key)){throw 'Spirit root grades must be unique per element.'}
+        $rootLevels[$key]=$row;Check-SpiritCosts $row
+        if($null -ne $row.spirit_cost){Require-DongFuItem 60054}
+        if(@($row.cost_items | Where-Object {$_[0] -eq 60054}).Count){throw 'Root spirit must be configured only in spirit_cost.'}
+        foreach($pair in $row.combat_attributes){if($pair[0] -gt 33 -or $pair[1] -gt [int]::MaxValue){throw 'Spirit attributes must reference IDs 1..33.'}}
+        $type=[string]$row.root_type
+        $maximumGrowth[$type]=[Math]::Max([long]$maximumGrowth[$type],[long]$row.growth_reduction_bp)
+        $maximumYield[$type]=[Math]::Max([long]$maximumYield[$type],[long]$row.yield_bonus_bp)
+    }
+    foreach($type in 1..5){
+        $ordered=@($active.dongfu_spirit_root_level.Values | Where-Object {$_.root_type -eq $type} | Sort-Object { [long]$_['level'] })
+        for($i=0;$i -lt $ordered.Count;$i++){
+            $row=$ordered[$i];$next=if($i+1 -lt $ordered.Count){$ordered[$i+1]}else{$null}
+            if($null -ne $row.spirit_cost -and (!$next -or $next.level -ne $row.level+1)){throw 'Root next grade must exist and be consecutive.'}
+            if($null -eq $row.spirit_cost -and $next){throw 'Root maximum grade must be last.'}
+            foreach($slot in $row.target_positions){foreach($pair in $row.combat_attributes){
+                $key="$type/$slot/$($pair[0])";$totals[$key]=[long]$totals[$key]+$pair[1]
+                if($totals[$key] -gt [int]::MaxValue){throw 'Spirit accumulated attributes exceed bounds.'}
+            }}
+        }
+    }
+    if(($maximumGrowth.Values | Measure-Object -Sum).Sum -ge 10000 -or ($maximumYield.Values | Measure-Object -Sum).Sum -gt [int]::MaxValue){throw 'Combined spirit production bonus exceeds bounds.'}
     foreach ($crop in $active.dongfu_crop.Values) {
         if ($crop.middle_progress_bp -lt 1 -or $crop.middle_progress_bp -ge 10000 -or $crop.water_after_seconds -lt 0 -or $crop.bug_after_seconds -lt 0 -or $crop.abnormal_extension_bp -lt 0 -or $crop.abnormal_extension_bp -gt 100000 -or $crop.seed_price_gold -lt 0) { throw 'Garden growth/maintenance fields are invalid.' }
         foreach ($field in @('icon_key','initial_resource_key','middle_resource_key','mature_resource_key')) {
