@@ -440,6 +440,11 @@
           "key": "enabled",
           "type": "number",
           "description": "0未启用1启用"
+        },
+        {
+          "key": "realm_id",
+          "type": "number",
+          "description": "正式大境界ID"
         }
       ],
       "disabledExample": [
@@ -450,6 +455,7 @@
         1,
         "",
         1,
+        0,
         0
       ]
     },
@@ -523,7 +529,7 @@
         {
           "key": "required_count",
           "type": "number",
-          "description": "count所需不同书目数"
+          "description": "count所需已激活书目数"
         },
         {
           "key": "required_book_ids",
@@ -544,6 +550,11 @@
           "key": "enabled",
           "type": "number",
           "description": "0未启用1启用"
+        },
+        {
+          "key": "sort_order",
+          "type": "number",
+          "description": "奖励显示顺序"
         }
       ],
       "disabledExample": [
@@ -554,6 +565,7 @@
         "[]",
         "[]",
         "lineup",
+        0,
         0
       ]
     },
@@ -707,6 +719,55 @@
         0,
         "[]",
         "[1,2,3,4,5]",
+        0
+      ]
+    },
+    {
+      "name": "dongfu_library_source",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "来源ID"
+        },
+        {
+          "key": "event_kind",
+          "type": "string",
+          "description": "world/world_sweep/liezhuan"
+        },
+        {
+          "key": "chance_bp",
+          "type": "number",
+          "description": "出书概率万分比"
+        },
+        {
+          "key": "quantity",
+          "type": "number",
+          "description": "每次本数"
+        },
+        {
+          "key": "current_realm_bp",
+          "type": "number",
+          "description": "当前境界权重万分比"
+        },
+        {
+          "key": "older_realm_bp",
+          "type": "number",
+          "description": "旧未齐境界权重万分比"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "0未启用1启用"
+        }
+      ],
+      "disabledExample": [
+        1,
+        "world",
+        0,
+        1,
+        7000,
+        3000,
         0
       ]
     }

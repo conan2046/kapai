@@ -10,11 +10,16 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Read-UnityVisualExcel.ps1')
 # Scoped append/update of garden items from the formal item workbook. Preserve the
 # frozen legacy records; do not run the legacy converter across unrelated tables.
-if ($Group -in @('GardenItems','SpiritItems')) {
+if ($Group -in @('GardenItems','SpiritItems','LibraryItems')) {
     $gardenItemIds=@{}
     if($Group -eq 'SpiritItems') { $gardenItemIds['60054']=$true }
+    if($Group -eq 'LibraryItems') {
+        foreach($book in @(Read-UnityVisualExcelRows (Join-Path $Root 'unitydata/excel/dongfu_config.xlsx') -SheetName 'dongfu_book')) {
+            if([string]$book.enabled -eq '1') { $gardenItemIds[[string]$book.item_id]=$true }
+        }
+    }
     foreach($crop in @(Read-UnityVisualExcelRows (Join-Path $Root 'unitydata/excel/dongfu_config.xlsx') 2 -SheetName 'dongfu_crop')) {
-        if($Group -eq 'SpiritItems' -or [string]$crop.enabled -ne '1') { continue }
+        if($Group -in @('SpiritItems','LibraryItems') -or [string]$crop.enabled -ne '1') { continue }
         $gardenItemIds[[string]$crop.seed_item_id]=$true
         $outputs=ConvertFrom-Json -InputObject ([string]$crop.outputs) -NoEnumerate
         foreach($pair in $outputs) { $gardenItemIds[[string]$pair[0]]=$true }
@@ -59,6 +64,8 @@ $manifest = Get-Content (Join-Path $PSScriptRoot 'unity-owned-tables.json') -Raw
 if ($Group -eq 'DongFu' -and $Mode -eq 'Both' -and -not $ValidateOnly) {
     & $PSCommandPath -Root $Root -Group GardenItems -Mode Both
     & $PSCommandPath -Root $Root -Group SpiritItems -Mode Both
+    & $PSCommandPath -Root $Root -Group LibraryItems -Mode Both
+    & $PSCommandPath -Root $Root -Group LibraryRealm -Mode Both
 }
 $groups = @($manifest.groups | Where-Object { $Group -eq 'All' -or $_.group -eq $Group })
 if (-not $groups.Count) { throw "Unknown Unity data group: $Group" }

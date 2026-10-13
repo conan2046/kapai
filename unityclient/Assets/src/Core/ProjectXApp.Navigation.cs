@@ -6,6 +6,12 @@ namespace ProjectX.Core
     {
         public bool HandleBack()
         {
+            if (IsLibraryOpen)
+            {
+                if (IsErrorVisible) errorPresenter.Hide();
+                else libraryScreen.Back();
+                return true;
+            }
             if (IsSpiritOpen)
             {
                 if (IsErrorVisible) errorPresenter.Hide();
@@ -244,6 +250,9 @@ namespace ProjectX.Core
             {
                 SetMainHudSurfaceVisible(true);
                 mainHudPresenter?.RefreshAfterVisibilityRestore();
+                // Activity content is a separate root from its shared frame.
+                // A restored HUD must not retain that page over its entries.
+                gameplayContentView?.SetVisible(false);
                 Canvas.ForceUpdateCanvases();
             }
             else if (popped && services.UiStack.Current == gameplayView)
@@ -254,6 +263,10 @@ namespace ProjectX.Core
             else if (popped && services.UiStack.Current == spiritView)
             {
                 RestoreSpiritFrame();
+            }
+            else if (popped && services.UiStack.Current == libraryView)
+            {
+                RestoreLibraryFrame();
             }
             else if (popped && services.UiStack.Current == gardenView)
             {

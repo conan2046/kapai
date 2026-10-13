@@ -20,6 +20,7 @@
 #include "award_manager.h"
 #include "user_spirit.h"
 #include "spirit_unity.h"
+#include "library_unity.h"
 #include "user_guanqia.h"
 using namespace std;
 
@@ -546,6 +547,8 @@ public:
     SUnitySpiritBonus m_unitySpiritBonus;
     std::array<int,6> m_unitySpiritRoots{};
     spirit::Wallet m_unitySpiritWallet;
+    SUnityLibraryState m_unityLibrary;
+    friend class CUnityLibraryService;
     ~CUser();
     void SetSock(int);
     int GetSock();

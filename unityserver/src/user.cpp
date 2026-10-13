@@ -4139,6 +4139,7 @@ bool CUser::NoLockAddPackage(SItemInstance &item,const char *mailMsg)
 {
 	if(item.num < 1)
 		return false;
+    if(CUnityLibraryService::AutoSell(this,item.tmplId,item.num)) return true;
 	CItemTemplateManager &itemMgr = SingletonItemManager::instance();
 	SItemTemplate *pItem = itemMgr.GetItem(item.tmplId);
 	if(pItem == NULL)
@@ -13949,6 +13950,7 @@ bool CUser::NolockUpdateItemNumMap(uint16 itemId,uint32 num,bool add)
 				m_itemNumMap.erase(it);
 		}
 	}
+    if(add && num > 0) CUnityLibraryService::Obtained(this,itemId,static_cast<int>(num));
 	return true;
 }
 
@@ -19515,6 +19517,7 @@ void CUser::InitJingJie()   //读档
     CUnitySpiritService::Load(this);
 	if(!CUnityJingJieService::Instance().Load(this))
 		cout<<"[UnityJingJie] authoritative state load failed role="<<GetRoleId()<<endl;
+    CUnityLibraryService::Load(this);
 	for(auto& entry:m_pet)if(entry.second)entry.second->Init(this); // rebuild before the login snapshot, without sending early packets
 }
 

@@ -20,6 +20,7 @@ namespace ProjectX.UI
         [SerializeField] private GameObject checkBox;
         [SerializeField] private GameObject confirm3;
         [SerializeField] private GameObject confirm2Time;
+        [SerializeField] private PopupAttributeSummary attributeSummary;
 
         public Text Title => title;
         public Text Message => message;
@@ -34,5 +35,6 @@ namespace ProjectX.UI
         public GameObject CheckBox => checkBox;
         public GameObject Confirm3 => confirm3;
         public GameObject Confirm2Time => confirm2Time;
+        public PopupAttributeSummary AttributeSummary => attributeSummary;
     }
 }

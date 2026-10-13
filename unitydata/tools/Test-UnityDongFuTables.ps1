@@ -142,11 +142,15 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
         if ($row.effect_kind -eq 'experience' -and ($row.target_scope -ne 'player_experience' -or $row.attributes.Count -or $row.experience -lt 1)) { throw 'DongFu experience effect is not a permanent combat attribute.' }
     }
     foreach ($set in $active.dongfu_book_set.Values) {
-        if (-not $set.book_ids.Count) { throw 'DongFu enabled book set is empty.' }
+        if (-not $set.book_ids.Count -or $set.book_ids.Count -gt 4) { throw 'DongFu library set must contain 1..4 books.' }
+        if ($set.realm_id -lt 1 -or $set.realm_id -gt 55) { throw 'DongFu library set needs a formal realm ID.' }
         foreach ($id in $set.book_ids) { Require-DongFuRef 'dongfu_book' $id; if ($active.dongfu_book[[string]$id].set_id -ne $set.id) { throw 'DongFu book/set membership mismatch.' } }
     }
+    $libraryItemIds=@{};$bookActivations=@{}
     foreach ($book in $active.dongfu_book.Values) {
         Require-DongFuItem $book.item_id; Require-DongFuRef 'dongfu_book_set' $book.set_id
+        if ($book.item_id -ge 60000 -or $libraryItemIds.ContainsKey([string]$book.item_id)) { throw 'Library books need distinct inventory item IDs.' }
+        $libraryItemIds[[string]$book.item_id]=$true
         if ($book.id -notin $active.dongfu_book_set[[string]$book.set_id].book_ids) { throw 'DongFu book is absent from its set.' }
     }
     foreach ($reward in $active.dongfu_book_reward.Values) {
@@ -155,10 +159,22 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
         if (-not $reward.attributes.Count) { throw 'DongFu enabled collection reward has no attributes.' }
         foreach ($id in $reward.required_book_ids) { if ($id -notin $members) { throw 'DongFu reward references another set.' } }
         switch ($reward.condition_kind) {
-            'book' { if ($reward.required_book_ids.Count -ne 1 -or $reward.required_count -ne 0) { throw 'DongFu single-book condition invalid.' } }
+            'book' {
+                if ($reward.required_book_ids.Count -ne 1 -or $reward.required_count -ne 0) { throw 'DongFu single-book condition invalid.' }
+                $bookId=[string]$reward.required_book_ids[0]
+                if($bookActivations.ContainsKey($bookId)){throw 'Library book must have exactly one consuming activation reward.'}
+                $bookActivations[$bookId]=$true
+            }
             'count' { if ($reward.required_count -lt 1 -or $reward.required_count -gt $members.Count -or $reward.required_book_ids.Count) { throw 'DongFu count condition invalid.' } }
             'combination' { if ($reward.required_book_ids.Count -lt 2 -or $reward.required_count -ne 0) { throw 'DongFu combination condition invalid.' } }
             'complete' { if ($reward.required_count -ne 0 -or $reward.required_book_ids.Count) { throw 'DongFu complete condition must use actual set members.' } }
         }
+    }
+    foreach($bookId in $active.dongfu_book.Keys){if(!$bookActivations.ContainsKey($bookId)){throw 'Library book has no single-book activation reward.'}}
+    $librarySources=@{}
+    foreach($source in $active.dongfu_library_source.Values){
+        if($source.event_kind -notin @('world','world_sweep','liezhuan') -or $librarySources.ContainsKey($source.event_kind)){throw 'Library acquisition source is invalid/duplicated.'}
+        if($source.chance_bp -gt 10000 -or $source.quantity -ne 1 -or $source.current_realm_bp+$source.older_realm_bp -ne 10000){throw 'Library acquisition probability/weights invalid.'}
+        $librarySources[$source.event_kind]=$true
     }
 }

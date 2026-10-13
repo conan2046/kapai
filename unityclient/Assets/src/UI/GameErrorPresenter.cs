@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,6 +16,7 @@ namespace ProjectX.UI
         private readonly Button singleConfirm;
         private readonly Button cancelButton;
         private readonly Button confirmButton;
+        private readonly PopupAttributeSummary attributeSummary;
         private Action confirmation;
         private Action cancellation;
 
@@ -26,6 +28,7 @@ namespace ProjectX.UI
                 throw new InvalidOperationException("MessageBoxLayer is missing its Unity-authored view bindings.");
             title = bindings.Title;
             message = bindings.Message;
+            attributeSummary = bindings.AttributeSummary;
             if (title == null || message == null)
                 throw new InvalidOperationException("MessageBoxLayer title and message bindings are required.");
             defaultMessagePosition = message.rectTransform.anchoredPosition;
@@ -93,6 +96,15 @@ namespace ProjectX.UI
             message.alignment = TextAnchor.UpperLeft;
         }
 
+        public void ShowAttributes(string heading, IReadOnlyList<string> attributes, string footer)
+        {
+            if (attributeSummary == null)
+                throw new InvalidOperationException("MessageBoxLayer is missing its attribute summary template.");
+            Show(heading, string.Empty);
+            message.gameObject.SetActive(false);
+            attributeSummary.Show(attributes, footer);
+        }
+
         public void ShowDismissOnly(string heading, string detail)
         {
             Show(heading, detail);
@@ -152,6 +164,7 @@ namespace ProjectX.UI
 
         private void ResetMessageLayout()
         {
+            if (attributeSummary != null) attributeSummary.gameObject.SetActive(false);
             message.rectTransform.anchoredPosition = defaultMessagePosition;
             message.rectTransform.sizeDelta = defaultMessageSize;
             message.alignment = defaultMessageAlignment;

@@ -1,4 +1,5 @@
 #include "user_guanqia.h"
+#include "library_unity.h"
 #include "user.h"
 #include "scene_manager.h"
 #include "init.h"
@@ -1122,6 +1123,7 @@ void CUserGuanQia::GuanQiaSaoDang(CUser* pUser, uint8 type, uint32 mapId, uint32
 		// 主角经验：按产品口径从副本产出中移除（改由后续「修炼系统」供给），
 		// 此处不再发放（原 pUser->AddMaterial(ad)）也不再展示。
 		amgr.GetAwardById(cfg->rewardId, awvec);
+        CUnityLibraryService::AddSourceAward(pUser,"world_sweep",awvec);
 		msg << (uint8)ci;
 		MakeMultiAwardMsg(cfg->moneyAward, msg);
 		MakeMultiAwardMsg(awvec, msg);
@@ -1321,6 +1323,7 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainI
 	msg << curCnt << m_curNodeId << nextMapId << nextNodeId << fixId << starFixId;
 	MultiAward awards;
 	MergeAwardList(awards, cfg->moneyAward);
+    CUnityLibraryService::AddSourceAward(pUser,"world",awards);
 	if (firstAward)
 	{
 		AddNewSinggleGuanQia(m_curType, nextMapId, nextNodeId);
@@ -1572,6 +1575,7 @@ void CUserGuanQia::TiaoZhanLieZhuan(CUser* pUser, CNetMessage &msg)
 		MergeAwardList(awards, cfg->firstAward);
 
 		// 主角经验：按产品口径从副本产出中移除（改由后续「修炼系统」供给）
+        CUnityLibraryService::AddSourceAward(pUser,"liezhuan",awards);
 		MakeFightEndMsg(pUser, 3, msg, &awards, MUT_GuanQiaLieZhuan);
 		SingletonSocket::instance().SendMsg(pUser->GetSock(), msg);
 

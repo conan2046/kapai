@@ -10,7 +10,8 @@ namespace ProjectX.UI
         Fish,
         FishBasket,
         FengShenStory,
-        DongFu
+        DongFu,
+        DongFuLibrary
     }
 
     public sealed class OneLevelFrameCoordinator
@@ -46,16 +47,17 @@ namespace ProjectX.UI
                 return;
             }
 
-            if (mode != OneLevelFrameMode.DongFu) NormalizeFrameRect();
+            if (mode != OneLevelFrameMode.DongFu && mode != OneLevelFrameMode.DongFuLibrary) NormalizeFrameRect();
             View.SetVisible(true);
             bool standard = mode == OneLevelFrameMode.Standard;
             bool fish = mode == OneLevelFrameMode.Fish;
             bool fengShenStory = mode == OneLevelFrameMode.FengShenStory;
-            bool dongFu = mode == OneLevelFrameMode.DongFu;
-            SetActive("Layer/Bg", standard || fengShenStory);
+            bool library = mode == OneLevelFrameMode.DongFuLibrary;
+            bool dongFu = mode == OneLevelFrameMode.DongFu || library;
+            SetActive("Layer/Bg", standard || fengShenStory || library);
             SetActive("Layer/Panel_12", standard || fish || dongFu);
             SetActive("Layer/Panel_12/BlackBg", false);
-            SetActive("Layer/Panel_12/Bg", standard);
+            SetActive("Layer/Panel_12/Bg", standard || library);
             SetActive("Layer/Panel_12/Title", standard || fish || dongFu);
             SetActive("Layer/Panel_12/Bg/Btn_ListView", standard);
             SetActive("Layer/Panel_12/Bg/Btn_ListView/Panel_10", standard);

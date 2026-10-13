@@ -62,6 +62,7 @@ namespace ProjectX.Core
         {
             if(building==0){ShowGarden();return;}
             if(building==1){ShowSpirit();return;}
+            if(building==4){ShowLibrary();return;}
             if(building<1||building>=DongFuPageKeys.Length)return;
             if(!dongFuPages.TryGetValue(building,out UnityUiView page)||!page.IsAlive)
             {
@@ -87,8 +88,10 @@ namespace ProjectX.Core
             if(content!=dongFuView)dongFuView?.SetVisible(false);
             foreach(var page in dongFuPages.Values)if(content!=page)page.SetVisible(false);
             frame.AttachContent(content, keepSiblingOrder:true);
-            content.GameObject.transform.SetAsFirstSibling();
-            frame.Apply(OneLevelFrameMode.DongFu);
+            bool library = content == libraryView;
+            if(library)content.GameObject.transform.SetAsLastSibling();
+            else content.GameObject.transform.SetAsFirstSibling();
+            frame.Apply(library ? OneLevelFrameMode.DongFuLibrary : OneLevelFrameMode.DongFu);
             oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => back(), true);
             var helpNode=oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName/Button_1");

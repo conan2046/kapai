@@ -441,6 +441,7 @@ const int MSG_HERO_BOOK = 322;       // 图鉴
 const int MSG_BLOOD_FIGHT = 323;       // 血战
 const int MSG_UNITY_GARDEN = 324;      // Unity/Steam 灵园
 const int MSG_UNITY_DONGFU_SPIRIT = 325; // Unity/Steam 聚灵阵
+const int MSG_UNITY_DONGFU_LIBRARY = 326; // Unity/Steam 藏书阁
 
 
 

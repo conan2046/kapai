@@ -216,7 +216,8 @@
             "open_level": "number",
             "icon_key": "string",
             "sort_order": "number",
-            "enabled": "number"
+            "enabled": "number",
+            "realm_id": "number"
           },
           "sheetIndex": 7,
           "integerColumns": [
@@ -224,7 +225,8 @@
             "quality",
             "open_level",
             "sort_order",
-            "enabled"
+            "enabled",
+            "realm_id"
           ],
           "jsonKinds": {
             "book_ids": [
@@ -269,14 +271,16 @@
             "required_book_ids": "json",
             "attributes": "json",
             "target_scope": "string",
-            "enabled": "number"
+            "enabled": "number",
+            "sort_order": "number"
           },
           "sheetIndex": 9,
           "integerColumns": [
             "id",
             "set_id",
             "required_count",
-            "enabled"
+            "enabled",
+            "sort_order"
           ],
           "jsonKinds": {
             "required_book_ids": [
@@ -371,6 +375,31 @@
           },
           "client": true,
           "output": "dongfu_spirit_root_level.json"
+        },
+        {
+          "name": "dongfu_library_source",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "event_kind": "string",
+            "chance_bp": "number",
+            "quantity": "number",
+            "current_realm_bp": "number",
+            "older_realm_bp": "number",
+            "enabled": "number"
+          },
+          "sheetIndex": 13,
+          "integerColumns": [
+            "id",
+            "chance_bp",
+            "quantity",
+            "current_realm_bp",
+            "older_realm_bp",
+            "enabled"
+          ],
+          "jsonKinds": {},
+          "client": true,
+          "output": "dongfu_library_source.json"
         }
       ]
     },
@@ -2043,6 +2072,38 @@
           "jsonKinds": {},
           "client": false,
           "output": "tongtiantower.xml"
+        }
+      ]
+    },
+    {
+      "group": "LibraryRealm",
+      "workbook": "jingjie_realm.xlsx",
+      "sheets": [
+        {
+          "name": "jingjie_realm",
+          "kind": "json",
+          "columns": {
+            "realm_id": "number",
+            "name": "string",
+            "quality": "number",
+            "first_jingjie_id": "number",
+            "last_jingjie_id": "number",
+            "sort_order": "number",
+            "enabled": "number"
+          },
+          "sheetIndex": 1,
+          "primaryColumn": "realm_id",
+          "integerColumns": [
+            "realm_id",
+            "quality",
+            "first_jingjie_id",
+            "last_jingjie_id",
+            "sort_order",
+            "enabled"
+          ],
+          "jsonKinds": {},
+          "client": true,
+          "output": "jingjie_realm.json"
         }
       ]
     }

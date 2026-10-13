@@ -33,7 +33,11 @@ Reject-DongFuCase 'zero remaining time' {param($x) $x.dongfu_spirit_root_level[0
 Reject-DongFuCase 'duplicate book members' {param($x) $x.dongfu_book_set[0].book_ids=@(1,1)}
 Reject-DongFuCase 'invalid resource pair' {param($x) $x.dongfu_recipe[0].cost_items=@(@(1,0))}
 Reject-DongFuCase 'unmapped seed' {param($x) $x.dongfu_crop[0].enabled=1; $x.dongfu_crop[0].seed_item_id=0}
-Reject-DongFuCase 'unmapped active book' {param($x) $x.dongfu_book[0].enabled=1}
+Reject-DongFuCase 'unmapped active book' {param($x) $x.dongfu_book[0].enabled=1;$x.dongfu_book[0].item_id=0}
+Reject-DongFuCase 'library set exceeds four books' {param($x) $x.dongfu_book_set[0].book_ids=@(1,2,3,4,5)}
+Reject-DongFuCase 'library set has no realm' {param($x) $x.dongfu_book_set[0].realm_id=0}
+Reject-DongFuCase 'library source weight mismatch' {param($x) $x.dongfu_library_source[0].older_realm_bp=0}
+Reject-DongFuCase 'library source probability exceeds bounds' {param($x) $x.dongfu_library_source[0].chance_bp=10001}
 Reject-DongFuCase 'duplicate resource cost' {param($x) $x.dongfu_recipe[0].cost_items=@(@(1,2),@(1,3))}
 Reject-DongFuCase 'invalid garden stage threshold' {param($x) $x.dongfu_crop[0].enabled=1; $x.dongfu_crop[0].seed_item_id=41012; $x.dongfu_building[0].enabled=1; $x.dongfu_crop[0].outputs=,@(11012,1); $x.dongfu_crop[0].middle_progress_bp=10000}
 Reject-DongFuCase 'incomplete garden plot set' {param($x) $x.dongfu_garden_plot[0].enabled=0}
