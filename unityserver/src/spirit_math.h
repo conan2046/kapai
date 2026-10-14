@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <algorithm>
 #include <limits>
 #include <stdexcept>
 #include <array>
@@ -8,18 +9,19 @@
 #include <vector>
 namespace spirit
 {
-    struct Wallet {int64_t amount=0,last=0,rate=0,remainder=0,period=5000,capacity=INT64_MAX;};
+    struct Wallet {int64_t amount=0,last=0,rate=0,remainder=0,period=5000,capacity=INT64_MAX,bonus=0,gainFraction=0;};
     inline void Accrue(Wallet& wallet,int64_t now)
     {
-        if(wallet.amount<0||wallet.rate<0||wallet.rate>INT32_MAX||wallet.capacity<0||wallet.remainder<0||(wallet.period!=1000&&wallet.period!=5000)||wallet.remainder>=wallet.period)throw std::runtime_error("Invalid spirit wallet");
+        if(wallet.amount<0||wallet.last<0||wallet.rate<0||wallet.rate>INT32_MAX||wallet.capacity<0||wallet.remainder<0||wallet.bonus<0||wallet.bonus>INT32_MAX||wallet.gainFraction<0||wallet.gainFraction>=10000||(wallet.period!=1000&&wallet.period!=5000)||wallet.remainder>=wallet.period)throw std::runtime_error("Invalid spirit wallet");
         if(wallet.last==0){wallet.last=now;return;}
         if(now<=wallet.last)return;
         if(wallet.period==5000){
             int64_t elapsed=now-wallet.last,ticks=elapsed/5000,partial=elapsed%5000+wallet.remainder;
             ticks+=partial/5000;partial%=5000;
             int64_t room=wallet.capacity> wallet.amount?wallet.capacity-wallet.amount:0;
-            if(wallet.rate&&ticks>room/wallet.rate){wallet.amount=wallet.capacity;wallet.remainder=0;}
-            else{wallet.amount+=ticks*wallet.rate;wallet.remainder=wallet.amount>=wallet.capacity?0:partial;}
+            int64_t scaled=wallet.rate*(10000+wallet.bonus),whole=scaled/10000,minor=scaled%10000;
+            if(whole&&ticks>room/whole){wallet.amount=wallet.capacity;wallet.remainder=0;wallet.gainFraction=0;}
+            else{int64_t partialGain=minor*(ticks%10000)+wallet.gainFraction;int64_t base=ticks*whole,extra=(ticks/10000)*minor+partialGain/10000;wallet.amount+=base+std::min(room-base,extra);wallet.gainFraction=wallet.amount>=wallet.capacity?0:partialGain%10000;wallet.remainder=wallet.amount>=wallet.capacity?0:partial;}
             wallet.last=now;return;
         }
         int64_t elapsed=now-wallet.last,seconds=elapsed/1000,partial=elapsed%1000*wallet.rate+wallet.remainder;

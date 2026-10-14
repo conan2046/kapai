@@ -118,6 +118,7 @@ struct SItemTemplate
 		jiage = 0;
 		sortPriority = 0;
 		limitTime = 0;
+		maxStack = EItemDieJiaNum;
 		subValue = 0;
 		name.clear();
 		describe.clear();
@@ -131,6 +132,7 @@ struct SItemTemplate
     uint16 id;      // 物品id
     uint16 type;    // 种类
     uint16 pic;     // 图片
+    uint16 maxStack; // 正式 item.max_stack 单格叠加上限
 	uint16 activityId;  // 活动id
     int jiage;      	// 价格
     int sortPriority;	// 从小到大排序

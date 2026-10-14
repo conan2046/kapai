@@ -168,10 +168,10 @@ namespace ProjectX.Core
 
             tabs.gameObject.SetActive(true);
             Text hubTitle = binding.FindNode("Layer/shopBg/Popup/Title/Title")?.GetComponent<Text>();
-            if (hubTitle != null) hubTitle.text = selected == ShopHubTab.Shop ? "商城" : "将魂商店";
+            if (hubTitle != null) hubTitle.text = selected == ShopHubTab.Shop ? "商城" : selected == ShopHubTab.Alchemy ? "丹方商店" : "将魂商店";
             Transform hubHelp = hubTitle?.transform.Find("Button_1");
             if (hubHelp != null) hubHelp.gameObject.SetActive(selected == ShopHubTab.Soul);
-            if (selected == ShopHubTab.Shop)
+            if (selected == ShopHubTab.Shop || selected == ShopHubTab.Alchemy)
             {
                 // The shared shop frame stays open for the merged mall entry.
                 // Only its mask/image remain hidden because shangcheng owns the
@@ -179,7 +179,7 @@ namespace ProjectX.Core
                 popup?.gameObject.SetActive(true);
                 mask?.gameObject.SetActive(false);
                 image?.gameObject.SetActive(false);
-                bagPopupFrameView.BindClick("Layer/shopBg/Popup/Btn_close", CloseShop, true);
+                bagPopupFrameView.BindClick("Layer/shopBg/Popup/Btn_close", selected==ShopHubTab.Alchemy?(Action)CloseAlchemyShop:CloseShop, true);
             }
             else
             {
@@ -201,17 +201,22 @@ namespace ProjectX.Core
             RectTransform secondRect = secondPanel as RectTransform;
             if (templateRect != null && secondRect != null)
                 secondRect.anchoredPosition = templateRect.anchoredPosition + new Vector2(0f, -100f);
+            Transform alchemyPanel=tabs.Find("Panel_Alchemy");
+            if(alchemyPanel==null)throw new InvalidOperationException("shop_bg 缺少预制体维护的丹方商店入口 Panel_Alchemy。");
 
             foreach (Transform child in tabs)
-                if (child != template && child != secondPanel)
+                if (child != template && child != secondPanel && child != alchemyPanel)
                     child.gameObject.SetActive(false);
             template.gameObject.SetActive(true);
             secondPanel.gameObject.SetActive(true);
+            alchemyPanel.gameObject.SetActive(true);
 
             ConfigureShopHubTab(template.Find("Button"), "商城", selected == ShopHubTab.Shop,
                 () => ShowShop());
             ConfigureShopHubTab(secondPanel.Find("Button"), "将魂商店", selected == ShopHubTab.Soul,
                 ShowShopHubSoulTab);
+            ConfigureShopHubTab(alchemyPanel.Find("Button"), "丹方商店", selected == ShopHubTab.Alchemy,
+                ShowShopHubAlchemyTab);
             RefreshShopRedDots();
         }
 

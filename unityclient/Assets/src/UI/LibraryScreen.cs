@@ -18,6 +18,7 @@ namespace ProjectX.UI
         [SerializeField] private ScrollRect rewardScroll;
         [SerializeField] private Text empty;
         [SerializeField] private Button attributes;
+        [SerializeField] private GroupedTemplateList groupedList;
         private LibraryCatalogData catalog;
         private LibraryEnvelope state;
         private Func<string, Sprite> sprite;
@@ -25,8 +26,9 @@ namespace ProjectX.UI
         private readonly Dictionary<int, Button> setButtons = new Dictionary<int, Button>();
         private readonly List<GameObject> bookRows = new List<GameObject>();
         private readonly List<GameObject> rewardRows = new List<GameObject>();
-        private int selectedRealm, selectedSet, renderedSet;
-        private bool pending, bound, resetSelection;
+        private int selectedRealm => groupedList == null ? 0 : groupedList.SelectedGroup;
+        private int selectedSet, renderedSet;
+        private bool pending, bound;
         public event Action BecameVisible;
         public event Action CloseRequested;
         public event Action<int> ActivationRequested;
@@ -39,6 +41,7 @@ namespace ProjectX.UI
         public void Bind(LibraryCatalogData data, Func<string, Sprite> loadSprite)
         {
             if (bound) return;
+            if (groupedList == null) throw new InvalidOperationException("藏书阁缺少公共分组列表绑定。");
             catalog = data; sprite = loadSprite; bound = true;
             realmTemplate.SetActive(false); bookTemplate.gameObject.SetActive(false); rewardTemplate.gameObject.SetActive(false);
             foreach (var realm in catalog.Realms)
@@ -47,7 +50,7 @@ namespace ProjectX.UI
                 var group = Instantiate(realmTemplate, realmTemplate.transform.parent, false);
                 group.name = "Realm_" + realmId;
                 group.transform.Find("Name").GetComponent<Text>().text = realm.Name;
-                group.transform.Find("Name").GetComponent<Button>().onClick.AddListener(() => SelectRealm(realmId));
+                groupedList.RegisterGroup(realmId, group, RealmSelectionChanged);
                 var content = group.transform.Find("VirtualContent");
                 var rowTemplate = content.Find("VirtualRow_0"); rowTemplate.gameObject.SetActive(false);
                 foreach (var set in catalog.InRealm(realmId))
@@ -63,13 +66,14 @@ namespace ProjectX.UI
             }
             attributes.onClick.AddListener(() => AttributesRequested?.Invoke());
         }
-        public void ResetSelection() { resetSelection = true; }
+        public void ResetSelection() { groupedList.ResetSelection(); selectedSet = 0; }
         public void Back() => CloseRequested?.Invoke();
         public void Apply(LibraryEnvelope value)
         {
             state = value; pending = false;
-            bool fresh = resetSelection || selectedRealm == 0;
-            if (fresh) { selectedRealm = catalog.Realms.Any(r => r.Id == value.Realm) ? value.Realm : catalog.Realms.FirstOrDefault()?.Id ?? 0; selectedSet = catalog.InRealm(selectedRealm).FirstOrDefault()?.Id ?? 0; resetSelection = false; }
+            int initialRealm = catalog.Realms.Any(r => r.Id == value.Realm) ? value.Realm : catalog.Realms.FirstOrDefault()?.Id ?? 0;
+            bool fresh = groupedList.InitializeSelection(initialRealm);
+            if (fresh) selectedSet = catalog.InRealm(selectedRealm).FirstOrDefault()?.Id ?? 0;
             Refresh();
             if (fresh) StartCoroutine(ScrollToRealm());
         }
@@ -77,25 +81,30 @@ namespace ProjectX.UI
         public void Loading()
         {
             pending = true; empty.gameObject.SetActive(true); empty.text = "正在同步藏书信息…";
+            groupedList.SetInteractable(false);
             foreach (var row in rewardRows) row.transform.Find("Activate").GetComponent<Button>().interactable = false;
         }
         public void Fail(string message) { pending = true; Refresh(); empty.gameObject.SetActive(true); empty.text = "藏书信息同步失败"; }
         public void SelectRealm(int id)
         {
             if (pending) return;
-            selectedRealm = id; selectedSet = catalog.InRealm(id).FirstOrDefault()?.Id ?? 0; Refresh();
+            groupedList.ToggleGroup(id); RealmSelectionChanged(selectedRealm);
+        }
+        private void RealmSelectionChanged(int id)
+        {
+            selectedSet = catalog.InRealm(id).FirstOrDefault()?.Id ?? 0; Refresh();
         }
         public void SelectSet(int id)
         {
             if (pending || !catalog.Sets.TryGetValue(id, out var set)) return;
-            selectedRealm = set.Realm; selectedSet = id; Refresh();
+            groupedList.SelectGroup(set.Realm); selectedSet = id; Refresh();
         }
         private void Refresh()
         {
             if (!bound) return;
+            groupedList.Refresh(); groupedList.SetInteractable(!pending);
             foreach (var pair in realmGroups)
             {
-                pair.Value.transform.Find("VirtualContent").gameObject.SetActive(pair.Key == selectedRealm);
                 var realm = catalog.Realms.First(r => r.Id == pair.Key);
                 pair.Value.transform.Find("Name").GetComponent<Text>().text = realm.Name + (state != null && realm.Id > state.Realm ? "·未达" : "");
             }
@@ -109,7 +118,7 @@ namespace ProjectX.UI
             }
             var setExists = state != null && state.Configured && catalog.Sets.ContainsKey(selectedSet);
             empty.gameObject.SetActive(!setExists);
-            if (!setExists) empty.text = state == null ? "正在同步藏书信息…" : state.Configured ? "该境界暂无藏书套装" : "暂无藏书信息";
+            if (!setExists) empty.text = state == null ? "正在同步藏书信息…" : selectedRealm == 0 ? "请选择藏书套装" : state.Configured ? "该境界暂无藏书套装" : "暂无藏书信息";
             if (!setExists) { Clear(bookRows); Clear(rewardRows); renderedSet = 0; return; }
             bool rebuild = renderedSet != selectedSet;
             if (rebuild) { Clear(bookRows); Clear(rewardRows); renderedSet = selectedSet; }

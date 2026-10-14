@@ -8,7 +8,7 @@ namespace ProjectX.Data
     {
         public BagItemRecord(int slot, int itemId, int quantity, string name, string description,
             int picture, int quality, int useType, int useJump, int sortPriority,
-            int itemType = 0, string itemFrom = "", string choices = "", string sources = "")
+            int itemType = 0, string itemFrom = "", string choices = "", string sources = "", int maxStack = 65000)
         {
             Slot = slot;
             ItemId = itemId;
@@ -24,6 +24,8 @@ namespace ProjectX.Data
             ItemFrom = itemFrom ?? string.Empty;
             Choices = choices ?? string.Empty;
             Sources = sources ?? string.Empty;
+            if(maxStack < 1 || maxStack > 65000)throw new ArgumentOutOfRangeException(nameof(maxStack));
+            MaxStack = maxStack;
         }
 
         public int Slot { get; }
@@ -40,6 +42,7 @@ namespace ProjectX.Data
         public string ItemFrom { get; }
         public string Choices { get; }
         public string Sources { get; }
+        public int MaxStack { get; }
         public bool CanUseDirectly => ItemId > 0 && Quantity > 0 && (UseType > 0 || ItemType == 6);
     }
 
@@ -59,19 +62,21 @@ namespace ProjectX.Data
                         && item.ItemType != 13 && item.ItemType != 16)
                     .OrderBy(item => item.Slot)
                     .GroupBy(item => item.ItemId)
-                    .Select(group =>
-                    {
-                        BagItemRecord representative = group.First();
-                        return new BagItemRecord(representative.Slot, representative.ItemId,
-                            group.Sum(item => item.Quantity), representative.Name, representative.Description,
-                            representative.Picture, representative.Quality, representative.UseType,
-                            representative.UseJump, representative.SortPriority, representative.ItemType,
-                            representative.ItemFrom, representative.Choices, representative.Sources);
-                    })
+                    .SelectMany(DisplayStacks)
                     .ToList();
                 LuaPrioritySort(visible, 0, visible.Count - 1);
                 return visible;
             }
+        }
+
+        private static IEnumerable<BagItemRecord> DisplayStacks(IGrouping<int,BagItemRecord> group)
+        {
+            BagItemRecord first=group.First();int quantity=group.Sum(item=>item.Quantity);
+            // Keep the server's physical slots when the total exceeds the configured per-slot cap.
+            if(quantity>first.MaxStack)return group;
+            return new[]{new BagItemRecord(first.Slot,first.ItemId,quantity,first.Name,first.Description,
+                first.Picture,first.Quality,first.UseType,first.UseJump,first.SortPriority,first.ItemType,
+                first.ItemFrom,first.Choices,first.Sources,first.MaxStack)};
         }
 
         // KaPaiBagSubUI.lua uses Lua 5.1 table.sort with only sort_priority in
@@ -150,15 +155,7 @@ namespace ProjectX.Data
                 .Where(item => item.ItemId > 0 && item.Quantity > 0 && item.ItemType == itemType)
                 .OrderBy(item => item.Slot)
                 .GroupBy(item => item.ItemId)
-                .Select(group =>
-                {
-                    BagItemRecord representative = group.First();
-                    return new BagItemRecord(representative.Slot, representative.ItemId,
-                        group.Sum(item => item.Quantity), representative.Name, representative.Description,
-                        representative.Picture, representative.Quality, representative.UseType,
-                        representative.UseJump, representative.SortPriority, representative.ItemType,
-                        representative.ItemFrom, representative.Choices, representative.Sources);
-                })
+                .SelectMany(DisplayStacks)
                 .ToList();
         }
 

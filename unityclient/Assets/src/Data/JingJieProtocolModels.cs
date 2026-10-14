@@ -24,6 +24,7 @@ namespace ProjectX.Data
         [JsonProperty("power")] public string Power;
         [JsonProperty("failures")] public int Failures;
         [JsonProperty("rate")] public int Rate;
+        [JsonProperty("base_rate")] public int BaseRate;
         [JsonProperty("next_id")] public int NextId;
         [JsonProperty("interval_ms")] public int IntervalMilliseconds;
     }

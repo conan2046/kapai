@@ -29,7 +29,8 @@ namespace ProjectX.Core
             ResolveNativeBagMaterial(itemId, ref itemName, ref description, ref picture, ref quality,
                 ref useType, ref useJump, ref sortPriority, ref itemType, ref itemFrom);
             pendingBagItems.Add(new BagItemRecord(slot, itemId, quantity, itemName, description,
-                picture, quality, useType, useJump, sortPriority, itemType, itemFrom, choices, sources));
+                picture, quality, useType, useJump, sortPriority, itemType, itemFrom, choices, sources,
+                services.EquipmentCatalog.GetItem(itemId)?.MaxStack ?? 65000));
         }
 
         public void EndBagUpdate()
@@ -231,7 +232,8 @@ namespace ProjectX.Core
             ResolveNativeBagMaterial(itemId, ref itemName, ref description, ref picture, ref quality,
                 ref useType, ref useJump, ref sortPriority, ref itemType, ref itemFrom);
             services.Bag.Upsert(new BagItemRecord(slot, itemId, quantity, itemName, description,
-                picture, quality, useType, useJump, sortPriority, itemType, itemFrom, choices, sources));
+                picture, quality, useType, useJump, sortPriority, itemType, itemFrom, choices, sources,
+                services.EquipmentCatalog.GetItem(itemId)?.MaxStack ?? 65000));
         }
 
         public void RemoveBagItem(int slot) => services.Bag.Remove(slot);

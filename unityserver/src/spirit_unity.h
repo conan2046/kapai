@@ -13,6 +13,7 @@ public:
     static bool ChangeResource(CUser* user,int64 amount);
     static int64 Resource(CUser* user);
     static SUnitySpiritBonus Bonus(CUser* user);
+    static int CraftReduction(CUser* user);
     static std::vector<SAttrData> CombatAttributes(CUser* user,int position);
     static void Handle(CUser* user,unsigned char operation,const std::string& payload);
 };

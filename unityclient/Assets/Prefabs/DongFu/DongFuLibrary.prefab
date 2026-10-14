@@ -788,6 +788,7 @@ GameObject:
   - component: {fileID: 8435337531712086019}
   - component: {fileID: 715501208008033149}
   - component: {fileID: 6163162768939096472}
+  - component: {fileID: 6459146319564929677}
   m_Layer: 0
   m_Name: DongFuLibrary
   m_TagString: Untagged
@@ -860,6 +861,20 @@ MonoBehaviour:
   rewardScroll: {fileID: 1525398054087530982}
   empty: {fileID: 6896849323240068096}
   attributes: {fileID: 7693408463981770253}
+  groupedList: {fileID: 6459146319564929677}
+--- !u!114 &6459146319564929677
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2772833676786280236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab8f7989f89ba694895e645d4102b569, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  selectedHeaderSprite: {fileID: 21300000, guid: aa4901a8e923d0c438d7a6da6a9ec1ed, type: 3}
 --- !u!1 &3243350862185682035
 GameObject:
   m_ObjectHideFlags: 0

@@ -203,97 +203,6 @@
       ]
     },
     {
-      "name": "dongfu_recipe",
-      "fields": [
-        {
-          "key": "id",
-          "type": "number",
-          "description": "配方ID"
-        },
-        {
-          "key": "name",
-          "type": "string",
-          "description": "配方名称"
-        },
-        {
-          "key": "kind",
-          "type": "string",
-          "description": "alchemy/forge"
-        },
-        {
-          "key": "building_id",
-          "type": "number",
-          "description": "所需建筑记录ID"
-        },
-        {
-          "key": "learn_item_id",
-          "type": "number",
-          "description": "学习道具正式item ID"
-        },
-        {
-          "key": "cost_items",
-          "type": "json",
-          "description": "单次[[item_id,数量]]"
-        },
-        {
-          "key": "duration_seconds",
-          "type": "number",
-          "description": "单次基础秒数"
-        },
-        {
-          "key": "batch_limit",
-          "type": "number",
-          "description": "最大批次数"
-        },
-        {
-          "key": "batch_cost_bp",
-          "type": "number",
-          "description": "材料倍率万分比10000不打折"
-        },
-        {
-          "key": "output_item_id",
-          "type": "number",
-          "description": "丹药item ID，装备则0"
-        },
-        {
-          "key": "equip_template_id",
-          "type": "number",
-          "description": "当前装备模板ID，丹药则0"
-        },
-        {
-          "key": "quality",
-          "type": "number",
-          "description": "配方固定品质，当前品质枚举"
-        },
-        {
-          "key": "output_count",
-          "type": "number",
-          "description": "单次结果数量"
-        },
-        {
-          "key": "enabled",
-          "type": "number",
-          "description": "0未启用1启用"
-        }
-      ],
-      "disabledExample": [
-        1,
-        "未启用丹方",
-        "alchemy",
-        3,
-        0,
-        "[]",
-        60,
-        1,
-        10000,
-        0,
-        0,
-        0,
-        1,
-        0
-      ]
-    },
-    {
       "name": "dongfu_effect",
       "fields": [
         {
@@ -340,6 +249,11 @@
           "key": "enabled",
           "type": "number",
           "description": "0未启用1启用"
+        },
+        {
+          "key": "target_positions",
+          "type": "json",
+          "description": "作用站位0主角，1～5神将"
         }
       ],
       "disabledExample": [
@@ -351,7 +265,9 @@
         0,
         "",
         1,
-        0
+        0,
+        "[1,2,3,4,5]",
+        "[1,2,3,4,5]"
       ]
     },
     {
@@ -386,6 +302,11 @@
           "key": "enabled",
           "type": "number",
           "description": "0未启用1启用，空视为0"
+        },
+        {
+          "key": "craft_reduction_bp",
+          "type": "number",
+          "description": "炼丹/炼器缩时万分比"
         }
       ],
       "disabledExample": [
@@ -393,6 +314,7 @@
         1,
         0,
         "[]",
+        0,
         0,
         0,
         0
@@ -769,6 +691,91 @@
         7000,
         3000,
         0
+      ]
+    },
+    {
+      "name": "dongfu_alchemy_recipe",
+      "fields": [
+        {
+          "key": "id",
+          "type": "number",
+          "description": "id"
+        },
+        {
+          "key": "name",
+          "type": "string",
+          "description": "name"
+        },
+        {
+          "key": "realm_id",
+          "type": "number",
+          "description": "realm_id"
+        },
+        {
+          "key": "series_id",
+          "type": "number",
+          "description": "series_id"
+        },
+        {
+          "key": "use_jingjie_id",
+          "type": "number",
+          "description": "use_jingjie_id"
+        },
+        {
+          "key": "learn_item_id",
+          "type": "number",
+          "description": "learn_item_id"
+        },
+        {
+          "key": "cost_items",
+          "type": "json",
+          "description": "cost_items"
+        },
+        {
+          "key": "duration_seconds",
+          "type": "number",
+          "description": "duration_seconds"
+        },
+        {
+          "key": "batch_limit",
+          "type": "number",
+          "description": "batch_limit"
+        },
+        {
+          "key": "output_item_id",
+          "type": "number",
+          "description": "output_item_id"
+        },
+        {
+          "key": "output_count",
+          "type": "number",
+          "description": "output_count"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "enabled"
+        }
+      ]
+    },
+    {
+      "name": "dongfu_material_shop",
+      "fields": [
+        {
+          "key": "item_id",
+          "type": "number",
+          "description": "item_id"
+        },
+        {
+          "key": "price_gold",
+          "type": "number",
+          "description": "price_gold"
+        },
+        {
+          "key": "enabled",
+          "type": "number",
+          "description": "enabled"
+        }
       ]
     }
   ]

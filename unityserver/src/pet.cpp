@@ -1522,6 +1522,7 @@ bool SPet::GetAttrList(CUser *pUser, vector<SAttrData> &baseAttr, vector<SAttrDa
 	uint8 czPos = pUser->GetChuZhanIdx(id);
 	if(czPos>0){auto spiritAttributes=CUnitySpiritService::CombatAttributes(pUser,czPos);MergeAttrList(extAttr,spiritAttributes);}
     if(czPos>0){auto libraryAttributes=CUnityLibraryService::CombatAttributes(pUser);MergeAttrList(extAttr,libraryAttributes);}
+    if(czPos>0){auto alchemyAttributes=CUnityAlchemyService::CombatAttributes(pUser,czPos);MergeAttrList(extAttr,alchemyAttributes);}
 	emgr.GetEquipAttr(czPos, extAttr);
 	emgr.GetSuitSkills(czPos, otherSkill);
 	map<uint16, SSkillData> tmpSkills;

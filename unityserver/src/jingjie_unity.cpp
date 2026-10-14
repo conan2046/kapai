@@ -23,7 +23,7 @@ namespace
         "revision INTEGER NOT NULL DEFAULT 0,attempt INTEGER NOT NULL DEFAULT 0,entered INTEGER NOT NULL DEFAULT 0,"
         "pending TEXT NOT NULL DEFAULT '',last_request TEXT NOT NULL DEFAULT '',last_result TEXT NOT NULL DEFAULT '',"
         "offline TEXT NOT NULL DEFAULT '',legacy_level INTEGER NOT NULL DEFAULT 1,legacy_id INTEGER NOT NULL DEFAULT 0,"
-        "legacy_experience TEXT NOT NULL DEFAULT '0');";
+        "legacy_experience TEXT NOT NULL DEFAULT '0',alchemy_rate_fraction INTEGER NOT NULL DEFAULT 0);";
     std::string Quote(const std::string& value)
     {
         std::string out="'";for(char c:value){out+=c;if(c=='\'')out+='\'';}return out+"'";
@@ -68,10 +68,10 @@ bool CUnityJingJieService::Persist(CUser* user,const State& state)
     CGetDbConnect connection;CDatabaseSql* db=connection.GetDbConnect();
     if(!Sqlite(db) || !db->Query("BEGIN IMMEDIATE"))return false;
     std::ostringstream sql;
-    sql<<"INSERT INTO unity_jingjie_state(role_id,version,current_id,experience,failure_count,last_ms,cycle_ms,fraction,revision,attempt,entered,pending,last_request,last_result,offline,legacy_level,legacy_id,legacy_experience) VALUES("
+    sql<<"INSERT INTO unity_jingjie_state(role_id,version,current_id,experience,failure_count,last_ms,cycle_ms,fraction,revision,attempt,entered,pending,last_request,last_result,offline,legacy_level,legacy_id,legacy_experience,alchemy_rate_fraction) VALUES("
        <<user->GetRoleId()<<",2,"<<state.id<<","<<Quote(std::to_string(state.experience))<<","<<state.failures<<","<<state.lastMs<<","<<state.cycleMs<<","<<state.fraction<<","<<state.revision<<","<<state.attempt<<","<<(state.entered?1:0)
-       <<","<<Quote(state.pending)<<","<<Quote(state.lastRequest)<<","<<Quote(state.lastResult)<<","<<Quote(state.offline)<<","<<state.legacyLevel<<","<<state.legacyId<<","<<Quote(std::to_string(state.legacyExperience))
-       <<") ON CONFLICT(role_id) DO UPDATE SET version=2,current_id=excluded.current_id,experience=excluded.experience,failure_count=excluded.failure_count,last_ms=excluded.last_ms,cycle_ms=excluded.cycle_ms,fraction=excluded.fraction,revision=excluded.revision,attempt=excluded.attempt,entered=excluded.entered,pending=excluded.pending,last_request=excluded.last_request,last_result=excluded.last_result,offline=excluded.offline";
+       <<","<<Quote(state.pending)<<","<<Quote(state.lastRequest)<<","<<Quote(state.lastResult)<<","<<Quote(state.offline)<<","<<state.legacyLevel<<","<<state.legacyId<<","<<Quote(std::to_string(state.legacyExperience))<<","<<state.rateFraction
+       <<") ON CONFLICT(role_id) DO UPDATE SET version=2,current_id=excluded.current_id,experience=excluded.experience,failure_count=excluded.failure_count,last_ms=excluded.last_ms,cycle_ms=excluded.cycle_ms,fraction=excluded.fraction,revision=excluded.revision,attempt=excluded.attempt,entered=excluded.entered,pending=excluded.pending,last_request=excluded.last_request,last_result=excluded.last_result,offline=excluded.offline,alchemy_rate_fraction=excluded.alchemy_rate_fraction";
     bool ok=db->Query(sql.str().c_str());
     if(ok){sql.str("");sql.clear();sql<<"UPDATE role_info SET level="<<state.id<<",exp="<<Quote(std::to_string(state.experience))<<" WHERE id="<<user->GetRoleId();ok=db->Query(sql.str().c_str());}
     if(ok)ok=db->Query("COMMIT");
@@ -82,7 +82,7 @@ bool CUnityJingJieService::Persist(CUser* user,const State& state)
 void CUnityJingJieService::Apply(CUser* user,const State& state)
 { user->SetJingJie(state.id);user->SetLevel(state.id);user->SetExp(state.experience); }
 
-bool CUnityJingJieService::Accrue(State& state,int64 now,bool offline)
+bool CUnityJingJieService::Accrue(State& state,int64 now,bool offline,CUser* user)
 {
     SJingJieCfg config;if(!SingletonCJingJieMgr::instance().GetCfg(state.id,config))return false;
     int64 elapsed=std::max<int64>(0,now-state.lastMs);
@@ -90,7 +90,10 @@ bool CUnityJingJieService::Accrue(State& state,int64 now,bool offline)
     if(offline)elapsed=std::min<int64>(elapsed,static_cast<int64>(rules.offlineSeconds)*1000);
     int64 produced=elapsed*config.expPerSecond;
     if(offline)produced=produced*rules.offlineRate/10000;
-    produced+=state.fraction;
+    int bp=CUnityAlchemyService::CultivationBonus(user);
+    int64 minor=(produced%10000)*bp+state.rateFraction;
+    int64 bonus=(produced/10000)*bp+minor/10000;state.rateFraction=static_cast<int>(minor%10000);
+    produced=SafeAdd(produced,bonus);produced+=state.fraction;
     int64 gain=produced/1000;state.fraction=static_cast<uint32>(produced%1000);
     state.experience=SafeAdd(state.experience,gain);
     if(!offline)state.batchGain=SafeAdd(state.batchGain,gain);
@@ -104,8 +107,9 @@ bool CUnityJingJieService::Load(CUser* user)
     boost::recursive_mutex::scoped_lock userLock(user->m_mutex),serviceLock(m_mutex);
     CGetDbConnect connection;CDatabaseSql* db=connection.GetDbConnect();
     if(!Sqlite(db) || !db->ExecuteScript(StateSchema))return false;
+    if(!db->Query("PRAGMA table_info(unity_jingjie_state)"))return false;bool hasFraction=false;while(char** column=db->GetRow())if(std::string(column[1])=="alchemy_rate_fraction")hasFraction=true;if(!hasFraction&&!db->Query("ALTER TABLE unity_jingjie_state ADD COLUMN alchemy_rate_fraction INTEGER NOT NULL DEFAULT 0"))return false;
     std::ostringstream query;
-    query<<"SELECT version,current_id,experience,failure_count,last_ms,cycle_ms,fraction,revision,attempt,entered,pending,last_request,last_result,offline,legacy_level,legacy_id,legacy_experience FROM unity_jingjie_state WHERE role_id="<<user->GetRoleId();
+    query<<"SELECT version,current_id,experience,failure_count,last_ms,cycle_ms,fraction,revision,attempt,entered,pending,last_request,last_result,offline,legacy_level,legacy_id,legacy_experience,alchemy_rate_fraction FROM unity_jingjie_state WHERE role_id="<<user->GetRoleId();
     if(!db->Query(query.str().c_str()))return false;
     char** row=db->GetRow();State state;int64 now=NowMs();
     int64 offlineSeconds=0,offlineGain=0;
@@ -115,11 +119,11 @@ bool CUnityJingJieService::Load(CUser* user)
         state.id=static_cast<uint16>(atoi(row[1]));state.experience=atoll(row[2]);state.failures=static_cast<uint32>(strtoul(row[3],NULL,10));
         state.lastMs=atoll(row[4]);state.cycleMs=atoll(row[5]);state.fraction=atoi(row[6]);state.revision=atoll(row[7]);state.attempt=atoll(row[8]);state.entered=atoi(row[9])!=0;
         state.pending=row[10]?row[10]:"";state.lastRequest=row[11]?row[11]:"";state.lastResult=row[12]?row[12]:"";state.offline=row[13]?row[13]:"";
-        state.legacyLevel=atoi(row[14]);state.legacyId=atoi(row[15]);state.legacyExperience=atoll(row[16]);
+        state.legacyLevel=atoi(row[14]);state.legacyId=atoi(row[15]);state.legacyExperience=atoll(row[16]);state.rateFraction=atoi(row[17]);
         if(state.id<1 || state.id>550 || state.experience<0 || state.fraction>=1000)return false;
         offlineSeconds=std::min<int64>(std::max<int64>(0,(now-state.lastMs)/1000),SingletonCJingJieMgr::instance().GetRules().offlineSeconds);
         int64 before=state.experience;
-        if(!Accrue(state,now,true))return false;
+        if(!Accrue(state,now,true,user))return false;
         if(state.entered)offlineGain=state.experience-before;
     }
     else
@@ -134,7 +138,7 @@ bool CUnityJingJieService::Load(CUser* user)
         uint32 legacyTime=user->m_lastLoginOutTime>0?user->m_lastLoginOutTime:user->reg_time;
         state.lastMs=legacyTime>0?std::min<int64>(now,static_cast<int64>(legacyTime)*1000):now;
         offlineSeconds=std::min<int64>(std::max<int64>(0,(now-state.lastMs)/1000),SingletonCJingJieMgr::instance().GetRules().offlineSeconds);
-        if(!Accrue(state,now,true))return false;
+        if(!Accrue(state,now,true,user))return false;
         offlineGain=state.experience-state.legacyExperience;
     }
     if(offlineGain>0)
@@ -162,7 +166,7 @@ void CUnityJingJieService::Send(CUser* user,const State& state,const char* kind,
     rapidjson::Document envelope;envelope.SetObject();Alloc& a=envelope.GetAllocator();
     envelope.AddMember("schema",2,a);String(envelope,"kind",kind,a);String(envelope,"error",error,a);String(envelope,"gain",std::to_string(gain),a);
     Json snapshot(rapidjson::kObjectType);snapshot.AddMember("id",state.id,a);snapshot.AddMember("failures",state.failures,a);
-    snapshot.AddMember("rate",config.expPerSecond,a);snapshot.AddMember("next_id",config.nextId,a);
+    snapshot.AddMember("base_rate",config.expPerSecond,a);snapshot.AddMember("rate",static_cast<int>(static_cast<int64>(config.expPerSecond)*(10000+CUnityAlchemyService::CultivationBonus(user))/10000),a);snapshot.AddMember("next_id",config.nextId,a);
     String(snapshot,"experience",std::to_string(state.experience),a);String(snapshot,"need_exp",std::to_string(config.needExp),a);
     String(snapshot,"revision",std::to_string(state.revision),a);String(snapshot,"server_ms",std::to_string(NowMs()),a);String(snapshot,"cycle_ms",std::to_string(state.cycleMs),a);
     String(snapshot,"power",std::to_string(user->GetZhanDouLi()),a);snapshot.AddMember("interval_ms",rules.onlineMs,a);
@@ -190,7 +194,7 @@ void CUnityJingJieService::Tick(CUser* user)
     State next=*state;
     // Keep the schedule at exact interval boundaries; delayed timer callbacks retain the partial next cycle.
     int64 boundary=state->cycleMs+(now-state->cycleMs)/interval*interval;
-    if(!Accrue(next,std::max(boundary,next.lastMs),false))return;
+    if(!Accrue(next,std::max(boundary,next.lastMs),false,user))return;
     next.cycleMs=boundary;++next.revision;int64 gain=next.batchGain;next.batchGain=0;
     if(!Persist(user,next))return;
     *state=next;Apply(user,next);Send(user,next,"settlement",gain);
@@ -201,7 +205,7 @@ bool CUnityJingJieService::AddExperience(CUser* user,int64 amount)
     if(user==NULL || user->GetRoleId()==0)return false;
     boost::recursive_mutex::scoped_lock userLock(user->m_mutex),serviceLock(m_mutex);
     State* state=Find(user);if(state==NULL)return false;
-    State next=*state;if(!Accrue(next,NowMs(),false))return false;
+    State next=*state;if(!Accrue(next,NowMs(),false,user))return false;
     next.experience=SafeAdd(next.experience,amount);++next.revision;
     if(!Persist(user,next))return false;
     *state=next;Apply(user,next);Send(user,next,"reward",amount);return true;
@@ -215,7 +219,7 @@ void CUnityJingJieService::Upgrade(CUser* user,const std::string& requestId,int 
     if(!current->pending.empty()){Send(user,*current,"upgrade",0,current->lastResult);return;}
     if(!requestId.empty() && current->lastRequest==requestId){Send(user,*current,"upgrade",0,current->lastResult);return;}
     if(requestId.empty() || requestId.size()>64 || expectedId!=current->id){Send(user,*current,"upgrade",0,"","境界状态已变化，请重新操作");return;}
-    State next=*current;if(!Accrue(next,NowMs(),false))return;
+    State next=*current;if(!Accrue(next,NowMs(),false,user))return;
     SJingJieCfg config;if(!SingletonCJingJieMgr::instance().GetCfg(next.id,config))return;
     if(config.nextId==0 || next.experience<config.needExp)
     {
@@ -278,7 +282,7 @@ void CUnityJingJieService::Flush(CUser* user)
     if(user==NULL || user->GetRoleId()==0)return;
     boost::recursive_mutex::scoped_lock userLock(user->m_mutex),serviceLock(m_mutex);
     auto it=m_states.find(user->GetRoleId());if(it==m_states.end())return;
-    State next=it->second;if(!Accrue(next,NowMs(),false))return;++next.revision;
+    State next=it->second;if(!Accrue(next,NowMs(),false,user))return;++next.revision;
     if(Persist(user,next)){it->second=next;Apply(user,next);}
 }
 

@@ -31,6 +31,7 @@ private:
         uint16 id;
         int64 experience,lastMs,cycleMs,revision,attempt,batchGain;
         uint32 failures,fraction;
+        int rateFraction=0;
         bool entered;
         uint16 legacyLevel,legacyId;
         int64 legacyExperience;
@@ -38,7 +39,7 @@ private:
     };
     CUnityJingJieService();
     bool Persist(CUser* user,const State& state);
-    bool Accrue(State& state,int64 now,bool offline);
+    bool Accrue(State& state,int64 now,bool offline,CUser* user);
     void Apply(CUser* user,const State& state);
     void Send(CUser* user,const State& state,const char* kind,int64 gain=0,const std::string& result="",const std::string& error="");
     State* Find(CUser* user);

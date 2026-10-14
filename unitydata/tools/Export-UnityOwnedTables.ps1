@@ -8,10 +8,33 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Read-UnityVisualExcel.ps1')
+. (Join-Path $PSScriptRoot 'ItemStackRules.ps1')
+if($Group -eq 'ItemStacks') {
+    $limits=Get-UnityItemStackLimits $Root
+    $items=@(Get-Content -LiteralPath (Join-Path $Root 'unityserver/config/json/item.json') -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable)
+    foreach($item in $items){$key=[string]$item.id;$item.max_stack=if($limits.ContainsKey($key)){$limits[$key]}else{65000}}
+    if(-not $ValidateOnly){
+        $json=(ConvertTo-Json -InputObject $items -Depth 32 -Compress)+"`n"
+        foreach($path in @('unityserver/config/json/item.json','unitydata/export/server/generated/json_server/item.json','unitydata/export/server/source/authoritative/json/item.json','unityclient/Assets/Resources/ProjectXData/Configs/item.json','unitydata/export/client/source/Configs/item.json')) {
+            $target=Join-Path $Root $path
+            if(Test-Path -LiteralPath (Split-Path $target -Parent)){[IO.File]::WriteAllText($target,$json,[Text.UTF8Encoding]::new($false))}
+        }
+    }
+    Write-Output "ItemStacks: $($limits.Count) formal limits exported; other frozen item fields retained."
+    return
+}
 # Scoped append/update of garden items from the formal item workbook. Preserve the
 # frozen legacy records; do not run the legacy converter across unrelated tables.
-if ($Group -in @('GardenItems','SpiritItems','LibraryItems')) {
+if ($Group -in @('GardenItems','SpiritItems','LibraryItems','AlchemyItems')) {
     $gardenItemIds=@{}
+    if($Group -eq 'AlchemyItems') {
+        foreach($recipe in @(Read-UnityVisualExcelRows (Join-Path $Root 'unitydata/excel/dongfu_config.xlsx') -SheetName 'dongfu_alchemy_recipe')) {
+            if([string]$recipe.enabled -ne '1'){continue}
+            $gardenItemIds[[string]$recipe.learn_item_id]=$true
+            $gardenItemIds[[string]$recipe.output_item_id]=$true
+            foreach($pair in (ConvertFrom-Json -InputObject ([string]$recipe.cost_items) -NoEnumerate)){$gardenItemIds[[string]$pair[0]]=$true}
+        }
+    }
     if($Group -eq 'SpiritItems') { $gardenItemIds['60054']=$true }
     if($Group -eq 'LibraryItems') {
         foreach($book in @(Read-UnityVisualExcelRows (Join-Path $Root 'unitydata/excel/dongfu_config.xlsx') -SheetName 'dongfu_book')) {
@@ -19,7 +42,7 @@ if ($Group -in @('GardenItems','SpiritItems','LibraryItems')) {
         }
     }
     foreach($crop in @(Read-UnityVisualExcelRows (Join-Path $Root 'unitydata/excel/dongfu_config.xlsx') 2 -SheetName 'dongfu_crop')) {
-        if($Group -in @('SpiritItems','LibraryItems') -or [string]$crop.enabled -ne '1') { continue }
+        if($Group -in @('SpiritItems','LibraryItems','AlchemyItems') -or [string]$crop.enabled -ne '1') { continue }
         $gardenItemIds[[string]$crop.seed_item_id]=$true
         $outputs=ConvertFrom-Json -InputObject ([string]$crop.outputs) -NoEnumerate
         foreach($pair in $outputs) { $gardenItemIds[[string]$pair[0]]=$true }
@@ -29,7 +52,7 @@ if ($Group -in @('GardenItems','SpiritItems','LibraryItems')) {
     $records = @(foreach ($r in $sourceRows) {
         if (-not $gardenItemIds.ContainsKey([string]$r.id)) { continue }
         $record=[ordered]@{}
-        foreach($key in @('id','name','des','pic','quality','type','use_type','sub_value','limit_lv','limit_time','sell','sort_priority','jiage','item_from','item_source','script','use_jump')) {
+        foreach($key in @('id','name','des','pic','quality','type','use_type','sub_value','limit_lv','limit_time','sell','sort_priority','jiage','item_from','item_source','script','use_jump','max_stack')) {
             if($key -in @('name','des','item_from','item_source')) { $record[$key]=[string]$r[$key] }
             elseif($key -in @('sub_value','limit_time')) {
                 $cell=[string]$r[$key]
@@ -39,6 +62,7 @@ if ($Group -in @('GardenItems','SpiritItems','LibraryItems')) {
                     $record[$key]=,@($record[$key])
                 }
             }
+            elseif($key -eq 'max_stack'){$record[$key]=Assert-UnityItemStackLimit $r[$key]}
             else {
                 $cell=[string]$r[$key]
                 if([string]::IsNullOrWhiteSpace($cell) -and $key -in @('use_jump','script','sell','jiage','sort_priority','limit_lv')){$cell='0'}
@@ -61,15 +85,20 @@ if ($Group -in @('GardenItems','SpiritItems','LibraryItems')) {
     return
 }
 $manifest = Get-Content (Join-Path $PSScriptRoot 'unity-owned-tables.json') -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+$requestedDataGroup=$Group
 if ($Group -eq 'DongFu' -and $Mode -eq 'Both' -and -not $ValidateOnly) {
     & $PSCommandPath -Root $Root -Group GardenItems -Mode Both
     & $PSCommandPath -Root $Root -Group SpiritItems -Mode Both
     & $PSCommandPath -Root $Root -Group LibraryItems -Mode Both
+    & $PSCommandPath -Root $Root -Group AlchemyItems -Mode Both
+    & $PSCommandPath -Root $Root -Group ItemStacks -Mode Both
     & $PSCommandPath -Root $Root -Group LibraryRealm -Mode Both
 }
+$Group=$requestedDataGroup
 $groups = @($manifest.groups | Where-Object { $Group -eq 'All' -or $_.group -eq $Group })
 if (-not $groups.Count) { throw "Unknown Unity data group: $Group" }
 $writes = [Collections.Generic.List[object]]::new()
+$deletes = [Collections.Generic.List[string]]::new()
 $schemaPath = Join-Path $Root 'unityserver/sql/sqlite/001_initial_schema.sql'
 $schema = [IO.File]::ReadAllText($schemaPath, [Text.Encoding]::UTF8)
 $culture = [Globalization.CultureInfo]::InvariantCulture
@@ -218,6 +247,20 @@ foreach ($g in $groups) {
     $tables=@{}
     foreach ($s in $g.sheets) { $tables[$s.name]=Read-Rows $s (Join-Path $Root ('unitydata/excel/'+$g.workbook)) }
     Check-Group $g.group $tables
+    foreach ($output in $g.retiredJsonOutputs) {
+        if ($output -cnotmatch '^[a-z0-9_-]+\.json$' -or @($g.sheets | Where-Object { $_.output -eq $output -or $_.jsonOutput -eq $output }).Count) { throw "Invalid/in-use retired JSON output: $output" }
+        if ($Mode -in @('Server','Both')) {
+            $deletes.Add((Join-Path $Root ('unitydata/export/server/generated/json_server/'+$output)))
+            if ($ApplyRuntime) { $deletes.Add((Join-Path $Root ('unityserver/config/json/'+$output))) }
+        }
+        if ($Mode -in @('Client','Both')) {
+            $deletes.Add((Join-Path $Root ('unitydata/export/client/source/Configs/'+$output)))
+            if ($ApplyRuntime) {
+                $retiredAsset=Join-Path $Root ('unityclient/Assets/Resources/ProjectXData/Configs/'+$output)
+                $deletes.Add($retiredAsset); $deletes.Add($retiredAsset+'.meta')
+            }
+        }
+    }
     foreach ($s in $g.sheets) {
         $rows=$tables[$s.name]
         $clientRows=$rows
@@ -295,6 +338,9 @@ foreach ($g in $groups) {
     }
 }
 if ($ApplyRuntime -and $Mode -in @('Server','Both')) { $writes.Add(@{path=$schemaPath;content=$schema}) }
+if ($ValidateOnly) {
+    foreach ($path in $deletes) { if (Test-Path -LiteralPath $path) { throw "Retired Unity output still exists: $path" } }
+}
 foreach ($w in $writes) {
     $bytes=if ($w.bytes) { $w.bytes } else { [Text.UTF8Encoding]::new($false).GetBytes($w.content) }
     if ((Test-Path $w.path) -and [Convert]::ToBase64String([IO.File]::ReadAllBytes($w.path)) -ceq [Convert]::ToBase64String($bytes)) { continue }
@@ -302,4 +348,5 @@ foreach ($w in $writes) {
     $null=New-Item -ItemType Directory -Force -Path (Split-Path $w.path -Parent)
     [IO.File]::WriteAllBytes($w.path,$bytes)
 }
+if (-not $ValidateOnly) { foreach ($path in $deletes) { if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path } } }
 Write-Output ('Unity data groups={0}; mode={1}; outputs={2}; validated={3}' -f ($groups.group -join ','),$Mode,$writes.Count,$ValidateOnly.IsPresent)

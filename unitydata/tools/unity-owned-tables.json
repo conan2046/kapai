@@ -4,6 +4,7 @@
     {
       "group": "DongFu",
       "workbook": "dongfu_config.xlsx",
+      "retiredJsonOutputs": ["dongfu_recipe.json"],
       "sheets": [
         {
           "name": "dongfu_building",
@@ -104,47 +105,6 @@
           "output": "dongfu_garden_level.json"
         },
         {
-          "name": "dongfu_recipe",
-          "kind": "json",
-          "columns": {
-            "id": "number",
-            "name": "string",
-            "kind": "string",
-            "building_id": "number",
-            "learn_item_id": "number",
-            "cost_items": "json",
-            "duration_seconds": "number",
-            "batch_limit": "number",
-            "batch_cost_bp": "number",
-            "output_item_id": "number",
-            "equip_template_id": "number",
-            "quality": "number",
-            "output_count": "number",
-            "enabled": "number"
-          },
-          "sheetIndex": 4,
-          "integerColumns": [
-            "id",
-            "building_id",
-            "learn_item_id",
-            "duration_seconds",
-            "batch_limit",
-            "batch_cost_bp",
-            "output_item_id",
-            "equip_template_id",
-            "quality",
-            "output_count",
-            "enabled"
-          ],
-          "jsonKinds": {
-            "cost_items": [
-              "array"
-            ]
-          },
-          "client": true,
-          "output": "dongfu_recipe.json"
-        },
-        {
           "name": "dongfu_effect",
           "kind": "json",
           "columns": {
@@ -156,7 +116,8 @@
             "experience": "number",
             "limit_group": "string",
             "limit_count": "number",
-            "enabled": "number"
+            "enabled": "number",
+            "target_positions": "json"
           },
           "sheetIndex": 5,
           "integerColumns": [
@@ -168,6 +129,9 @@
           ],
           "jsonKinds": {
             "attributes": [
+              "array"
+            ],
+            "target_positions": [
               "array"
             ]
           },
@@ -183,7 +147,8 @@
             "storage": "number",
             "cost_items": "json",
             "spirit_per_second": "number",
-            "enabled": "number"
+            "enabled": "number",
+            "craft_reduction_bp": "number"
           },
           "sheetIndex": 6,
           "integerColumns": [
@@ -191,7 +156,8 @@
             "level",
             "storage",
             "spirit_per_second",
-            "enabled"
+            "enabled",
+            "craft_reduction_bp"
           ],
           "jsonKinds": {
             "cost_items": [
@@ -400,6 +366,64 @@
           "jsonKinds": {},
           "client": true,
           "output": "dongfu_library_source.json"
+        },
+        {
+          "name": "dongfu_alchemy_recipe",
+          "kind": "json",
+          "columns": {
+            "id": "number",
+            "name": "string",
+            "realm_id": "number",
+            "series_id": "number",
+            "use_jingjie_id": "number",
+            "learn_item_id": "number",
+            "cost_items": "json",
+            "duration_seconds": "number",
+            "batch_limit": "number",
+            "output_item_id": "number",
+            "output_count": "number",
+            "enabled": "number"
+          },
+          "sheetIndex": 14,
+          "integerColumns": [
+            "id",
+            "realm_id",
+            "series_id",
+            "use_jingjie_id",
+            "learn_item_id",
+            "duration_seconds",
+            "batch_limit",
+            "output_item_id",
+            "output_count",
+            "enabled"
+          ],
+          "jsonKinds": {
+            "cost_items": [
+              "array"
+            ]
+          },
+          "primaryColumn": "id",
+          "client": true,
+          "output": "dongfu_alchemy_recipe.json"
+        },
+        {
+          "name": "dongfu_material_shop",
+          "kind": "json",
+          "columns": {
+            "item_id": "number",
+            "price_gold": "number",
+            "enabled": "number"
+          },
+          "sheetIndex": 15,
+          "integerColumns": [
+            "item_id",
+            "price_gold",
+            "enabled"
+          ],
+          "jsonKinds": {},
+          "primaryColumn": "item_id",
+          "client": true,
+          "output": "dongfu_material_shop.json"
         }
       ]
     },
@@ -872,7 +896,7 @@
           "numericStringColumns": [],
           "jsonKinds": {},
           "primaryColumn": "attrType",
-          "client": false,
+          "client": true,
           "output": "attr_type.json"
         }
       ]

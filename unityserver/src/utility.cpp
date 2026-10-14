@@ -1234,10 +1234,18 @@ bool ReadItem()
 				for(rapidjson::SizeType i = 0; i < items.Size(); ++i)
 				{
 					const rapidjson::Value& data = items[i];
+					int maxStack = EItemDieJiaNum;
+					if(data.HasMember("max_stack"))
+					{
+						if(!data["max_stack"].IsInt() || data["max_stack"].GetInt()<1 || data["max_stack"].GetInt()>EItemDieJiaNum)
+							throw std::runtime_error("item.max_stack must be 1..65000");
+						maxStack = data["max_stack"].GetInt();
+					}
 					uint16 itemId = (uint16)data["id"].GetInt();
 					SItemTemplate *existing = SingletonItemManager::instance().GetItem(itemId);
 					if(existing != NULL)
 					{
+						existing->maxStack = static_cast<uint16>(maxStack);
 						uint8 jsonType = (uint8)data["type"].GetInt();
 						if(existing->type != jsonType)
 						{
@@ -1259,6 +1267,7 @@ bool ReadItem()
 
 					SItemTemplate *pItem = new SItemTemplate;
 					pItem->id = itemId;
+					pItem->maxStack = static_cast<uint16>(maxStack);
 					pItem->name = data["name"].GetString();
 					pItem->describe = data["des"].GetString();
 					pItem->pic = data["pic"].GetInt();

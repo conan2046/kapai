@@ -23,6 +23,7 @@ namespace ProjectX.Core
 
         public void ShowShop()
         {
+            LeaveAlchemyShopHub();
             if (IsGameplayShopOpen && shopHubOpen)
                 CloseGameplayShops();
             heroCultivationPresenter?.Hide();
@@ -60,11 +61,11 @@ namespace ProjectX.Core
             SetStatus($"Shop UI active: {services.Shop.Count} goods.");
         }
 
-        private void NormalizeShopLayerOrder()
+        private void NormalizeShopLayerOrder(UnityUiView content = null)
         {
             Transform oneLevel = oneLevelFrameView?.GameObject?.transform;
             Transform shopBackground = bagPopupFrameView?.GameObject?.transform;
-            Transform shopContent = shopView?.GameObject?.transform;
+            Transform shopContent = (content ?? shopView)?.GameObject?.transform;
             if (oneLevel == null || shopBackground == null)
                 return;
 
@@ -82,6 +83,7 @@ namespace ProjectX.Core
 
         private void ShowShopHubSoulTab()
         {
+            LeaveAlchemyShopHub();
             shopHubOpen = true;
             if (IsShopOpen)
             {
@@ -92,6 +94,24 @@ namespace ProjectX.Core
             }
             ShowGameplayShop(15);
             ConfigureShopHubTabs(ShopHubTab.Soul);
+        }
+        private void ShowShopHubAlchemyTab()
+        {
+            if(IsAlchemyShopOpen&&alchemyShopFromHub)return;
+            if(IsShopOpen)
+            {
+                shopPresenter?.ResetTransientState();RestoreShopFramePanel();
+                shopView?.SetVisible(false);services.UiStack.Pop();
+            }
+            else if(IsGameplayShopOpen)CloseGameplayShops();
+            shopHubOpen=true;OpenAlchemyShop(true);
+        }
+        private void LeaveAlchemyShopHub()
+        {
+            if(!IsAlchemyShopOpen||!alchemyShopFromHub)return;
+            alchemyPending=null;alchemyShopFromHub=false;
+            if(alchemyPoll!=null){StopCoroutine(alchemyPoll);alchemyPoll=null;}
+            services.UiStack.Pop();RestoreShopFramePanel();
         }
     }
 }

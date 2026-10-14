@@ -18,6 +18,8 @@ add_test(NAME garden_growth COMMAND kapai_garden_growth_tests)
 add_test(NAME spirit_bonus COMMAND kapai_spirit_bonus_tests)
 add_executable(kapai_library_rules_tests tests/library_rules_tests.cpp)
 add_test(NAME library_rules COMMAND kapai_library_rules_tests)
+add_executable(kapai_alchemy_math_tests tests/alchemy_math_tests.cpp)
+add_test(NAME alchemy_math COMMAND kapai_alchemy_math_tests)
 target_compile_definitions(kapai PRIVATE PROJECTX_UNITY_SERVER=1)
 
 if(MSVC)

@@ -5,7 +5,8 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
         $rows = @($Tables[$definition.name])
         if (-not $rows.Count) { throw "DongFu table has no field example: $($definition.name)" }
         foreach ($row in $rows) {
-            if ($row.id -lt 1 -or $row.enabled -notin @(0,1)) { throw "DongFu invalid id/enabled: $($definition.name)" }
+            $rowId=if($definition.name -eq 'dongfu_material_shop'){$row.item_id}else{$row.id}
+            if ($rowId -lt 1 -or $row.enabled -notin @(0,1)) { throw "DongFu invalid id/enabled: $($definition.name)" }
             foreach ($field in $definition.fields) {
                 if (-not $row.Contains($field.key)) { throw "DongFu missing field: $($definition.name).$($field.key)" }
                 $value = $row[$field.key]
@@ -26,7 +27,8 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
                     } else {
                         $seen=@{}
                         foreach ($id in $value) {
-                            if ("$id" -notmatch '^\d+$' -or $id -lt 1 -or $seen.ContainsKey([string]$id)) { throw "DongFu invalid/duplicate member: $($field.key)" }
+                            $minimum=if($definition.name -eq 'dongfu_effect' -and $field.key -eq 'target_positions'){0}else{1}
+                            if ("$id" -notmatch '^\d+$' -or $id -lt $minimum -or $seen.ContainsKey([string]$id)) { throw "DongFu invalid/duplicate member: $($field.key)" }
                             $seen[[string]$id]=$true
                         }
                     }
@@ -36,8 +38,7 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
     }
     $enumFields=@{
         dongfu_building=@{function_type=@('garden','spirit','alchemy','forge','library')}
-        dongfu_recipe=@{kind=@('alchemy','forge')}
-        dongfu_effect=@{effect_kind=@('permanent_attribute','experience');target_scope=@('lineup','player_experience')}
+        dongfu_effect=@{effect_kind=@('permanent_attribute','experience');target_scope=@('lineup','player_experience','positions','player')}
         dongfu_book_reward=@{condition_kind=@('book','count','combination','complete');target_scope=@('lineup')}
         dongfu_settings=@{activation_mode=@('manual');task_bonus_mode=@('snapshot')}
     }
@@ -49,16 +50,13 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
         if (@($row.target_positions | Where-Object {$_ -gt 5}).Count) { throw 'Spirit target positions must be 1..5.' }
         if ($row.combat_attributes.Count -and -not $row.target_positions.Count) { throw 'Spirit combat attributes require target positions.' }
     }
-    foreach ($row in $Tables.dongfu_recipe) {
-        if ($row.duration_seconds -lt 1 -or $row.batch_limit -lt 1 -or $row.batch_cost_bp -lt 1 -or $row.batch_cost_bp -gt 10000 -or $row.output_count -lt 1) { throw 'DongFu invalid recipe time/batch/count.' }
-    }
     foreach ($row in $Tables.dongfu_settings) {
         if ($row.id -ne 1 -or $row.schema_version -ne 1 -or $row.offline_efficiency_bp -gt 10000 -or $row.auto_plant -ne 0) { throw 'DongFu settings use unsupported version/automatic planting.' }
     }
     $active=@{}
     foreach ($definition in $schema.tables) {
         $active[$definition.name]=@{}
-        foreach ($row in $Tables[$definition.name]) { if ($row.enabled -eq 1) { $active[$definition.name][[string]$row.id]=$row } }
+        foreach ($row in $Tables[$definition.name]) { if ($row.enabled -eq 1) { $rowId=if($definition.name -eq 'dongfu_material_shop'){$row.item_id}else{$row.id};$active[$definition.name][[string]$rowId]=$row } }
     }
     # Disabled examples define fields only. Active records must reference real enabled definitions.
     function Require-DongFuRef([string]$Table,[long]$Id) {
@@ -130,17 +128,27 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
     foreach ($plot in $gardenPlots) {
         if ($plot.id -lt 1 -or $plot.id -gt 36 -or $plot.unlock_realm_id -lt 1 -or $plot.unlock_realm_id -gt 550) { throw 'Garden plot/realm ID invalid.' }
     }
-    foreach ($row in $active.dongfu_recipe.Values) {
-        Require-DongFuRef 'dongfu_building' $row.building_id; Require-DongFuItem $row.learn_item_id
-        if (-not $row.cost_items.Count) { throw 'DongFu active recipe has no costs.' }
-        if ($row.kind -eq 'alchemy') { Require-DongFuItem $row.output_item_id; if ($row.equip_template_id -ne 0) { throw 'DongFu pill recipe has equipment output.' } }
-        elseif ($row.equip_template_id -lt 1 -or $row.output_item_id -ne 0) { throw 'DongFu forge recipe must output an equipment template.' }
-    }
     foreach ($row in $active.dongfu_effect.Values) {
         Require-DongFuItem $row.item_id
-        if ($row.effect_kind -eq 'permanent_attribute' -and ($row.target_scope -ne 'lineup' -or -not $row.attributes.Count -or $row.experience -ne 0)) { throw 'DongFu permanent effects target lineup attributes.' }
+        if($row.limit_count -lt 1){throw 'Alchemy use limit must be positive.'}
+        if ($row.effect_kind -eq 'permanent_attribute' -and ($row.target_scope -notin @('lineup','positions','player') -or -not $row.attributes.Count -or $row.experience -ne 0)) { throw 'DongFu permanent effect scope invalid.' }
+        if($row.target_scope -eq 'positions' -and (@($row.target_positions | Where-Object {$_ -lt 1 -or $_ -gt 5}).Count -or !$row.target_positions.Count)){throw 'Alchemy hero targets must be positions 1..5.'}
+        if($row.target_scope -eq 'player' -and (($row.target_positions -join ',') -ne '0' -or @($row.attributes | Where-Object {$_[0] -notin @(34,35)}).Count)){throw 'Alchemy production effects target the player.'}
+        if($row.target_scope -eq 'positions' -and @($row.attributes | Where-Object {$_[0] -lt 1 -or $_[0] -gt 33}).Count){throw 'Alchemy battle attributes must use supported combat IDs.'}
         if ($row.effect_kind -eq 'experience' -and ($row.target_scope -ne 'player_experience' -or $row.attributes.Count -or $row.experience -lt 1)) { throw 'DongFu experience effect is not a permanent combat attribute.' }
     }
+    $alchemyOutputs=@{};$alchemyLearn=@{}
+    foreach($row in $active.dongfu_alchemy_recipe.Values){
+        Require-DongFuItem $row.learn_item_id;Require-DongFuItem $row.output_item_id
+        if($row.use_jingjie_id -lt (($row.realm_id-1)*10+1) -or $row.use_jingjie_id -gt ($row.realm_id*10)){throw 'Alchemy usage stage must belong to its realm.'}
+        if($row.realm_id -lt 1 -or $row.realm_id -gt 55 -or $row.use_jingjie_id -lt 1 -or $row.use_jingjie_id -gt 550 -or $row.series_id -lt 1 -or $row.duration_seconds -lt 1 -or $row.batch_limit -lt 1 -or $row.batch_limit -gt 999 -or $row.output_count -lt 1 -or !$row.cost_items.Count){throw 'Alchemy recipe realm/time/batch invalid.'}
+        foreach($cost in $row.cost_items){Require-DongFuItem $cost[0]}
+        if($alchemyOutputs.ContainsKey([string]$row.output_item_id) -or $alchemyLearn.ContainsKey([string]$row.learn_item_id)){throw 'Alchemy output/learning item duplicated.'}
+        $alchemyOutputs[[string]$row.output_item_id]=$true;$alchemyLearn[[string]$row.learn_item_id]=$true
+        if(!@($active.dongfu_effect.Values | Where-Object {$_.item_id -eq $row.output_item_id}).Count){throw 'Alchemy output effect missing.'}
+    }
+    foreach($row in $active.dongfu_material_shop.Values){Require-DongFuItem $row.item_id;if($row.price_gold -lt 1){throw 'Material shop gold price must be positive.'}}
+    foreach($row in $active.dongfu_spirit_level.Values){if($row.craft_reduction_bp -ge 10000){throw 'Craft reduction must retain a positive duration.'}}
     foreach ($set in $active.dongfu_book_set.Values) {
         if (-not $set.book_ids.Count -or $set.book_ids.Count -gt 4) { throw 'DongFu library set must contain 1..4 books.' }
         if ($set.realm_id -lt 1 -or $set.realm_id -gt 55) { throw 'DongFu library set needs a formal realm ID.' }

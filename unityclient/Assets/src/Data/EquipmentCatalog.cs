@@ -115,6 +115,7 @@ namespace ProjectX.Data
         [JsonProperty("use_type")] public int UseType { get; set; }
         [JsonProperty("use_jump")] public int UseJump { get; set; }
         [JsonProperty("sort_priority")] public int SortPriority { get; set; }
+        [JsonProperty("max_stack")] public int MaxStack { get; set; } = 65000;
         [JsonProperty("item_from")] public string ItemFrom { get; set; }
         public int RefineExperience => Values != null && Values.Length > 0 && Values[0] != null && Values[0].Length > 1
             ? Values[0][1] : 0;

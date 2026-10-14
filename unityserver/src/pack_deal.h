@@ -272,6 +272,7 @@ private:
 	void GardenOption(CNetMessage *pMsg,int sock);
 	void DongFuSpiritOption(CNetMessage *pMsg,int sock);
     void DongFuLibraryOption(CNetMessage *pMsg,int sock);
+    void DongFuAlchemyOption(CNetMessage *pMsg,int sock);
 	void ServerTransFormOption(CNetMessage *pMsg,int sock);
 	void SendWeiXinReward(CNetMessage *pMsg,int sock);
 	void ServerIgnoreQieCuo(CNetMessage *pMsg,int sock);

@@ -62,6 +62,7 @@ namespace ProjectX.Core
         {
             if(building==0){ShowGarden();return;}
             if(building==1){ShowSpirit();return;}
+            if(building==2){ShowAlchemy();return;}
             if(building==4){ShowLibrary();return;}
             if(building<1||building>=DongFuPageKeys.Length)return;
             if(!dongFuPages.TryGetValue(building,out UnityUiView page)||!page.IsAlive)
@@ -81,17 +82,18 @@ namespace ProjectX.Core
 
         // All DongFu subpages use the existing OneLevelLayer instance and currency binding.
         // This route changes visibility, text and callbacks only; authored geometry is retained.
-        private void ConfigureDongFuSharedFrame(UnityUiView content, System.Action back, System.Action help)
+        private void ConfigureDongFuSharedFrame(UnityUiView content, System.Action back, System.Action help,UnityUiView retainedContent=null)
         {
             var frame = EnsureOneLevelFrame();
             if(content!=gardenView)gardenView?.SetVisible(false);
             if(content!=dongFuView)dongFuView?.SetVisible(false);
-            foreach(var page in dongFuPages.Values)if(content!=page)page.SetVisible(false);
+            foreach(var page in dongFuPages.Values)if(content!=page&&retainedContent!=page)page.SetVisible(false);
             frame.AttachContent(content, keepSiblingOrder:true);
             bool library = content == libraryView;
-            if(library)content.GameObject.transform.SetAsLastSibling();
+            bool alchemy = content == alchemyView || content == alchemyShopView;
+            if(library || alchemy || retainedContent!=null)content.GameObject.transform.SetAsLastSibling();
             else content.GameObject.transform.SetAsFirstSibling();
-            frame.Apply(library ? OneLevelFrameMode.DongFuLibrary : OneLevelFrameMode.DongFu);
+            frame.Apply(library ? OneLevelFrameMode.DongFuLibrary : alchemy ? OneLevelFrameMode.DongFuAlchemy : OneLevelFrameMode.DongFu);
             oneLevelFrameView.GameObject.transform.SetAsLastSibling();
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => back(), true);
             var helpNode=oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName/Button_1");

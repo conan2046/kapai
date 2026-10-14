@@ -21,6 +21,7 @@
 #include "user_spirit.h"
 #include "spirit_unity.h"
 #include "library_unity.h"
+#include "alchemy_unity.h"
 #include "user_guanqia.h"
 using namespace std;
 
@@ -548,6 +549,9 @@ public:
     std::array<int,6> m_unitySpiritRoots{};
     spirit::Wallet m_unitySpiritWallet;
     SUnityLibraryState m_unityLibrary;
+    friend class CUnityAlchemyService;
+    SUnityAlchemyBonus m_unityAlchemyBonus;
+    gyu::db::CDatabaseSql* m_unityAlchemyDb = nullptr;
     friend class CUnityLibraryService;
     ~CUser();
     void SetSock(int);

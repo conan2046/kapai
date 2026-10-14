@@ -28,7 +28,7 @@ namespace ProjectX.Core
             jingJieConfig=jingJieConfig??new JingJieConfigData();
             JingJieDefinition definition=jingJieConfig.Get(envelope.State.Id);
             if(definition.NextId!=envelope.State.NextId || definition.RequiredExperience.ToString(CultureInfo.InvariantCulture)!=envelope.State.NeedExperience
-                || definition.ExperiencePerSecond!=envelope.State.Rate)
+                || definition.ExperiencePerSecond!=(envelope.State.BaseRate>0?envelope.State.BaseRate:envelope.State.Rate))
                 throw new InvalidOperationException("Unity realm client/server configuration differs.");
             if(envelope.Trial?.Big==true)services.JingJie.BeginUpgrade();
             int previous=services.JingJie.CurrentId;

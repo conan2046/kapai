@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 namespace ProjectX.UI
 {
-    internal static class ItemQualityVisual
+    public static class ItemQualityVisual
     {
         public static void ApplyFrame(Image frame, int quality, IUiResourceProvider resources)
         {

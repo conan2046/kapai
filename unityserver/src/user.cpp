@@ -3415,11 +3415,11 @@ void CUser::SortPackage()
 		SItemTemplate *pItemSrc = itemMgr.GetItem(m_package[i-1].tmplId);
 		if(pItemSrc == NULL)
 			continue;
-		for(uint8 j=0;j < i-1;j++)
+		for(uint16 j=0;j < i-1;j++)
 		{
 			if(m_package[j].tmplId == 0)
 				continue;
-			if(m_package[j].num >= EItemDieJiaNum)
+			if(m_package[j].num >= pItemSrc->maxStack)
 				continue;
 			if(m_package[i-1].tmplId == m_package[j].tmplId)
 			{
@@ -3428,20 +3428,20 @@ void CUser::SortPackage()
 					continue;
 				bool canDieJia = false;
 				if((pItemSrc->id == pItemTar->id) && (m_package[i-1] == m_package[j]))
-					canDieJia = IsItemCanMerge(pItemSrc->type);
+					canDieJia = pItemSrc->maxStack > 1;
 				if(canDieJia)
 				{
-					uint16 tolNum = (uint16)m_package[i-1].num + (uint16)m_package[j].num;
-					if(tolNum <= EItemDieJiaNum)
+					uint32 tolNum = (uint32)m_package[i-1].num + (uint32)m_package[j].num;
+					if(tolNum <= pItemSrc->maxStack)
 					{
-						m_package[j].num = (uint8)tolNum;
+						m_package[j].num = static_cast<uint16>(tolNum);
 						m_package[i-1].Clear();
 						break;
 					}
 					else
 					{
-						m_package[j].num = EItemDieJiaNum;
-						m_package[i-1].num = tolNum - EItemDieJiaNum;
+						m_package[j].num = pItemSrc->maxStack;
+						m_package[i-1].num = tolNum - pItemSrc->maxStack;
 					}
 				}
 				else
@@ -4152,17 +4152,17 @@ bool CUser::NoLockAddPackage(SItemInstance &item,const char *mailMsg)
 	{
 		for(int i = 0; i < curMaxPackNum; i++)
 		{
-			if(m_package[i] == item && m_package[i].num < EItemDieJiaNum)
+			if(m_package[i] == item && m_package[i].num < pItem->maxStack)
 			{
-				if(m_package[i].num + addNum <= EItemDieJiaNum)
+				if(m_package[i].num + addNum <= pItem->maxStack)
 				{
 					m_package[i].num += addNum;
 					addNum = 0;
 				}
 				else
 				{
-					addNum -= EItemDieJiaNum - m_package[i].num;
-					m_package[i].num = EItemDieJiaNum;
+					addNum -= pItem->maxStack - m_package[i].num;
+					m_package[i].num = pItem->maxStack;
 				}
 				
 				CNetMessage msg;
@@ -4186,10 +4186,10 @@ bool CUser::NoLockAddPackage(SItemInstance &item,const char *mailMsg)
 		{
 			m_package[i] = item;
 			m_package[i].num = addNum;
-			if(m_package[i].num > EItemDieJiaNum)
+			if(m_package[i].num > pItem->maxStack)
 			{
-				m_package[i].num = EItemDieJiaNum;
-				addNum -= EItemDieJiaNum;
+				m_package[i].num = pItem->maxStack;
+				addNum -= pItem->maxStack;
 			}
 			else
 			{
@@ -4226,6 +4226,8 @@ bool CUser::NoLockAddPackage(SItemInstance &item,const char *mailMsg)
 	// 背包满发邮件
 	SMailData mdata;
 	mdata.AddAward(item.tmplId, 0, addNum);
+	if(m_unityAlchemyDb != nullptr)
+		return CUnityAlchemyService::OverflowMail(this,item.tmplId,addNum,mailMsg);
 	if(mailMsg == NULL)
 		SendSystemMail(m_roleId,LANGUAGE_TRANSFORM_1998,&mdata);
 	else
@@ -5649,6 +5651,7 @@ CCallScript *CUser::NoLockUseItem(uint8 pos,int *pAddHp,int *pAddMp,uint8 val,ui
 		return NULL;
 	if(pAddHp != NULL)
 		*pAddHp = -1;
+	if(CUnityAlchemyService::IsItem(pInst->tmplId)) { CUnityAlchemyService::UseFromBag(this,pInst->tmplId,num); return NULL; }
 	if(pAddMp != NULL)
 		*pAddMp = -1;
 
@@ -13130,7 +13133,7 @@ bool AddHpMpLess(const SAddHpMpItem &item1,const SAddHpMpItem &item2)
 void CUser::MoveItem(uint8 srcPos,uint8 tarPos)
 {
 	boost::recursive_mutex::scoped_lock lk(m_mutex);
-	uint8 curMaxPackNum = MAX_PACKAGE_NUM;
+	uint16 curMaxPackNum = MAX_PACKAGE_NUM;
 	if((srcPos >= MAX_PACKAGE_NUM2) || (tarPos >= MAX_PACKAGE_NUM2))
 		return;
 	if(srcPos == tarPos)
@@ -13168,21 +13171,21 @@ void CUser::MoveItem(uint8 srcPos,uint8 tarPos)
 
 	bool canDieJia = false;
 	if((pItemSrc->id == pItemTar->id) && (m_package[srcPos] == m_package[tarPos]))	//类型相同
-		canDieJia = IsItemCanMerge(pItemSrc->type);
+		canDieJia = pItemSrc->maxStack > 1;
 	if(canDieJia)
 	{
 		if(tarPos >= curMaxPackNum)
 			return;
-		uint16 tolNum = (uint16)m_package[srcPos].num + (uint16)m_package[tarPos].num;
-		if(tolNum <= EItemDieJiaNum)
+		uint32 tolNum = (uint32)m_package[srcPos].num + (uint32)m_package[tarPos].num;
+		if(tolNum <= pItemSrc->maxStack)
 		{
-			m_package[tarPos].num = (uint8)tolNum;
+			m_package[tarPos].num = static_cast<uint16>(tolNum);
 			m_package[srcPos].Clear();
 		}
 		else
 		{
-			m_package[tarPos].num = EItemDieJiaNum;
-			m_package[srcPos].num = tolNum - EItemDieJiaNum;
+			m_package[tarPos].num = pItemSrc->maxStack;
+			m_package[srcPos].num = tolNum - pItemSrc->maxStack;
 		}
 	}
 	else
@@ -19514,6 +19517,7 @@ void CUser::ActiveJingJie()
 
 void CUser::InitJingJie()   //读档
 {
+    CUnityAlchemyService::Load(this);
     CUnitySpiritService::Load(this);
 	if(!CUnityJingJieService::Instance().Load(this))
 		cout<<"[UnityJingJie] authoritative state load failed role="<<GetRoleId()<<endl;

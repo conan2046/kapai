@@ -14,7 +14,7 @@ namespace
 {
 using V=rapidjson::Value;using A=rapidjson::Document::AllocatorType;
 using Costs=std::vector<std::pair<int,int64>>;
-struct ArrayLevel {int id=0,level=0,next=0,cap=0,rate=0;int64 storage=0;Costs costs;};
+struct ArrayLevel {int id=0,level=0,next=0,cap=0,rate=0,craft=0;int64 storage=0;Costs costs;};
 struct RootLevel {int id=0,type=0,level=0,next=0,growth=0,yield=0;int64 spiritCost=0;bool maximum=false;std::string name;Costs costs;std::vector<int> positions;std::vector<std::pair<int,int>> attributes;};
 struct Config {std::map<int,ArrayLevel> arrays;std::map<int,RootLevel> roots;};
 std::string Q(const std::string& text){std::string s="'";for(char c:text){s+=c;if(c=='\'')s+='\'';}return s+"'";}
@@ -33,7 +33,7 @@ Costs ReadCosts(const V& row)
 Config ReadConfig()
 {
     Config out;auto arrays=Read("json/dongfu_spirit_level.json");std::map<int,int> levels;
-    for(rapidjson::SizeType i=0;i<arrays.Size();++i){const auto& r=arrays[i];if(N(r,"enabled")!=1)continue;ArrayLevel v;v.id=N(r,"id");v.level=N(r,"level");v.cap=v.level;v.storage=L(r,"storage");v.rate=N(r,"spirit_per_second");v.costs=ReadCosts(r);if(v.id<1||v.level<0||v.level==INT_MAX||v.rate<0||out.arrays.count(v.id)||!levels.emplace(v.level,v.id).second)throw std::runtime_error("聚灵阵等级配置错误");out.arrays[v.id]=v;}
+    for(rapidjson::SizeType i=0;i<arrays.Size();++i){const auto& r=arrays[i];if(N(r,"enabled")!=1)continue;ArrayLevel v;v.id=N(r,"id");v.level=N(r,"level");v.cap=v.level;v.storage=L(r,"storage");v.rate=N(r,"spirit_per_second");v.craft=N(r,"craft_reduction_bp");if(v.craft<0||v.craft>=10000)throw std::runtime_error("炼制缩时范围错误");v.costs=ReadCosts(r);if(v.id<1||v.level<0||v.level==INT_MAX||v.rate<0||out.arrays.count(v.id)||!levels.emplace(v.level,v.id).second)throw std::runtime_error("聚灵阵等级配置错误");out.arrays[v.id]=v;}
     for(auto& entry:out.arrays){auto& v=entry.second;auto next=levels.find(v.level+1);if(!v.costs.empty()){if(next==levels.end())throw std::runtime_error("聚灵阵缺少下一等级配置");v.next=next->second;if(out.arrays.at(v.next).storage<v.storage)throw std::runtime_error("聚灵阵存储上限不能降低");}else if(next!=levels.end())throw std::runtime_error("满级聚灵阵之后仍有启用等级");}
     if(!levels.empty()){int expected=levels.begin()->first;for(const auto& v:levels)if(v.first!=expected++)throw std::runtime_error("聚灵阵等级必须连续");}
     auto definitions=Read("json/dongfu_spirit_root_level.json");std::map<std::pair<int,int>,int> rootLevels;
@@ -58,7 +58,7 @@ int OpenLevel(){auto data=Read("json/dongfu_building.json");int level=0;for(rapi
 void EnsureSchema(gyu::db::CDatabaseSql* db)
 {
     if(!db->ExecuteScript("CREATE TABLE IF NOT EXISTS unity_spirit(role_id INTEGER PRIMARY KEY REFERENCES role_info(id) ON DELETE CASCADE,record_id INTEGER NOT NULL,revision INTEGER NOT NULL DEFAULT 0);CREATE TABLE IF NOT EXISTS unity_spirit_request(role_id INTEGER NOT NULL REFERENCES role_info(id) ON DELETE CASCADE,request_id TEXT NOT NULL,payload TEXT NOT NULL,PRIMARY KEY(role_id,request_id));CREATE TABLE IF NOT EXISTS unity_spirit_root(role_id INTEGER NOT NULL REFERENCES role_info(id) ON DELETE CASCADE,root_type INTEGER NOT NULL,record_id INTEGER NOT NULL,PRIMARY KEY(role_id,root_type));"))throw std::runtime_error("聚灵阵存档初始化失败");
-    for(const auto& table:std::vector<std::pair<std::string,std::vector<std::string>>>{{"unity_spirit",{"spirit","last_ms","production_rate","production_remainder","production_period_ms","production_capacity"}},{"unity_spirit_request",{"operation"}}}){SQL(db,"PRAGMA table_info("+table.first+")");std::set<std::string> columns;while(char** row=db->GetRow())columns.insert(row[1]);for(const auto& col:table.second)if(!columns.count(col))SQL(db,"ALTER TABLE "+table.first+" ADD COLUMN "+col+" INTEGER NOT NULL DEFAULT "+(col=="operation"?"1":col=="production_period_ms"?"1000":col=="production_capacity"?"9223372036854775807":"0"));}
+    for(const auto& table:std::vector<std::pair<std::string,std::vector<std::string>>>{{"unity_spirit",{"spirit","last_ms","production_rate","production_remainder","production_period_ms","production_capacity","alchemy_bonus_bp","alchemy_gain_fraction"}},{"unity_spirit_request",{"operation"}}}){SQL(db,"PRAGMA table_info("+table.first+")");std::set<std::string> columns;while(char** row=db->GetRow())columns.insert(row[1]);for(const auto& col:table.second)if(!columns.count(col))SQL(db,"ALTER TABLE "+table.first+" ADD COLUMN "+col+" INTEGER NOT NULL DEFAULT "+(col=="operation"?"1":col=="production_period_ms"?"1000":col=="production_capacity"?"9223372036854775807":"0"));}
 }
 SUnitySpiritBonus BuildBonus(const Config& c,const std::array<int,6>& records)
 {
@@ -67,20 +67,20 @@ SUnitySpiritBonus BuildBonus(const Config& c,const std::array<int,6>& records)
     if(growth>=10000||yield>INT_MAX)throw std::runtime_error("五行灵根生产加成总值超出范围");result.growth=static_cast<int>(growth);result.yield=static_cast<int>(yield);
     for(int slot=1;slot<=5;++slot)for(const auto& attr:totals[slot])result.positionAttributes[slot].emplace_back(static_cast<uint16>(attr.first),attr.second);return result;
 }
-void SaveWallet(CUser* u,gyu::db::CDatabaseSql* db){const auto& w=u->m_unitySpiritWallet;SQL(db,"UPDATE unity_spirit SET spirit="+std::to_string(w.amount)+",last_ms="+std::to_string(w.last)+",production_rate="+std::to_string(w.rate)+",production_remainder="+std::to_string(w.remainder)+",production_period_ms="+std::to_string(w.period)+",production_capacity="+std::to_string(w.capacity)+" WHERE role_id="+std::to_string(u->GetRoleId()));}
+void SaveWallet(CUser* u,gyu::db::CDatabaseSql* db){const auto& w=u->m_unitySpiritWallet;SQL(db,"UPDATE unity_spirit SET spirit="+std::to_string(w.amount)+",last_ms="+std::to_string(w.last)+",production_rate="+std::to_string(w.rate)+",production_remainder="+std::to_string(w.remainder)+",production_period_ms="+std::to_string(w.period)+",production_capacity="+std::to_string(w.capacity)+",alchemy_bonus_bp="+std::to_string(w.bonus)+",alchemy_gain_fraction="+std::to_string(w.gainFraction)+" WHERE role_id="+std::to_string(u->GetRoleId()));}
 void ReadState(CUser* u,gyu::db::CDatabaseSql* db,const Config& c)
 {
     EnsureSchema(db);u->m_unitySpiritOpenLevel=OpenLevel();
-    SQL(db,"SELECT record_id,revision,spirit,last_ms,production_rate,production_remainder,production_period_ms,production_capacity FROM unity_spirit WHERE role_id="+std::to_string(u->GetRoleId()));char** row=db->GetRow();
+    SQL(db,"SELECT record_id,revision,spirit,last_ms,production_rate,production_remainder,production_period_ms,production_capacity,alchemy_bonus_bp,alchemy_gain_fraction FROM unity_spirit WHERE role_id="+std::to_string(u->GetRoleId()));char** row=db->GetRow();
     u->m_unitySpiritRecord=row?atoi(row[0]):InitialArray(c);u->m_unitySpiritRevision=row?atoll(row[1]):0;u->m_unitySpiritWallet=spirit::Wallet();
-    if(row){u->m_unitySpiritWallet.amount=atoll(row[2]);u->m_unitySpiritWallet.last=atoll(row[3]);u->m_unitySpiritWallet.rate=atoll(row[4]);u->m_unitySpiritWallet.remainder=atoll(row[5]);u->m_unitySpiritWallet.period=atoll(row[6]);u->m_unitySpiritWallet.capacity=atoll(row[7]);}
+    if(row){u->m_unitySpiritWallet.amount=atoll(row[2]);u->m_unitySpiritWallet.last=atoll(row[3]);u->m_unitySpiritWallet.rate=atoll(row[4]);u->m_unitySpiritWallet.remainder=atoll(row[5]);u->m_unitySpiritWallet.period=atoll(row[6]);u->m_unitySpiritWallet.capacity=atoll(row[7]);u->m_unitySpiritWallet.bonus=atoll(row[8]);u->m_unitySpiritWallet.gainFraction=atoll(row[9]);}
     if(u->m_unitySpiritRecord==0)u->m_unitySpiritRecord=InitialArray(c);
     if(!c.arrays.empty()&&!c.arrays.count(u->m_unitySpiritRecord))throw std::runtime_error("当前聚灵阵等级配置失效");
     SQL(db,"INSERT OR IGNORE INTO unity_spirit(role_id,record_id,revision) VALUES("+std::to_string(u->GetRoleId())+","+std::to_string(u->m_unitySpiritRecord)+",0)");
     if(u->m_unitySpiritRecord)SQL(db,"UPDATE unity_spirit SET record_id="+std::to_string(u->m_unitySpiritRecord)+" WHERE role_id="+std::to_string(u->GetRoleId())+" AND record_id=0");
     spirit::Accrue(u->m_unitySpiritWallet,Now());
     bool unlocked=c.arrays.count(u->m_unitySpiritRecord)&&u->m_unitySpiritOpenLevel>0&&u->GetLevel()>=u->m_unitySpiritOpenLevel;
-    u->m_unitySpiritWallet.rate=unlocked?c.arrays.at(u->m_unitySpiritRecord).rate:0;if(c.arrays.count(u->m_unitySpiritRecord))u->m_unitySpiritWallet.capacity=c.arrays.at(u->m_unitySpiritRecord).storage;u->m_unitySpiritWallet.amount=std::min(u->m_unitySpiritWallet.amount,u->m_unitySpiritWallet.capacity);if(u->m_unitySpiritWallet.period!=5000)u->m_unitySpiritWallet.remainder=0;u->m_unitySpiritWallet.period=5000;if(u->m_unitySpiritWallet.amount>=u->m_unitySpiritWallet.capacity)u->m_unitySpiritWallet.remainder=0;SaveWallet(u,db);
+    u->m_unitySpiritWallet.bonus=CUnityAlchemyService::SpiritBonus(u);u->m_unitySpiritWallet.rate=unlocked?c.arrays.at(u->m_unitySpiritRecord).rate:0;if(c.arrays.count(u->m_unitySpiritRecord))u->m_unitySpiritWallet.capacity=c.arrays.at(u->m_unitySpiritRecord).storage;u->m_unitySpiritWallet.amount=std::min(u->m_unitySpiritWallet.amount,u->m_unitySpiritWallet.capacity);if(u->m_unitySpiritWallet.period!=5000)u->m_unitySpiritWallet.remainder=0;u->m_unitySpiritWallet.period=5000;if(u->m_unitySpiritWallet.amount>=u->m_unitySpiritWallet.capacity)u->m_unitySpiritWallet.remainder=0;SaveWallet(u,db);
     u->m_unitySpiritRoots.fill(0);
     for(int type=1;type<=5;++type){int initial=InitialRoot(c,type);if(!initial)continue;SQL(db,"INSERT OR IGNORE INTO unity_spirit_root VALUES("+std::to_string(u->GetRoleId())+","+std::to_string(type)+","+std::to_string(initial)+")");SQL(db,"SELECT record_id FROM unity_spirit_root WHERE role_id="+std::to_string(u->GetRoleId())+" AND root_type="+std::to_string(type));char** root=db->GetRow();int id=root?atoi(root[0]):initial;if(!c.roots.count(id)||c.roots.at(id).type!=type)throw std::runtime_error("当前灵根等级配置失效");u->m_unitySpiritRoots[type]=id;}
     u->m_unitySpiritBonus=c.arrays.empty()?SUnitySpiritBonus():BuildBonus(c,u->m_unitySpiritRoots);
@@ -124,6 +124,7 @@ bool CUnitySpiritService::ChangeResource(CUser* u,int64 amount)
 }
 int64 CUnitySpiritService::Resource(CUser* u){return u?u->m_unitySpiritWallet.amount:0;}
 SUnitySpiritBonus CUnitySpiritService::Bonus(CUser* u){return u->m_unitySpiritOpenLevel>0&&u->GetLevel()>=u->m_unitySpiritOpenLevel?u->m_unitySpiritBonus:SUnitySpiritBonus();}
+int CUnitySpiritService::CraftReduction(CUser* u){if(!u||u->m_unitySpiritOpenLevel<1||u->GetLevel()<u->m_unitySpiritOpenLevel)return 0;auto c=ReadConfig();auto it=c.arrays.find(u->m_unitySpiritRecord);return it==c.arrays.end()?0:it->second.craft;}
 std::vector<SAttrData> CUnitySpiritService::CombatAttributes(CUser* u,int position){if(position<1||position>5)return {};return Bonus(u).positionAttributes[position];}
 void CUnitySpiritService::Handle(CUser* u,unsigned char op,const std::string& payload)
 {

@@ -27,7 +27,8 @@ namespace ProjectX.Core
         private enum ShopHubTab
         {
             Shop,
-            Soul
+            Soul,
+            Alchemy
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -4046,6 +4047,7 @@ namespace ProjectX.Core
             if (command == 324) { ApplyGardenPacket(message); return; }
             if (command == 325) { ApplySpiritPacket(message); return; }
             if (command == 326) { ApplyLibraryPacket(message); return; }
+            if (command == 327) { ApplyAlchemyPacket(message); return; }
             if (command == 38 && message.Remaining > 0)
             {
                 int start = message.Position;

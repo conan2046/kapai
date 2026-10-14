@@ -848,3 +848,52 @@ SQLite建议独立记录 `(角色,book_id,首次获得时刻)` 和 `(角色,rewa
 - 定向回归通过0/1/3/6条属性、奇数末行、重复缩减条目及普通提示/确认切换；实际入口确认偏移、获得标签和动态两行数据。证据：`.local/dongfu-library-audit/attribute-summary-tests.json`、`user-preview-final.json`，截图 `unityclient/Captures/Editor/DongFuLibrary/user-preview-attributes.png`。
 - 按用户要求保留Slot01预览：破虚·诛邪四卷、破虚·护道四卷完整激活，加合体·惊雷法诀、大乘·斩妖秘录、大乘·守心要诀，共11本与15条奖励。按正式配置独立求和与运行回包一致：攻击+52、物防+24、法防+24、生命+974。修改前SQLite备份位于 `.local/dongfu-library-audit/user-preview-backup/projectx.db`，存档和测试夹具不提交。
 - 用户本轮确认“测试没问题”并授权提交推送远程主干；本节取代首版交接中人工确认待完成的描述。本次交付只包含藏书阁前后端、正式配置与导出、用户藏书阁预制体、通用弹窗及相关导航修复；其他美术meta、Bootstrap、炼丹/锻造预制体改动保持本地。
+
+### 2026-10-14 炼丹功能开发
+
+- 本轮工程为 `E:\neiwang_kapai\Game`，Unity `-projectPath` 为其下 `unityclient`。本轮只实现炼丹及其材料商店；炼器业务、洞府任务与红点留待后续。禁止提交推送，保留 Slot01 的藏书阁数据及用户未提交修改。
+- 正式配置权威源为 `unitydata/excel/item.xlsx`、`attr_type.xlsx`、`dongfu_config.xlsx`；境界使用等级引用 `jingjie_config.xlsx` 的 `jingjie_id`。Excel 采用局部 ZIP/XML 更新保留原表元数据；JSON 全部经现有正式导出链生成。`item.xlsx` 新增 994 条道具，另复用既有清灵草 `11012`；丹方、丹药各 495 条，沿用旧表 9 系列 × 55 境界，材料共 5 种。
+- `dongfu_alchemy_recipe` 字段为 `id,name,realm_id,series_id,use_jingjie_id,learn_item_id,cost_items,duration_seconds,batch_limit,output_item_id,output_count,enabled`。每份配方沿用旧表材料数量与时间；单次最多 999 份，当前每份产物 1 个。`dongfu_effect` 配置永久属性、服用次数上限、独立限次组及 `target_positions`；不使用旧职业经验。
+- 按用户确认删除未使用的 `dongfu_recipe` 工作表、schema、导出定义及旧校验分支；其唯一禁用占位不再保留。正式丹方唯一读取 `dongfu_alchemy_recipe`；导出清单的 `retiredJsonOutputs` 保证正式导出同时清理旧客户端、服务端JSON及客户端meta，ValidateOnly检查旧产物无残留。其他工作表和已导出的有效配置保持原样。
+- 上限字段区分：`dongfu_alchemy_recipe.batch_limit` 是单次炼制份数上限；`dongfu_effect.limit_count` 是丹药累计服用次数上限，通过 `output_item_id → item_id` 关联，并按 `limit_group` 汇总已服用次数。当前各丹药ID的分组独立，例如炼气洗髓丹 `10001` 为 `alchemy:10001`，上限50次。`item.max_stack` 只控制背包每格叠加数量，`use_jingjie_id` 控制学习/制作/服用所需最低境界小阶。
+- `dongfu_material_shop` 字段为 `item_id,price_gold,enabled`。测试期间不限购，材料每个 10 金币、丹方每本 `100 × 境界序号` 金币，均可在正式 Excel 调整。用户2026-10-14再次确认改为出售所有 `use_jingjie_id ≤ 当前境界ID` 且尚未学习的丹方，低阶未学丹方也可购买；学习后立即隐藏，未来境界不显示。首批供应炼丹丹方及材料，炼器图纸和材料随炼器开发补齐。
+
+| 丹药系列 | 当前效果 | 单个道具服用上限 | 生效站位 |
+|---|---|---|---|
+| 洗髓 | 攻击 | 50 | 1～5 |
+| 玄甲 | 物防、法防 | 50 | 1～5 |
+| 长生 | 生命 | 50 | 1～5 |
+| 风行 | 速度 | 50 | 1～5 |
+| 灵动 | 闪避 | 50 | 1～5 |
+| 磐石 | 抗暴 | 50 | 1～5 |
+| 悟性 | 境界修炼经验产速加成，属性 34 | 20 | 0（主角） |
+| 芥子 | 生命百分比 | 10 | 1～5 |
+| 旧表第九系列 | 聚灵阵 60054 灵气产速加成，属性 35 | 999 | 0（主角） |
+
+- 战斗效果保留旧表的对应数值；百分比统一使用万分比，芥子旧值转为 `旧值 × 10`，产速加成采用旧值作为万分比。属性 34、35 的战力权重为 0。上阵神将按当前站位获得加成，换将自动重算；两种主角产速加成分别进入真实累积计算，保存不足 1 点的余数，避免小加成被每次取整丢弃。
+- 聚灵阵 `dongfu_spirit_level.craft_reduction_bp` 缩短制作时间。默认每级增加 10 万分比，当前配置最高 5000；创建任务时冻结 `基础秒数 × 份数 × (10000 - 缩时万分比) / 10000` 的毫秒截止时间，离线完整计时。取消只允许完成前，按已扣材料快照每种返还 50% 向下取整；完成后手动领取，自动服用剩余额度内的产出，超额按正式 `item.jiage` 转金币。
+- 新协议 `327` 操作 `0快照 / 1学习 / 2开始 / 3取消 / 4领取 / 5服用 / 6购买`，服务端权威校验、版本校验、事务及请求去重。请求去重同时绑定操作与内容；背包使用丹方或丹药复用既有背包入口。存档新增 `unity_alchemy`、`unity_alchemy_learn`、`unity_alchemy_use`、`unity_alchemy_request`，并给修炼和聚灵阵状态追加加成余数字段。
+- 领取使用同一 SQLite 事务更新累计服用次数、永久属性、金币、制作状态及请求去重结果，产出直接生效或折金币，不入背包。按 `limit_group` 计算剩余额度，金币超过整数存储上限或写入失败时保留待领取任务。先结算旧产速收益，再应用新加成，立即同步修炼、聚灵阵和上阵神将。返材和商店商品仍复用背包发放，满包时以同一事务写入公共 `xin_shi` 邮件。
+- 运行时只绑定用户已确认的模板：`Sets/Set0` 按境界复制，`VirtualRow_0` 按丹方复制；已学丹方显示 `丹方名(已服用次数/上限)`，按同一限次分组汇总。`FurnaceArt/item` 显示选中丹方及品质框，点击打开成品 `States/Popup`，按效果复制 `shuxing/bg/Attribute`；材料按类别复制 `Materials/Material`。`SelectedRecipe` 未选择显示“请选择配方”，选择后显示配方名；领取弹窗为公共 `ItemGet.prefab`，显示真实图标、总产出、自动服用数量、实际新增属性及超额折算金币。布局和根偏移仍由预制体维护。
+- 用户确认允许列表文字自动缩小：只在 `zhangjie` 模板启用 BestFit，最大字号保持原26、最小18，不改位置/尺寸/字体资源。公共 ItemGet 的 Attributes 只开启文字横向与纵向溢出，保留位置/尺寸/字号，避免新增三行领取信息被截断。
+- 商城侧边新增“丹方商店”，使用 `Common/shop_bg.prefab` 中的 `Panel_Alchemy`，位置在预制体中保存，沿用现有按钮样式。复用 `shangcheng`、材料商店协议和商品筛选，未进入炼丹房也可查询/购买；支持商城、将魂商店、丹方商店之间切换及关闭返回。洞府内材料入口保留；商城和 Popup/Source 入口显示“丹方商店”。扩展列表使用道具ID稳定排序，超过255件时不使用8位序号，避免顺序回绕。
+- 用户2026-10-14最新 Alchemy Prefab 已增加 `States/Popup/Source`，只绑定点击事件，不修改该节点或用户布局。Source 跳转隐藏炼丹根节点，商店关闭时由原UiStack恢复，保留配方、弹窗、分组及滚动位置；普通材料图标入口保留炼丹根节点激活，商店盖在其上，关闭后恢复框架。`FurnaceArt/item/Text` 运行时隐藏，配方名只由 `SelectedRecipe` 显示。
+- 洞府内的丹方/材料商店沿用 `DongFuAlchemy` 共享框架模式，显示 `Bg` 和 `Panel_12/Bg`，商店位于背景之上。按用户最新要求，动态切换到洞府商店时根位置为 `(-50,38)`；商城入口恢复实例创建时的原始位置，共用 `shangcheng` 预制体不改。
+- 同一商店实例从洞府切回商城时，重新挂回共用Canvas，由 `NormalizeShopLayerOrder(alchemyShopView)` 放在商城背景之上；返回洞府时由共享框架重新挂入。避免商品已经收到却被另一父节点下的商城背景遮住。
+- 每次进入炼丹房按当前主角境界初始化并展开左侧分组，下一帧由公共 `GroupedTemplateList.ScrollToSelection` 定位标题到列表可见顶部。已有低阶制作任务不会改变默认左侧境界，右侧仍保留制作任务配方；定时数据同步和Source返回不重置用户手动收起/选择/滚动。
+- 用户删除 item 空行并修改价格后，正式表有1884条有效道具；994条炼丹相关道具的 `jiage` 从运行配置旧0更新为正式 Excel 的100。执行 `-Group AlchemyItems -Mode Both` 同步995条关联道具，未修改正式Excel，也未改无关旧道具；导出一致性和配置拒绝回归通过。
+- 资源新增 22 个旧表图标并登记原生资源索引与道具图集；旧图标编号与现项目冲突，因此新图标使用 `50001～51882` 的对应编号，原有图标不覆盖。`ItemGet` 注册先物化目录列表再替换，避免延迟枚举清空原界面目录。
+- 配置校验中的“32项无效配置”是原藏书阁回归临时构造的拒绝测试，正式 Excel/JSON 中不存在这 32 条错误记录。本轮补充炼丹边界后共有 42 个临时拒绝测试；校验日志明确区分正式配置与测试用例。
+- 同 ID 道具按正式 `item.xlsx.max_stack` 叠加，达到单格上限后进入下一格。普通丹药和丹方沿用旧表 99，旧渡劫系列丹药沿用 999；其他原有道具和炼丹材料保留现协议可用的默认 65000，导出校验范围为 1～65000。入包、整理、移动合并均使用同一上限；整理与合并的数量使用足够宽的整数，禁止旧 8 位转换截断。叠加上限与 `dongfu_effect.limit_count` 服用次数上限分别控制。
+- `Export-UnityOwnedTables.ps1 -Group ItemStacks -Mode Both` 只从正式 Excel 同步叠加字段，保留既有生成道具的其他字段；`-Group DongFu -Mode Both` 会同时同步叠加上限。本轮额外覆盖 5 个临时叠加上限拒绝用例。
+- 背包通过正式道具目录将 `max_stack` 带入记录；同 ID 的合计超过单格上限时保留服务端真实格子，不再显示一个越过上限的合计格。业务材料计数仍汇总所有格。原背包接口签名和生成 Lua 道具表不改动；未知旧配置采用 65000 的兼容默认值。
+- 叠加回归覆盖 `98＋3→99＋2`、`998＋3→999＋2`、整理保留 998 和 80000 的数量、移动尊重上限、500格满包整理、邮件插入失败回滚及相同请求重试。实际 Unity 主角→背包入口在隔离 Slot09 显示 `99、2、999、2` 四个丹药格，Console 无错误；证据 `stack-result.json`、`stack-unity-bag.json`、`protocol-result.json`、`mail-claim-result.json`。
+- 验证证据保存在 `.local/dongfu-alchemy-development/`。实际 Unity 入口使用隔离 Slot10，经 EventSystem/Raycast 走材料购买、背包学习、配方与成品预览、3份取消返材、离线后手动领取及背包服用。用户预制体视觉调整不重新审核；最终画面由用户实际 Play 验收。
+
+### 共享分组列表交互
+
+- `GroupedTemplateList` 统一管理境界分组的展开/收起、仅展开当前分组、选中图片切换、恢复模板默认图片与同步期间的选择状态。炼丹、藏书阁已接入；炼器 Prefab 已绑定同一组件，业务开发时直接复用，不能另写一套选择逻辑。
+- 模板合同：每个动态分组保持 `HeaderBackground`（Image）、`Name`（标题/按钮）、`VirtualContent`（子列表），子项沿用 `VirtualRow_0`。默认图取该分组模板，选中图由组件的 `selectedHeaderSprite` 引用 `ui_btn_fuwuqi_xuanzhong`。代码不调整布局、字体、尺寸或根偏移。
+- 模块复制分组后调用 `RegisterGroup(id, group, callback)`；标题点击由公共组件自动展开或收起，回调接收当前分组ID（0表示收起）。子项选择使用 `SelectGroup(id)`。数据首次到达调用 `InitializeSelection(defaultId)`，主动收起后仍保留初始化状态，后续同步不会自动展开；重新进入时通过 `ResetSelection()` 重置。模块继续管理配方/套装、业务条件、内容行及滚动定位。
+- 三个 Prefab 通过编辑器 `ProjectX/DongFu/Bind Shared Group Lists` 绑定公共组件和选中图；炼丹与藏书阁 Screen 的 `groupedList` 必须指向该组件。新模块只需使用同一节点合同并登记分组，无需复制展开或图片切换代码。
+- 用户于2026-10-14确认“我已测试，没问题”，公共分组列表交互验收通过。本结论覆盖炼丹与藏书阁的分组操作；炼器业务尚未开发。

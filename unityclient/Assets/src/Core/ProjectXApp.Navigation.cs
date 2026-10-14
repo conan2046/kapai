@@ -6,6 +6,8 @@ namespace ProjectX.Core
     {
         public bool HandleBack()
         {
+            if(IsAlchemyShopOpen){if(IsErrorVisible)errorPresenter.Hide();else CloseAlchemyShop();return true;}
+            if(IsAlchemyOpen){if(IsErrorVisible)errorPresenter.Hide();else alchemyScreen.Back();return true;}
             if (IsLibraryOpen)
             {
                 if (IsErrorVisible) errorPresenter.Hide();
