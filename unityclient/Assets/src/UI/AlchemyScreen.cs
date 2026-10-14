@@ -16,6 +16,7 @@ namespace ProjectX.UI
         Transform work,popup;GameObject materialTemplate,item;Text selected,quantity,empty;
         Image progress;int selectedRecipe,renderedRecipe,batches=1;bool pending;
         float received;long serverAt;
+        bool recipePromptReady;int recipePromptId=-1;
         public event Action BecameVisible,CloseRequested,ShopRequested,CancelRequested,ClaimRequested;
         public event Action SourceShopRequested;
         public event Action<int,int> StartRequested;
@@ -112,6 +113,7 @@ namespace ProjectX.UI
         void Update(){if(state!=null&&state.Recipe>0)RefreshTime();}
         void RefreshTime()
         {
+            RefreshRecipePrompts();
             bool active=state!=null&&state.Recipe>0;long remain=active?Math.Max(0,long.Parse(state.Finish)-Now):0;
             work.Find("Working").gameObject.SetActive(active&&remain>0);work.Find("Ready").gameObject.SetActive(active&&remain==0);
             work.Find("Progress/Value").gameObject.SetActive(active&&remain>0);
@@ -122,6 +124,16 @@ namespace ProjectX.UI
             work.Find("Progress/Value").GetComponent<Text>().text=TimeSpan.FromMilliseconds(remain).ToString(@"hh\:mm\:ss");
             work.Find("Progress/Reset").GetComponent<Text>().text=remain==0?"炼制完成":"炼制中";
             var legacyTime=work.Find("Working/Time")?.GetComponent<Text>();if(legacyTime!=null)legacyTime.text="";
+        }
+        void RefreshRecipePrompts()
+        {
+            bool ready=DongFuReminderRules.AlchemyClaim(state,Now);
+            int id=ready?state.Recipe:0;
+            if(recipePromptReady==ready&&recipePromptId==id)return;
+            recipePromptReady=ready;recipePromptId=id;
+            foreach(var row in rows)RedDotVisual.SetAuthored(row.Value.transform,ready&&row.Key==id);
+            foreach(var realm in catalog.Realms)groupedList.SetGroupPrompt(realm.Id,
+                ready&&catalog.Recipes.TryGetValue(id,out var recipe)&&recipe.Realm==realm.Id);
         }
         void Refresh()
         {

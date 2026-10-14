@@ -61,10 +61,11 @@ namespace ProjectX.Core
         {
             if(message.ReadByte()!=128)throw new InvalidOperationException("聚灵阵回包版本错误");var state=JsonConvert.DeserializeObject<SpiritEnvelope>(message.ReadString());
             if(state==null||state.Schema!=2||message.Remaining!=0)throw new InvalidOperationException("聚灵阵回包格式错误");
+            if(HandleDongFuReminderRead(325,state.RequestId,state))return;
             if(long.TryParse(state.Spirit,out long spiritBalance))services.Currencies.Set(CurrencyIds.Spirit,spiritBalance);
-            if(spiritScreen!=null&&IsSpiritOpen&&spiritSession==services.Network.SessionVersion&&string.IsNullOrEmpty(state.RequestId)&&spiritPending==null){spiritScreen.Apply(state);ScheduleSpiritProduction(state);return;}
+            if(spiritScreen!=null&&IsSpiritOpen&&spiritSession==services.Network.SessionVersion&&string.IsNullOrEmpty(state.RequestId)&&spiritPending==null){RecordDongFuReminder(325,state);spiritScreen.Apply(state);ScheduleSpiritProduction(state);return;}
             if(spiritScreen==null||!IsSpiritOpen||spiritSession!=services.Network.SessionVersion||spiritPending==null||state.RequestId!=spiritPending)return;
-            spiritPending=null;spiritScreen.Apply(state);ScheduleSpiritProduction(state);
+            spiritPending=null;RecordDongFuReminder(325,state);spiritScreen.Apply(state);ScheduleSpiritProduction(state);
         }
         private void ScheduleSpiritProduction(SpiritEnvelope state)
         {

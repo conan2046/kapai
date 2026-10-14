@@ -45,6 +45,7 @@ namespace ProjectX.Core
                 InitializeDrawRedDots();
                 InitializeWorldRedDots();
                 InitializeGameplayRedDots();
+                InitializeDongFuRedDots();
                 // These validations intentionally drive every reconnect step and
                 // assert the intermediate disconnected/login state.  A queued
                 // automatic reconnect can otherwise race an account switch.
@@ -276,6 +277,7 @@ namespace ProjectX.Core
             DisposeEquipmentRedDots();
             DisposeWorldRedDots();
             DisposeGameplayRedDots();
+            DisposeDongFuRedDots();
             DisposeJingJie();
             if (services != null)
                 services.Currencies.Changed -= RefreshSharedCurrencyHeaders;
@@ -622,6 +624,7 @@ namespace ProjectX.Core
             RefreshDrawHotPoint();
             RefreshDrawDay();
             TickGameplayRedDots();
+            TickDongFuRedDots();
             happyWheelPresenter?.Tick(Time.unscaledDeltaTime);
             if (Input.GetKeyDown(KeyCode.Escape)) HandleBack();
         }

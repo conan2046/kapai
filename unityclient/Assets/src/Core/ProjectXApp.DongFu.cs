@@ -39,6 +39,7 @@ namespace ProjectX.Core
             }
             if (services.UiStack.Current != dongFuView) services.UiStack.Push(dongFuView);
             RestoreDongFuFrame();
+            RenderDongFuRedDots();
         }
 
         private void CloseDongFu()

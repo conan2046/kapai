@@ -80,7 +80,7 @@ namespace ProjectX.UI
         private string Materials(long[][] value)=>value==null||value.Length==0?"无额外材料":string.Join("  ",value.Select(p=>itemName((int)p[0])+" "+p[2]+"/"+p[1]));
         private static bool Enough(long[][] value)=>(value??Array.Empty<long[]>()).All(p=>p.Length==3&&p[2]>=p[1]);
         private SpiritRootState SelectedRoot()=>state?.Roots?.FirstOrDefault(r=>r.Type==selectedRoot);
-        private bool CanUpgradeRoot(SpiritRootState root)=>!pending&&state!=null&&state.Unlocked&&root!=null&&root.Configured&&root.NextId!=0&&!root.Capped&&Enough(root.Costs)&&long.TryParse(state.Spirit,out long owned)&&long.TryParse(root.SpiritCost,out long need)&&owned>=need&&string.IsNullOrEmpty(state.Error);
+        private bool CanUpgradeRoot(SpiritRootState root)=>!pending&&DongFuReminderRules.RootUpgrade(state,root);
         private void RenderPosition()
         {
             for(int slot=1;slot<=5;slot++){
@@ -122,6 +122,7 @@ namespace ProjectX.UI
                 bonusValues[i].text=RootNames[i+1]+" "+(root?.Configured==true?root.Level+"级":"待配置")+"\n"+effect;
                 if(rootNames!=null&&i<rootNames.Length)rootNames[i].text=root?.Configured==true?root.Name:"待配置";
                 rootButtons[i].interactable=value.Configured&&value.Unlocked;
+                RedDotVisual.SetAuthored(rootButtons[i].transform.parent.Find("Image_"+(i+1)), DongFuReminderRules.RootUpgrade(value,root));
             }
             upgrade.interactable=value.Configured&&value.Unlocked&&value.NextId!=0&&Enough(value.Costs)&&string.IsNullOrEmpty(value.Error);
             upgradeLabel.text=!value.Configured?"待配置":value.NextId==0?"聚灵阵已满级":"升级聚灵阵";

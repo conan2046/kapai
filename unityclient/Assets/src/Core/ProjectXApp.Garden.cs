@@ -70,10 +70,11 @@ namespace ProjectX.Core
             if(message.ReadByte()!=128)throw new InvalidOperationException("灵园回包版本错误");
             GardenEnvelope envelope=JsonConvert.DeserializeObject<GardenEnvelope>(message.ReadString());
             if(envelope==null||message.Remaining!=0)throw new InvalidOperationException("灵园回包格式错误");
+            if(HandleDongFuReminderRead(324,envelope.RequestId,envelope))return;
             if(gardenScreen==null)return;
             if(envelope.Operation!=0&&(gardenPending==null||gardenPending!=envelope.RequestId))return;
             if(gardenPending!=null&&gardenPending!=envelope.RequestId)return;
-            gardenPending=null;gardenScreen.Apply(envelope);
+            gardenPending=null;RecordDongFuReminder(324,envelope);gardenScreen.Apply(envelope);
         }
         private System.Collections.IEnumerator PollGarden()
         {

@@ -88,9 +88,10 @@ namespace ProjectX.Core
             if(packet.ReadByte()!=128)throw new InvalidOperationException("炼丹回包版本错误");
             var state=JsonConvert.DeserializeObject<AlchemyEnvelope>(packet.ReadString());
             if(state==null||state.Schema!=1||packet.Remaining!=0)throw new InvalidOperationException("炼丹回包格式错误");
+            if(HandleDongFuReminderRead(327,state.Request,state))return;
             bool fromBag=state.Request?.StartsWith("bag-",StringComparison.Ordinal)==true;
             if(!fromBag&&(!IsAlchemyOpen&&!IsAlchemyShopOpen||alchemySession!=services.Network.SessionVersion||state.Request!=alchemyPending))return;
-            alchemyState=state;if(!fromBag)alchemyPending=null;
+            alchemyState=state;RecordDongFuReminder(327,state);if(!fromBag)alchemyPending=null;
             if(long.TryParse(state.Gold,out long gold))services.Currencies.Set(CurrencyIds.Gold,gold);
             if(IsAlchemyOpen)alchemyScreen.Apply(state);if(IsAlchemyShopOpen)RenderAlchemyShop();
             SetAlchemyShopPending(false);alchemyNextRead=Time.realtimeSinceStartup+2;

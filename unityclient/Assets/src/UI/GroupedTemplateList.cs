@@ -91,6 +91,11 @@ namespace ProjectX.UI
             foreach (Group group in groups.Values) group.Button.interactable = value;
         }
 
+        public void SetGroupPrompt(int id, bool visible)
+        {
+            if (groups.TryGetValue(id, out Group group)) RedDotVisual.SetAuthored(group.Button.transform, visible);
+        }
+
         public void Refresh()
         {
             foreach (var pair in groups)

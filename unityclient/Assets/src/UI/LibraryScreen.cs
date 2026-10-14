@@ -107,6 +107,7 @@ namespace ProjectX.UI
             {
                 var realm = catalog.Realms.First(r => r.Id == pair.Key);
                 pair.Value.transform.Find("Name").GetComponent<Text>().text = realm.Name + (state != null && realm.Id > state.Realm ? "·未达" : "");
+                groupedList.SetGroupPrompt(pair.Key, catalog.InRealm(pair.Key).Any(s => DongFuReminderRules.LibrarySet(catalog, state, s.Id)));
             }
             foreach (var pair in setButtons)
             {
@@ -115,6 +116,7 @@ namespace ProjectX.UI
                 text.text = set.Name + (active > 0 ? " " + active + "/" + set.Books.Length : "");
                 text.color = pair.Key == selectedSet ? new Color(0.65f, 0.25f, 0.13f) : new Color(0.26f, 0.16f, 0.12f);
                 pair.Value.interactable = !pending;
+                RedDotVisual.SetAuthored(pair.Value.transform, DongFuReminderRules.LibrarySet(catalog, state, pair.Key));
             }
             var setExists = state != null && state.Configured && catalog.Sets.ContainsKey(selectedSet);
             empty.gameObject.SetActive(!setExists);

@@ -31,6 +31,7 @@ namespace ProjectX.UI
             water.SetActive(plot.Unlocked && plot.Water);
             bugs.SetActive(plot.Unlocked && plot.Bugs);
             mature.SetActive(plot.Unlocked && plot.CropId > 0 && plot.Stage == 3);
+            RedDotVisual.SetAuthored(transform.Find("StateOverlay"), DongFuReminderRules.Harvest(plot));
             progress.gameObject.SetActive(plot.Unlocked && plot.CropId > 0 && plot.Stage != 3);
             progress.size = plot.Progress;
         }

@@ -113,12 +113,14 @@ namespace ProjectX.Core
             if (message.ReadByte() != 128) throw new InvalidOperationException("藏书回包版本错误");
             var state = JsonConvert.DeserializeObject<LibraryEnvelope>(message.ReadString());
             if (state == null || state.Schema != 1 || message.Remaining != 0) throw new InvalidOperationException("藏书回包格式错误");
+            if (HandleDongFuReminderRead(326, state.Request, state)) return;
+            if (string.IsNullOrEmpty(state.Request)) RecordDongFuReminder(326, state);
             if (!IsLibraryOpen || librarySession != services.Network.SessionVersion) return;
             bool push = string.IsNullOrEmpty(state.Request) && libraryPending == null;
             if (!push && state.Request != libraryPending) return;
             libraryPending = null;
             if (long.TryParse(state.Gold, out long gold)) services.Currencies.Set(CurrencyIds.Gold, gold);
-            libraryState = state; libraryScreen.Apply(state);
+            libraryState = state; RecordDongFuReminder(326, state); libraryScreen.Apply(state);
             if (!string.IsNullOrEmpty(state.Error)) { LibraryFailure(state.Error); libraryNextRead = Time.realtimeSinceStartup + 2; }
             else { libraryReportedError = null; libraryNextRead = Time.realtimeSinceStartup + 10; }
         }

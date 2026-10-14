@@ -6,6 +6,12 @@ namespace ProjectX.UI
 {
     public static class RedDotVisual
     {
+        public static void SetAuthored(Transform owner, bool visible)
+        {
+            Transform dot = owner != null ? owner.Find("Prompt") : null;
+            if (dot != null && dot.gameObject.activeSelf != visible) dot.gameObject.SetActive(visible);
+        }
+
         // Clone the authored common dot only when a new entry/tab lacks one.
         public static void Set(Transform owner, bool visible, Transform template)
         {
