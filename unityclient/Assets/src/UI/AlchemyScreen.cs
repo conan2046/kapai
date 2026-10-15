@@ -75,6 +75,12 @@ namespace ProjectX.UI
             if(fresh)StartCoroutine(groupedList.ScrollToSelection(transform.Find("Sets/Scroll View").GetComponent<ScrollRect>()));
         }
         public void Pending(bool value){pending=value;Refresh();}
+        public void ClearState()
+        {
+            state=null;pending=true;serverAt=0;received=Time.realtimeSinceStartup;
+            if(catalog==null||work==null)return;
+            ResetSelection();Refresh();
+        }
         public void ResetSelection(){groupedList.ResetSelection();selectedRecipe=0;renderedRecipe=0;batches=1;Clear(materials);popup?.gameObject.SetActive(false);}
         bool TryRecipe(out AlchemyRecipe recipe)
         {
@@ -119,8 +125,7 @@ namespace ProjectX.UI
             work.Find("Progress/Value").gameObject.SetActive(active&&remain>0);
             work.Find("Progress/Reset").gameObject.SetActive(active&&remain==0);
             work.Find("Progress").gameObject.SetActive(active);if(!active)return;
-            var r=catalog.Recipes[state.Recipe];double total=Math.Max(1,(long)r.Seconds*state.Count*1000*(10000-state.Reduction)/10000);
-            progress.fillAmount=Mathf.Clamp01(1-(float)(remain/total));
+            progress.fillAmount=AlchemyProgress.Fraction(state,Now,catalog.Recipes[state.Recipe]);
             work.Find("Progress/Value").GetComponent<Text>().text=TimeSpan.FromMilliseconds(remain).ToString(@"hh\:mm\:ss");
             work.Find("Progress/Reset").GetComponent<Text>().text=remain==0?"炼制完成":"炼制中";
             var legacyTime=work.Find("Working/Time")?.GetComponent<Text>();if(legacyTime!=null)legacyTime.text="";

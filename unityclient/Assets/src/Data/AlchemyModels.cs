@@ -62,6 +62,7 @@ namespace ProjectX.Data
         [JsonProperty("revision")] public string Revision;
         [JsonProperty("server_ms")] public string Server;
         [JsonProperty("finish_ms")] public string Finish;
+        [JsonProperty("duration_ms")] public string Duration;
         [JsonProperty("gold")] public string Gold;
         [JsonProperty("error")] public string Error;
         [JsonProperty("result")] public string Result;
@@ -83,6 +84,33 @@ namespace ProjectX.Data
         [JsonProperty("used")] public int Used;
         [JsonProperty("sold")] public int Sold;
         [JsonProperty("gold")] public long Gold;
+    }
+    public sealed class AlchemyStateCache
+    {
+        uint role;
+        int session = -1;
+        public AlchemyEnvelope State { get; private set; }
+        public bool UseIdentity(uint roleId, int sessionVersion)
+        {
+            if (role == roleId && session == sessionVersion) return false;
+            role = roleId; session = sessionVersion; State = null;
+            return true;
+        }
+        public void Store(AlchemyEnvelope value) => State = value;
+        public void Clear() { role = 0; session = -1; State = null; }
+    }
+    public static class AlchemyProgress
+    {
+        public static float Fraction(AlchemyEnvelope state, long now, AlchemyRecipe recipe)
+        {
+            if (state == null || state.Recipe <= 0 || recipe == null
+                || !long.TryParse(state.Finish, out long finish)) return 0;
+            // Older tasks lack their original start time. Use a stable base-duration
+            // fallback; current array upgrades must never change an existing job.
+            long duration = long.TryParse(state.Duration, out long stored) && stored > 0
+                ? stored : (long)recipe.Seconds * state.Count * 1000;
+            return Mathf.Clamp01(1f - (float)(Math.Max(0, finish - now) / (double)Math.Max(1, duration)));
+        }
     }
     public sealed class AlchemyCatalog
     {

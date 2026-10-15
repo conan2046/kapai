@@ -18,6 +18,8 @@ namespace ProjectX.Core
         readonly Dictionary<ushort, string> dongFuDotPending = new Dictionary<ushort, string>();
         readonly Dictionary<ushort, float> dongFuDotDeadlines = new Dictionary<ushort, float>();
         readonly Dictionary<ushort, float> dongFuDotNext = new Dictionary<ushort, float>();
+        readonly Dictionary<ushort, float> dongFuDotEarliest = new Dictionary<ushort, float>();
+        readonly DongFuReminderInputs dongFuDotInputs = new DongFuReminderInputs();
         GardenEnvelope dongFuDotGarden;
         SpiritEnvelope dongFuDotSpirit;
         LibraryEnvelope dongFuDotLibrary;
@@ -35,25 +37,62 @@ namespace ProjectX.Core
             redDots.SetEnabled(DongFuDot + ".3", false);
             dongFuDotBooks = new LibraryCatalogData();
             redDots.Changed += RenderDongFuRedDots;
-            services.Player.Changed += InvalidateDongFuReminderReads;
-            services.Currencies.Changed += InvalidateDongFuReminderReads;
-            services.Bag.Changed += InvalidateDongFuReminderReads;
-            services.JingJie.Changed += InvalidateDongFuReminderReads;
+            services.Player.Changed += ObserveDongFuRealm;
+            services.Currencies.Changed += ObserveDongFuCurrencies;
+            services.Bag.Changed += ObserveDongFuBag;
+            services.JingJie.Changed += ObserveDongFuRealm;
             dongFuDotsSubscribed = true;
+            SeedDongFuReminderInputs();
             RenderDongFuRedDots();
         }
 
-        void InvalidateDongFuReminderReads()
+        void InvalidateDongFuReminderReads(params ushort[] commands)
         {
             if (!dongFuDotsSubscribed) return;
-            foreach (ushort command in DongFuReadCommands) dongFuDotNext[command] = 0;
+            float due = Time.realtimeSinceStartup + .25f;
+            foreach (ushort command in commands)
+                if (!dongFuDotNext.TryGetValue(command, out float current) || current > due) dongFuDotNext[command] = due;
+        }
+
+        void ObserveDongFuRealm()
+        {
+            if (dongFuDotInputs.Observe(-1, services.Player.Level)) InvalidateDongFuReminderReads(DongFuReadCommands);
+        }
+
+        bool ReadDongFuCurrencies()
+        {
+            bool changed = false;
+            foreach (int id in new[] { CurrencyIds.Gold, CurrencyIds.Premium, CurrencyIds.BoundPremium, CurrencyIds.Spirit })
+                changed |= dongFuDotInputs.Observe(id, services.Currencies.Get(id));
+            return changed;
+        }
+
+        bool ReadDongFuBag()
+        {
+            var materials = dongFuDotSpirit?.Roots?.SelectMany(r => r.Costs ?? Array.Empty<long[]>())
+                .Where(p => p.Length == 3 && p[0] < 60000).Select(p => (int)p[0]) ?? Enumerable.Empty<int>();
+            bool changed = false;
+            foreach (int id in dongFuDotBooks.Books.Values.Select(b => b.Item).Concat(materials).Distinct())
+                changed |= dongFuDotInputs.Observe(id, services.Bag.GetTotalQuantityByItemId(id));
+            return changed;
+        }
+
+        void ObserveDongFuCurrencies() { if (ReadDongFuCurrencies()) InvalidateDongFuReminderReads(325); }
+        void ObserveDongFuBag() { if (ReadDongFuBag()) InvalidateDongFuReminderReads(325, 326); }
+        void SeedDongFuReminderInputs()
+        {
+            dongFuDotInputs.Clear();
+            dongFuDotInputs.Observe(-1, services.Player.Level);
+            ReadDongFuCurrencies(); ReadDongFuBag();
         }
 
         void ResetDongFuReminderState()
         {
             dongFuDotPending.Clear(); dongFuDotDeadlines.Clear(); dongFuDotNext.Clear();
+            dongFuDotEarliest.Clear();
             dongFuDotGarden = null; dongFuDotSpirit = null;
             dongFuDotLibrary = null; dongFuDotAlchemy = null;
+            SeedDongFuReminderInputs();
             for (int i = 0; i < 5; i++) redDots.Set(DongFuDot + "." + i, false);
             RenderDongFuRedDots();
         }
@@ -88,11 +127,13 @@ namespace ProjectX.Core
                     dongFuDotPending.Remove(command); dongFuDotNext[command] = now + 5;
                 }
                 if (dongFuDotNext.TryGetValue(command, out float due) && now < due) continue;
+                if (dongFuDotEarliest.TryGetValue(command, out float earliest) && now < earliest) continue;
                 string id = DongFuReadPrefix + Guid.NewGuid().ToString("N");
                 var payload = new JObject { ["request_id"] = id, ["revision"] = "0" };
                 var packet = LegacyTcpMessage.New(); packet.WriteWord(command); packet.WriteByte(0);
                 packet.WriteString(payload.ToString(Formatting.None));
                 dongFuDotPending[command] = id; dongFuDotDeadlines[command] = now + 8;
+                dongFuDotEarliest[command] = now + 1;
                 try { services.Network.Send(packet); }
                 catch { dongFuDotPending.Remove(command); dongFuDotNext[command] = now + 5; }
             }
@@ -156,10 +197,10 @@ namespace ProjectX.Core
         void DisposeDongFuRedDots()
         {
             if (!dongFuDotsSubscribed) return;
-            services.Player.Changed -= InvalidateDongFuReminderReads;
-            services.Currencies.Changed -= InvalidateDongFuReminderReads;
-            services.Bag.Changed -= InvalidateDongFuReminderReads;
-            services.JingJie.Changed -= InvalidateDongFuReminderReads;
+            services.Player.Changed -= ObserveDongFuRealm;
+            services.Currencies.Changed -= ObserveDongFuCurrencies;
+            services.Bag.Changed -= ObserveDongFuBag;
+            services.JingJie.Changed -= ObserveDongFuRealm;
             redDots.Changed -= RenderDongFuRedDots;
             dongFuDotsSubscribed = false;
         }

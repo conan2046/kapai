@@ -14,7 +14,9 @@ namespace ProjectX.Core
     public sealed partial class ProjectXApp
     {
         UnityUiView alchemyView,alchemyShopView,alchemyRewardView;
-        AlchemyScreen alchemyScreen;AlchemyCatalog alchemyCatalog;AlchemyEnvelope alchemyState;
+        AlchemyScreen alchemyScreen;AlchemyCatalog alchemyCatalog;
+        readonly AlchemyStateCache alchemyCache=new AlchemyStateCache();
+        AlchemyEnvelope alchemyState=>alchemyCache.State;
         ShopStore alchemyShopStore;ShopPresenter alchemyShopPresenter;
         Coroutine alchemyPoll;string alchemyPending;int alchemySession;float alchemyDeadline,alchemyNextRead;
         bool IsAlchemyOpen=>alchemyView?.GameObject.activeInHierarchy==true&&services?.UiStack.Current==alchemyView;
@@ -23,6 +25,22 @@ namespace ProjectX.Core
         bool alchemyShopFromSource;
         Vector2 alchemyShopDefaultPosition;
         string AlchemyShopTitle=>alchemyShopFromHub||alchemyShopFromSource?"丹方商店":"材料商店";
+        void ClearAlchemyCache()
+        {
+            alchemyCache.Clear();alchemyPending=null;
+            if(alchemyPoll!=null){StopCoroutine(alchemyPoll);alchemyPoll=null;}
+            alchemyScreen?.ClearState();alchemyShopStore?.Clear();alchemyRewardView?.SetVisible(false);
+        }
+        bool EnsureAlchemyCacheIdentity()
+        {
+            uint role=services.Network.IsConnected&&services.Player.IsLoaded?services.Player.RoleId:0;
+            if(alchemyCache.UseIdentity(role,services.Network.SessionVersion))
+            {
+                alchemyPending=null;alchemyScreen?.ClearState();alchemyShopStore?.Clear();
+                alchemyRewardView?.SetVisible(false);
+            }
+            return role!=0;
+        }
         void ShowAlchemy()
         {
             if(alchemyView==null||!alchemyView.IsAlive)
@@ -43,6 +61,7 @@ namespace ProjectX.Core
         }
         void RestoreAlchemyFrame()
         {
+            EnsureAlchemyCacheIdentity();
             ConfigureDongFuSharedFrame(alchemyView,alchemyScreen.Back,ShowAlchemyHelp);
             oneLevelFrameView.FindNode("Layer/Panel_12/Title/TitleName").GetComponent<Text>().text="炼丹房";
             alchemySession=services.Network.SessionVersion;alchemyPending=null;alchemyNextRead=Time.realtimeSinceStartup;
@@ -88,10 +107,11 @@ namespace ProjectX.Core
             if(packet.ReadByte()!=128)throw new InvalidOperationException("炼丹回包版本错误");
             var state=JsonConvert.DeserializeObject<AlchemyEnvelope>(packet.ReadString());
             if(state==null||state.Schema!=1||packet.Remaining!=0)throw new InvalidOperationException("炼丹回包格式错误");
+            if(!EnsureAlchemyCacheIdentity())return;
             if(HandleDongFuReminderRead(327,state.Request,state))return;
             bool fromBag=state.Request?.StartsWith("bag-",StringComparison.Ordinal)==true;
             if(!fromBag&&(!IsAlchemyOpen&&!IsAlchemyShopOpen||alchemySession!=services.Network.SessionVersion||state.Request!=alchemyPending))return;
-            alchemyState=state;RecordDongFuReminder(327,state);if(!fromBag)alchemyPending=null;
+            alchemyCache.Store(state);RecordDongFuReminder(327,state);if(!fromBag)alchemyPending=null;
             if(long.TryParse(state.Gold,out long gold))services.Currencies.Set(CurrencyIds.Gold,gold);
             if(IsAlchemyOpen)alchemyScreen.Apply(state);if(IsAlchemyShopOpen)RenderAlchemyShop();
             SetAlchemyShopPending(false);alchemyNextRead=Time.realtimeSinceStartup+2;
@@ -121,6 +141,7 @@ namespace ProjectX.Core
         }
         void OpenAlchemyShop(bool fromHub,bool fromSource=false)
         {
+            EnsureAlchemyCacheIdentity();
             alchemyCatalog=alchemyCatalog??new AlchemyCatalog();
             alchemyShopFromHub=fromHub;
             alchemyShopFromSource=fromSource;

@@ -142,7 +142,11 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
         Require-DongFuItem $row.learn_item_id;Require-DongFuItem $row.output_item_id
         if($row.use_jingjie_id -lt (($row.realm_id-1)*10+1) -or $row.use_jingjie_id -gt ($row.realm_id*10)){throw 'Alchemy usage stage must belong to its realm.'}
         if($row.realm_id -lt 1 -or $row.realm_id -gt 55 -or $row.use_jingjie_id -lt 1 -or $row.use_jingjie_id -gt 550 -or $row.series_id -lt 1 -or $row.duration_seconds -lt 1 -or $row.batch_limit -lt 1 -or $row.batch_limit -gt 999 -or $row.output_count -lt 1 -or !$row.cost_items.Count){throw 'Alchemy recipe realm/time/batch invalid.'}
-        foreach($cost in $row.cost_items){Require-DongFuItem $cost[0]}
+        foreach($cost in $row.cost_items){
+            Require-DongFuItem $cost[0]
+            if($cost[1] -gt [int]::MaxValue -or [long]$cost[1]*[long]$row.batch_limit -gt [int]::MaxValue){throw 'Alchemy material quantity and its maximum batch total must fit Int32.'}
+        }
+        if([long]$row.output_count*[long]$row.batch_limit -gt 65535){throw 'Alchemy maximum output count must fit UInt16.'}
         if($alchemyOutputs.ContainsKey([string]$row.output_item_id) -or $alchemyLearn.ContainsKey([string]$row.learn_item_id)){throw 'Alchemy output/learning item duplicated.'}
         $alchemyOutputs[[string]$row.output_item_id]=$true;$alchemyLearn[[string]$row.learn_item_id]=$true
         if(!@($active.dongfu_effect.Values | Where-Object {$_.item_id -eq $row.output_item_id}).Count){throw 'Alchemy output effect missing.'}

@@ -100,6 +100,14 @@ Test-UnityDongFuTables $spiritTables $Root
 $spiritTables.dongfu_spirit_root_level[0].spirit_cost=@(60054,0)
 Test-UnityDongFuTables $spiritTables $Root # filled zero remains upgradeable
 $copy=ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $tables -Depth 64) -AsHashtable
-$copy.dongfu_alchemy_recipe[0].cost_items=,@(11008,[long]1099511627776)
+$copy.dongfu_alchemy_recipe[0].batch_limit=1
+$copy.dongfu_alchemy_recipe[0].cost_items=,@(11008,[int]::MaxValue)
 Test-UnityDongFuTables $copy $Root
+Reject-DongFuCase 'alchemy material exceeds Int32' {param($x) $x.dongfu_alchemy_recipe[0].cost_items=,@(11008,[long]2147483648)}
+Reject-DongFuCase 'alchemy legacy Int64 material mismatch' {param($x) $x.dongfu_alchemy_recipe[0].cost_items=,@(11008,[long]1099511627776)}
+$copy.dongfu_alchemy_recipe[0].batch_limit=2
+$copy.dongfu_alchemy_recipe[0].cost_items=,@(11008,1073741823)
+Test-UnityDongFuTables $copy $Root
+Reject-DongFuCase 'alchemy batch material exceeds Int32' {param($x) $x.dongfu_alchemy_recipe[0].cost_items=,@(11008,1073741824)} $copy
+Reject-DongFuCase 'alchemy output exceeds UInt16' {param($x) $x.dongfu_alchemy_recipe[0].output_count=65535} $copy
 Write-Output "DongFu: $($schema.tables.Count) formal tables and $($stackLimits.Count) item stack limits validated; $cases temporary configuration cases and $stackRejected temporary stack cases correctly rejected. No invalid formal records or runtime save changes."

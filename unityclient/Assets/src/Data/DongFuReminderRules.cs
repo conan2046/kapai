@@ -1,8 +1,21 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace ProjectX.Data
 {
+    public sealed class DongFuReminderInputs
+    {
+        readonly Dictionary<int, long> quantities = new Dictionary<int, long>();
+        public bool Observe(int key, long value)
+        {
+            bool changed = !quantities.TryGetValue(key, out long previous) || previous != value;
+            quantities[key] = value;
+            return changed;
+        }
+        public void Clear() => quantities.Clear();
+    }
+
     public static class DongFuReminderRules
     {
         public static bool Harvest(GardenPlotSnapshot plot) =>

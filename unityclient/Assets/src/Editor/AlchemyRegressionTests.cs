@@ -91,5 +91,27 @@ namespace ProjectX.Editor
             return "PASS: all three prefabs share expansion, collapse, sprites, snapshot persistence, pending guard and authored geometry";
         }
         static void Require(bool value,string message){if(!value)throw new InvalidOperationException(message);}
+        public static string ReviewFixes()
+        {
+            var cache=new AlchemyStateCache();
+            var first=new AlchemyEnvelope { Recipe=1, Count=1, Finish="20000", Duration="20000", Learned=new[]{1}, Used=new[]{new[]{10001,7}} };
+            Require(cache.UseIdentity(1001,1),"initial identity");cache.Store(first);
+            Require(!cache.UseIdentity(1001,1)&&cache.State==first,"same account navigation retains snapshot");
+            Require(cache.UseIdentity(1002,1)&&cache.State==null,"different role clears snapshot even in same session");
+            cache.Store(first);Require(cache.UseIdentity(1002,2)&&cache.State==null,"reconnect clears snapshot");
+            cache.Store(first);cache.Clear();Require(cache.State==null,"return to login clears cache");
+            var recipe=new AlchemyRecipe { Id=1, Seconds=20 };
+            float before=AlchemyProgress.Fraction(first,5000,recipe);
+            first.Reduction=5000;Require(Mathf.Abs(before-.25f)<.00001f&&AlchemyProgress.Fraction(first,5000,recipe)==before,"array upgrade cannot change running progress");
+            Require(AlchemyProgress.Fraction(first,20000,recipe)==1&&AlchemyProgress.Fraction(first,25000,recipe)==1,"complete and overdue clamp");
+            first.Duration=null;Require(AlchemyProgress.Fraction(first,5000,recipe)==before,"old task fallback ignores current array reduction");
+            first.Duration="10000";first.Finish="10000";Require(Mathf.Abs(AlchemyProgress.Fraction(first,5000,recipe)-.5f)<.00001f,"new shortened task uses stored duration");
+            var inputs=new DongFuReminderInputs();
+            Require(inputs.Observe(-1,10)&&!inputs.Observe(-1,10),"experience-only changes do not invalidate level");
+            Require(inputs.Observe(60000,100)&&!inputs.Observe(60000,100)&&inputs.Observe(60000,99),"only real currency changes invalidate");
+            Require(inputs.Observe(6101,2)&&!inputs.Observe(6101,2)&&inputs.Observe(6101,1),"same inventory counts do not invalidate, consuming a book does");
+            inputs.Clear();Require(inputs.Observe(-1,10),"new session resets input observations");
+            return "PASS: 13 identity, fixed-duration progress and reminder-input regression checks";
+        }
     }
 }

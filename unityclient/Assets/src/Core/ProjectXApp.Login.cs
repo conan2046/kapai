@@ -96,6 +96,7 @@ namespace ProjectX.Core
 
         private void DisconnectForLoginTransition()
         {
+            ClearAlchemyCache();
             InvalidateConnectionOperations();
             intentionalLoginTransitionDisconnect = true;
             try { services.Network.Disconnect(); }
