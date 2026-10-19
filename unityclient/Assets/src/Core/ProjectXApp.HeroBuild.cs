@@ -43,7 +43,7 @@ namespace ProjectX.Core
             }
             catch
             {
-                services.HeroBuildSelections.Cancel(hero, token, "请求失败，请重试");
+                services.HeroBuildSelections.Abandon(hero, token, "请求失败，请重试");
                 throw;
             }
         }
@@ -52,10 +52,10 @@ namespace ProjectX.Core
             yield return new WaitForSecondsRealtime(10f);
             source.Cancel(hero, token, "请求超时，请重试");
         }
-        public void ApplyHeroBuildSelection(int hero, int branch, int strategy, int available,
-            int effectiveBranch, int effectiveStrategy, bool success, string error)
+        public bool ApplyHeroBuildSelection(int hero, int branch, int strategy, int available,
+            int effectiveBranch, int effectiveStrategy, bool success, string error, bool save)
             => services.HeroBuildSelections.Apply(new HeroBuildSelection(hero, branch, strategy, available,
-                effectiveBranch, effectiveStrategy), success, error);
+                effectiveBranch, effectiveStrategy), save, success, error);
         public void ClearHeroBuildSelections() => services.HeroBuildSelections.Clear();
         private void DisposeHeroBuildSelection()
         {

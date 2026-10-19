@@ -30,8 +30,8 @@ function M.onOperation(op, message)
         Bridge:Fail("HeroBuild/319 response is malformed.")
         return true
     end
-    Bridge:ApplyHeroBuildSelection(heroId, branch, strategy, available, effectiveBranch, effectiveStrategy, success, reason)
-    if not success and reason ~= "" then Bridge:ShowToast(reason, 2.0) end
+    local applied = Bridge:ApplyHeroBuildSelection(heroId, branch, strategy, available, effectiveBranch, effectiveStrategy, success, reason, op == 44)
+    if applied and not success and reason ~= "" then Bridge:ShowToast(reason, 2.0) end
     return true
 end
 

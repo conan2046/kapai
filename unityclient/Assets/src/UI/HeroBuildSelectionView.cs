@@ -56,6 +56,12 @@ namespace ProjectX.UI
         }
         private void OnEnable() { Close(); Render(); }
         private void Open() { if (hero <= 0 || store == null) return; panel.SetActive(true); query?.Invoke(hero); Render(); }
+        public bool TryHandleBack()
+        {
+            if (!IsOpen) return false;
+            Close();
+            return true;
+        }
         private void Close() { if (panel != null) panel.SetActive(false); }
         private void ChooseBranch(int branch)
         {

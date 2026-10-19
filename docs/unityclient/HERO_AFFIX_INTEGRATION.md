@@ -1,10 +1,21 @@
 # 神将流派数据化集成
 
-更新：2026-10-19 r85。C2–C6完成，仅C1历史强制域重载精确触发文件/调用者未定位，仍不可合并。r75战斗顺序及r76–r84相关画面已获用户实际Play确认，不重问或重验。续接入口见 `HANDOFF-hero-affix-data-driven-20261016.md`。
+更新：2026-10-19 r86。已定向修复本次只读审查发现的两项P2；原C2–C6批准及r75战斗证据保持原适用范围，C1历史强制域重载精确触发文件/调用者仍未定位，整体仍不可合并。续接入口见 `HANDOFF-hero-affix-data-driven-20261016.md`。
+
+## r86审查修复与定向验证
+
+1. 迟到响应：Store保留每英雄FIFO请求队列，记录token和查询/保存类型；超时取消等待但保留回包位置，迟到响应只排空旧位置，不清新pending/saving、不改缓存/错误、不触发Changed；发送失败移除未发送项，断线清空。Lua转交43/44操作类别，只为当前失败响应显示Toast。未改协议字节或任何原生生产源码。
+2. 返回：HeroBuildSelectionView.TryHandleBack仅在策略弹窗实际可见时消费返回，ProjectXApp.HandleBack优先调用；弹窗关闭后恢复原页面返回。未改Prefab、meta或布局。
+
+验证：tools/unityclient-tests/HeroBuildSelectionStore.csproj直接链接生产Store，7组回归通过（查询超时后保存、同操作重试、无重试迟到、发送失败、错误英雄/操作、英雄隔离、断线清理）；独立Lua环境检查原查询/保存字段、类型转交、旧/当前错误提示与reset，通过。E实际加载新签名及TryHandleBack，编译/Console错误0。真实Slot10→神将→苏全忠→流派策略查询A/控制（1/3）成功；未保存。真实Raycast全局返回第一次只关弹窗、第二次退出神将页，均通过。
+
+键盘限制：GameView.SendEvent和EditorGUIUtility.QueueGameViewInputEvent均已保留投递证据，但没有可观测Esc关闭，不能计作物理Esc实测。未直接调用内部HandleBack/Presenter冒充输入；Esc与已验证返回入口共用HandleBack，独立按键验收未覆盖。此技术修复不扩大r84的人工画面批准。C1历史精确归因仍开放。
+
+当前证据：.local/hero-affix-review-fix-r86/{store-tests.log,lua-tests.json,build-query.json,back-panel-closed.json,back-fallback.json,console-final.json,preservation.json,summary.json}。D/E仅同步5生产文件，新增D回归工程2文件，两份文档更新；本轮9项增量按用户明确授权随本次提交发布到origin/codex/hero-affix-data-driven。最终保留E Editor/Slot10 Play苏全忠详情、弹窗关闭；项目MCP覆盖恢复false。原生/正式数据/Prefab/meta及玩家存档保护重新核对，不重跑99批或表作者。
 
 发布授权（2026-10-19）：用户已明确授权提交并推送本次全部改动。发布范围为最终122项清单，目标`origin/codex/hero-affix-data-driven`；C1仍开放，acceptance_passed=false、merge_ready=false。本次实施分支发布不作为main合并验收；E其他94项脏文件保持独立。
 
-## 当前收尾清单（2026-10-19 r85，最终合并审计完成）
+## 既有收尾清单（r85，r86定向修复及保护见上）
 
 | 编号 | 待办 | 状态 | 完成条件/现有证据 |
 |---|---|---|---|
