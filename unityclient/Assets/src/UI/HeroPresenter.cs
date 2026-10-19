@@ -121,6 +121,8 @@ namespace ProjectX.UI
         public int ItemCount => heroes.Items.Count;
         public int BagItemCount { get; private set; }
         public int SelectedId => selectedId;
+        public event Action<int> SelectionChanged;
+        private int notifiedSelection = -1;
         public int SelectedPosition => selectedPosition;
         public bool HasVisibleSkillIcon => skillIcon != null && skillIcon.enabled && skillIcon.sprite != null;
         public string VisibleSkillName => skillName != null ? skillName.text : string.Empty;
@@ -180,6 +182,8 @@ namespace ProjectX.UI
                 if (deployedHeroId > 0 && heroes.TryGet(deployedHeroId, out _))
                     selectedId = deployedHeroId;
             }
+            if (notifiedSelection != selectedId)
+            { notifiedSelection = selectedId; SelectionChanged?.Invoke(selectedId); }
             var slots = new System.Collections.Generic.List<FormationSlot>(5);
             for (int position = 1; position <= 5; position++)
             {
@@ -221,7 +225,8 @@ namespace ProjectX.UI
             bool isLocked = player.Level < openLevel;
             RedDotVisual.Set(row, !isLocked && (occupied && canCultivate?.Invoke(item) == true
                 || FormationCatalog.CanFillPosition(formation, heroes, player, slot.Position)), redDotTemplate);
-            RedDotVisual.Set(add, FormationCatalog.CanFillPosition(formation, heroes, player, slot.Position), redDotTemplate);
+            // The slot owns the shared hint; suppress the add icon's duplicate dot on pooled rows.
+            RedDotVisual.SetAuthored(add, false);
             Text lockLevel = row.Find("bg_Lock/level")?.GetComponent<Text>();
             if (lockLevel != null) lockLevel.text = openLevel.ToString();
             if (head != null) head.gameObject.SetActive(occupied);
@@ -297,8 +302,7 @@ namespace ProjectX.UI
             {
                 if (background != null) background.SetActive(true);
                 if (addPanel != null) addPanel.SetActive(true);
-                RedDotVisual.Set(detailView.FindNode("Layer/EquipUI/Bg/Panel_new/addnew")?.transform,
-                    FormationCatalog.CanFillPosition(formation, heroes, player, selectedPosition), redDotTemplate);
+                RedDotVisual.SetAuthored(detailView.FindNode("Layer/EquipUI/Bg/Panel_new/addnew")?.transform, false);
                 SetDetailContentVisible(false);
                 summary.text = "暂无神将";
                 power.text = attack.text = health.text = physicalDefense.text = magicDefense.text = "-";
@@ -312,8 +316,7 @@ namespace ProjectX.UI
             if (addPanel != null) addPanel.SetActive(false);
             SetDetailContentVisible(true);
             summary.text = $"{hero.Level}级  {hero.Name} +{hero.BreakLevel}";
-            RedDotVisual.Set(detailView.FindNode("Layer/EquipUI/Bg/bg/Image_bg/Btn_3_1_0")?.transform,
-                canCultivate?.Invoke(hero) == true, redDotTemplate);
+            RedDotVisual.SetAuthored(detailView.FindNode("Layer/EquipUI/Bg/bg/Image_bg/Btn_3_1_0")?.transform, false);
             power.text = hero.Power.ToString();
             attack.text = $"攻击：{hero.Attack}";
             health.text = $"生命：{hero.Health}";

@@ -707,26 +707,19 @@ namespace ProjectX.UI
             {
                 "Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan",
                 "Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia",
-                "Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua",
-                "Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian",
-                "Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing",
-                "Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu",
+                "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Btn_qianghua",
+                "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian",
+                "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/juexingshuxing/Btn_juexing",
+                "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/shenzhushuxing/Btn_shenzhu",
             })
             {
                 GameObject node = GetNode(equipmentInfoView, path);
                 if (node != null) node.SetActive(false);
             }
             GameObject list = Require(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView");
-            RectTransform content = EnsureContent(list, "RuntimeBagEquipmentInfoContent", true);
-            foreach (string section in new[]
-            {
-                "jichushuxing", "qianghuashuxing", "jinglianshuxing",
-                "juexingshuxing", "shenzhushuxing", "zhuangbeitaozhuang", "zhuangbeimiaoshu"
-            })
-            {
-                GameObject node = GetNode(equipmentInfoView, $"Layer/zhuangbeiInfoUI/Info/{section}");
-                if (node != null) node.transform.SetParent(content, false);
-            }
+            ScrollRect scroll = list.GetComponent<ScrollRect>();
+            if (scroll == null || scroll.content == null || scroll.content.name != "DetailContent")
+                throw new InvalidOperationException("Equipment detail prefab scroll bindings are incomplete.");
         }
 
         private void ShowEquipmentInfo()
@@ -735,13 +728,15 @@ namespace ProjectX.UI
             EquipmentDefinition definition = equipmentCatalog.GetEquipmentByFragment(sourceChoice.Id);
             sourceView.SetVisible(false);
             equipmentInfoView.ShowPopup();
+            GetNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/BuildRecommendation")?.SetActive(false);
+            GetNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/AffixActions")?.SetActive(false);
             SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name", definition.Name);
-            SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Content", definition.Description);
+            SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/zhuangbeimiaoshu/Content", definition.Description);
             if (definition.BaseAttribute != null && definition.BaseAttribute.Length >= 2)
             {
-                SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1",
+                SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jichushuxing/Atrribute_1",
                     AttributeName(definition.BaseAttribute[0]) + "：");
-                SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1/Value",
+                SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jichushuxing/Atrribute_1/Value",
                     "+" + definition.BaseAttribute[1].ToString(CultureInfo.InvariantCulture));
             }
             foreach (string section in new[]
@@ -749,7 +744,7 @@ namespace ProjectX.UI
                 "qianghuashuxing", "jinglianshuxing", "juexingshuxing", "shenzhushuxing"
             })
             {
-                GameObject node = GetNode(equipmentInfoView, $"Layer/zhuangbeiInfoUI/Info/{section}");
+                GameObject node = GetNode(equipmentInfoView, $"Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/{section}");
                 if (node != null) node.SetActive(false);
             }
             GameObject host = GetNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/zhuangbei/Node");
@@ -776,7 +771,7 @@ namespace ProjectX.UI
         private void RenderEquipmentSuit(EquipmentDefinition definition)
         {
             GameObject section = GetNode(equipmentInfoView,
-                "Layer/zhuangbeiInfoUI/Info/zhuangbeitaozhuang");
+                "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/zhuangbeitaozhuang");
             if (section == null) return;
             section.SetActive(definition.Suit > 0);
             if (definition.Suit <= 0) return;

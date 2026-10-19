@@ -7,6 +7,7 @@ local PlayerController = require("Player.PlayerController")
 local HeroController = require("Hero.HeroController")
 local HeroBookController = require("Hero.HeroBookController")
 local EquipmentController = require("Hero.EquipmentController")
+local HeroBuildController = require("Hero.BuildController")
 local ServerTimeController = require("Time.ServerTimeController")
 local MailController = require("Mail.MailController")
 local ShopController = require("Shop.ShopController")
@@ -43,6 +44,7 @@ local ProtocolOpRouter = require("Shared.ProtocolOpRouter")
 local PetEquipRouter = ProtocolOpRouter.new(Protocol.PET_EQUIP_OPERATE)
 PetEquipRouter:register("HeroEquipment", { 1, 2, 3, 4, 6, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 24, 25, 26, 27, 40, 41, 42 }, EquipmentController.onOperation)
 PetEquipRouter:register("XunBao", { 28, 29, 30, 31, 36 }, XunBaoController.onOperation)
+PetEquipRouter:register("HeroBuild", { 43, 44 }, HeroBuildController.onOperation)
 
 function Begin() LoginController.begin() end
 function OnConnected() LoginController.onConnected() end
@@ -51,6 +53,7 @@ function OnDisconnected(reason)
     HeroController.reset()
     HeroBookController.reset()
     EquipmentController.reset()
+    HeroBuildController.reset()
     DrawController.reset()
     WorldController.resetRedDotRequests()
     YouLiController.reset()
@@ -126,6 +129,8 @@ end
 function OnHeroEquipmentTakeOff(uid, position) EquipmentController.takeOffEquipment(uid, position) end
 function OnHeroEquipmentAffixLock(uid) EquipmentController.toggleAffixLock(uid) end
 function OnHeroEquipmentAffixReroll(uid) EquipmentController.rerollAffix(uid) end
+function OnHeroBuildQuery(heroId) HeroBuildController.query(heroId) end
+function OnHeroBuildSave(heroId, branch, strategy) HeroBuildController.save(heroId, branch, strategy) end
 function OnHeroEquipmentStrength(uid, strengthType) EquipmentController.strengthEquipment(uid, strengthType) end
 function OnHeroEquipmentStrengthAll(position) EquipmentController.strengthAllEquipment(position) end
 function OnHeroEquipmentRefine(uid, itemId, itemCount) EquipmentController.refineEquipment(uid, itemId, itemCount) end

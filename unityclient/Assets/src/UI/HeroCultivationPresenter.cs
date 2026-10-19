@@ -807,15 +807,13 @@ namespace ProjectX.UI
                 FitText(level, root + "/Text", 12);
                 SetMaterialIcon(level, root, resources.LoadItemIcon(pictures[i]),
                     $"HeroLevelMaterial{i + 1}", config.GetItemQuality(ids[i]));
-                RedDotVisual.Set(level.FindNode(root)?.transform,
-                    CanLevelUp(hero, player, bag, heroes.HasAuthoritativeState, ids[i]), redDotTemplate);
+                RedDotVisual.SetAuthored(level.FindNode(root)?.transform, false);
             }
             Transform feed = level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_shengji")?.transform;
             bool canFeed = CanLevelUp(hero, player, bag, heroes.HasAuthoritativeState, levelItemId);
             if (feed?.GetComponent<Button>() != null) feed.GetComponent<Button>().interactable = canFeed;
-            RedDotVisual.Set(feed, canFeed, redDotTemplate);
-            RedDotVisual.Set(level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_yjShengji")?.transform,
-                CanAutoLevelUp(hero, hero.Level + 1, player, bag, heroes.HasAuthoritativeState), redDotTemplate);
+            RedDotVisual.SetAuthored(feed, false);
+            RedDotVisual.SetAuthored(level.FindNode("Layer/shenjiangInfoUI/Info/cailiao/btn_yjShengji")?.transform, false);
         }
 
         private void RenderStar()
@@ -891,8 +889,8 @@ namespace ProjectX.UI
             bool ready = CanBreakUp(hero, player, bag, currencies, heroes.HasAuthoritativeState);
             Transform button = breakUp.FindNode("Layer/shenjiangInfoUI/Info/tupo/btn_shengji")?.transform;
             if (button?.GetComponent<Button>() != null) button.GetComponent<Button>().interactable = ready;
-            RedDotVisual.Set(button, ready, redDotTemplate);
-            RedDotVisual.Set(breakUp.FindNode("Layer/shenjiangInfoUI/Info/tupo/Item")?.transform, ready, redDotTemplate);
+            RedDotVisual.SetAuthored(button, false);
+            RedDotVisual.SetAuthored(breakUp.FindNode("Layer/shenjiangInfoUI/Info/tupo/Item")?.transform, false);
         }
 
         private void RenderCultivate()

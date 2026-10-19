@@ -68,6 +68,7 @@ namespace ProjectX.Core
             HeroBook = new HeroBookStore();
             Formation = new FormationStore();
             HeroEquipment = new HeroEquipmentStore();
+            HeroBuildSelections = new HeroBuildSelectionStore();
             FaBao = new FaBaoStore();
             EnhanceMasters = new EnhanceMasterStore();
             Resources = new ResourceService();
@@ -134,6 +135,7 @@ namespace ProjectX.Core
         public FormationStore Formation { get; }
         public EquipmentCatalog EquipmentCatalog { get; }
         public HeroEquipmentStore HeroEquipment { get; }
+        public HeroBuildSelectionStore HeroBuildSelections { get; }
         public FaBaoStore FaBao { get; }
         public EnhanceMasterStore EnhanceMasters { get; }
         public ResourceService Resources { get; }
@@ -183,6 +185,7 @@ namespace ProjectX.Core
             Resources.Dispose();
             EquipmentCatalog.Clear();
             HeroEquipment.Clear();
+            HeroBuildSelections.Clear();
             FaBao.Clear();
             EnhanceMasters.Clear();
             Mails.Clear();

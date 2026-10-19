@@ -539,6 +539,8 @@ class CUser
 public:
     CUser();
     friend class CUnityJingJieService;
+    friend class CEquipManeger;
+    friend class CUnityHeroBuildService;
     friend class CUnityGardenService;
     friend class CUnitySpiritService;
 public:

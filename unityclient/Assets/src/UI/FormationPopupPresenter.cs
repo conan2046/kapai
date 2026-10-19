@@ -189,9 +189,8 @@ namespace ProjectX.UI
             if (materialButton != null) materialButton.gameObject.SetActive(!maxLevel);
             Transform materialName = Find("Layer/FormationUI/Show/Info/bg_Name");
             if (materialName != null) materialName.gameObject.SetActive(!maxLevel);
-            bool ready = FormationCatalog.Shared.CanUpgrade(formation, bag, currencies, definition.Id);
-            RedDotVisual.Set(upgradeButton, ready, redDotTemplate);
-            RedDotVisual.Set(materialButton, ready, redDotTemplate);
+            RedDotVisual.SetAuthored(upgradeButton, false);
+            RedDotVisual.SetAuthored(materialButton, false);
             Button upgradeControl = upgradeButton?.GetComponent<Button>();
             if (upgradeControl != null) upgradeControl.interactable = formation.PendingFormationId == 0;
             RenderedModelCount = 0;

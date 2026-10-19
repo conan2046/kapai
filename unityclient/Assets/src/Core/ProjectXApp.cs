@@ -2666,7 +2666,7 @@ namespace ProjectX.Core
 
             if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 1)
                 || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                    "Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian")?.GetComponent<Button>()))
+                    "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian")?.GetComponent<Button>()))
             { Fail("HeroEquip G5 visual refine page did not open."); yield break; }
             yield return CaptureHeroEquipmentG5State("g1-refine-before.png");
 
@@ -2937,7 +2937,7 @@ namespace ProjectX.Core
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)) { Fail("HeroEquip G4 strength detail unavailable."); yield break; }
             if (!InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                "Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua")?.GetComponent<Button>()))
+                "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Btn_qianghua")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 strength entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all was visible for an unequipped item."); yield break; }
@@ -2964,7 +2964,7 @@ namespace ProjectX.Core
 
             if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 1)
                 || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                    "Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua")?.GetComponent<Button>()))
+                    "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Btn_qianghua")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 strengthen-all entry unavailable."); yield break; }
             if (!heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all was hidden for the equipped item on the strength tab."); yield break; }
@@ -2980,7 +2980,7 @@ namespace ProjectX.Core
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)
                 || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                    "Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian")?.GetComponent<Button>()))
+                    "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 refine entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all leaked onto the refine tab."); yield break; }
@@ -3164,7 +3164,7 @@ namespace ProjectX.Core
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)
                 || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                    "Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing")?.GetComponent<Button>()))
+                    "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/juexingshuxing/Btn_juexing")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 awaken entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all leaked onto the awaken tab."); yield break; }
@@ -3222,7 +3222,7 @@ namespace ProjectX.Core
 
             if (!heroEquipmentPresenter.PrepareDetails(divineUid, 1)
                 || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                    "Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu")?.GetComponent<Button>()))
+                    "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/shenzhushuxing/Btn_shenzhu")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 shenzhu entry EventSystem input unavailable."); yield break; }
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all leaked onto the shenzhu tab."); yield break; }
@@ -4929,6 +4929,7 @@ namespace ProjectX.Core
                 ShowHeroEquipmentSlot, ShowHeroAttributes,
                 id => InvokeLuaOrFail(onHeroSelected, "Hero.Select", id), message => ShowToast(message, 2f),
                 services.Bag, CanCultivateHero, RedDotTemplate, services.Currencies);
+            EnsureHeroBuildSelection();
             oneLevelFrameView.BindClick("Layer/Panel_12/Title/CloseBtn", () => HandleBack(), true);
             heroListView.BindClick("Layer/shenjiangListUI/List/btn_buzhen", ShowFormationPopup, true);
             heroBagView.BindClick("Layer/yingxiongbeibaoUI/cell", ShowHeroBook, true);

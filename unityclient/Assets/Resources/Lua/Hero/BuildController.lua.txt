@@ -1,0 +1,39 @@
+local Protocol = require("Protocol")
+local M = {}
+
+function M.query(heroId)
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(43)
+    message:WriteWord(heroId)
+    Bridge:Send(message)
+end
+
+function M.save(heroId, branch, strategy)
+    local message = Protocol.newMessage(Protocol.PET_EQUIP_OPERATE)
+    message:WriteByte(44)
+    message:WriteWord(heroId)
+    message:WriteByte(branch)
+    message:WriteByte(strategy)
+    Bridge:Send(message)
+end
+
+function M.onOperation(op, message)
+    if op ~= 43 and op ~= 44 then return false end
+    local success = message:ReadByte() == 1
+    local heroId = message:ReadWord()
+    local branch, strategy = message:ReadByte(), message:ReadByte()
+    local available = message:ReadByte()
+    local effectiveBranch, effectiveStrategy = message:ReadByte(), message:ReadByte()
+    local reason = message:ReadString()
+    if message.Remaining ~= 0 or branch > 2 or strategy > 5 or available > 7
+        or effectiveBranch > 2 or effectiveStrategy > 5 then
+        Bridge:Fail("HeroBuild/319 response is malformed.")
+        return true
+    end
+    Bridge:ApplyHeroBuildSelection(heroId, branch, strategy, available, effectiveBranch, effectiveStrategy, success, reason)
+    if not success and reason ~= "" then Bridge:ShowToast(reason, 2.0) end
+    return true
+end
+
+function M.reset() Bridge:ClearHeroBuildSelections() end
+return M

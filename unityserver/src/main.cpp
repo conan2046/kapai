@@ -3961,6 +3961,11 @@ static void WaitForLocalShutdownCommand()
 
 int main(int argc,char **argv)
 {
+	if (argc == 2 && (strcmp(argv[1],"--combat-data-regression") == 0 || strcmp(argv[1],"--combat-data-probe") == 0))
+	{
+		try { return CFight::RunCombatDataRegression(strcmp(argv[1],"--combat-data-probe") == 0) ? 0 : 1; }
+		catch (const std::exception& e) { std::cerr << "combat data regression: " << e.what() << std::endl; return 1; }
+	}
 	SServerBasicCfg cfg;
 	cout << "[local] main: InitDB" << endl;
 	if(!InitDB(cfg))

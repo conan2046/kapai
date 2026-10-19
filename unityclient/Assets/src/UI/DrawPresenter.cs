@@ -193,14 +193,12 @@ namespace ProjectX.UI
             }
             SetMainDrawContentVisible(false);
             bool single = result.DrawType == 1;
-            DrawRewardRecord duplicateConversion = !single
+            DrawRewardRecord duplicateConversion = !single && result.Rewards.Count == 1
                 ? result.GuaranteedRewards.Concat(result.Rewards).FirstOrDefault(value =>
                     value.TransformItemId > 0 || value.TransformAmount > 0)
                 : null;
-            // Cocos presents a fully repeated high ten-draw as its native single
-            // conversion result (hero soul plus transformed amount), while the
-            // ten-result controller remains active underneath for its continue
-            // control. Preserve that presentation without changing /224 data.
+            // Only a one-entry conversion response uses the single composition.
+            // Multi-entry ten-draw rewards must remain visible in the ten native slots.
             bool showDuplicateConversion = duplicateConversion != null;
             SetOriginalResultGraphicsVisible(!showDuplicateConversion);
             if (duplicateOverlay != null) duplicateOverlay.SetActive(showDuplicateConversion);
@@ -285,7 +283,7 @@ namespace ProjectX.UI
 
         private void RenderTenResult(DrawResultRecord result)
         {
-            var all = result.GuaranteedRewards.Concat(result.Rewards).Take(10).ToArray();
+            var all = result.Rewards.Take(10).ToArray();
             for (int index = 0; index < 10; index++)
             {
                 DrawRewardRecord reward = index < all.Length ? all[index] : null;
@@ -303,8 +301,25 @@ namespace ProjectX.UI
                 if (icon != null) { icon.sprite = sprite; icon.enabled = sprite != null; icon.preserveAspect = true; }
                 SetNamedText(slot, "Name", RewardName(reward));
                 SetNamedText(slot, "Num", (reward.TransformItemId > 0 ? reward.TransformAmount : reward.Amount).ToString());
-                SetNamedText(slot, "auto/Num", reward.TransformAmount.ToString());
+                SetNamedVisible(slot, "auto", !showHero);
+                SetNamedText(slot, "auto", reward.TransformItemId > 0 ? "自动转化为碎片" : string.Empty);
+                if (showHero && HeroCatalog.TryGet((int)reward.Id, out HeroDefinition definition))
+                {
+                    Image grade = slot.Find("bg_Level/Level")?.GetComponent<Image>();
+                    string score = definition.Quality <= 4 ? "A" : definition.Quality == 5 ? "S"
+                        : definition.Quality == 6 ? "SS" : definition.Quality == 7 ? "SSS" : "SSSS";
+                    if (grade != null) grade.sprite = resources.LoadFirst("Art/Hero/quality_score_" + score);
+                }
             }
+            Transform continuation = FindNamed(tenResultView.GameObject.transform, "btn_Continue");
+            SetTicketIcon(continuation, result.Kind);
+            int ticketId = result.Kind == 1 ? 1000 : result.Kind == 2 ? 1001 : 1002;
+            int requiredTickets = result.Kind == 3 ? 100 : 10;
+            SetNamedText(continuation, "Value", $"{bag.GetTotalQuantityByItemId(ticketId)}/{requiredTickets}");
+            Transform congratulations = FindNamed(tenResultView.GameObject.transform, "Congratulations");
+            SetNamedVisible(congratulations, "shenhun", result.GuaranteedRewards.Count > 0);
+            SetNamedText(congratulations, "shenhun", string.Join("，", result.GuaranteedRewards.Select(
+                reward => $"额外获得{RewardName(reward)}×{reward.Amount}")));
         }
 
         private void RenderDuplicateConversion(DrawRewardRecord reward)
@@ -333,10 +348,7 @@ namespace ProjectX.UI
                     duplicateResultIcon.transform.SetAsFirstSibling();
                 }
                 bool placeholder;
-                Sprite fallbackPortrait = resources.LoadHeroPortrait(
-                    HeroCatalog.TryGet((int)reward.Id, out HeroDefinition heroDefinition) ? heroDefinition.Picture : 0,
-                    out placeholder);
-                duplicateResultIcon.sprite = resources.LoadItemIcon(reward.TransformItemId) ?? fallbackPortrait;
+                duplicateResultIcon.sprite = LoadConfiguredItemSprite(reward.TransformItemId, out placeholder);
                 duplicateResultIcon.enabled = duplicateResultIcon.sprite != null;
             }
             if (duplicateOverlay != null)
@@ -344,20 +356,22 @@ namespace ProjectX.UI
                 duplicateOverlay.SetActive(true);
                 duplicateOverlay.transform.SetAsLastSibling();
                 bool placeholder;
-                Sprite fallbackPortrait = resources.LoadHeroPortrait(
-                    HeroCatalog.TryGet((int)reward.Id, out HeroDefinition heroDefinition) ? heroDefinition.Picture : 0,
-                    out placeholder);
-                // The conversion composition displays the soul item granted by /224,
-                // not the original hero portrait. Prefer TransformItemId so hero-soul
-                // configs that reuse a generic `pic` still resolve Art/Icons/Items/equip{id}.
-                duplicateOverlayPortrait.sprite = resources.LoadItemIcon(reward.TransformItemId) ?? fallbackPortrait;
+                duplicateOverlayPortrait.sprite = LoadConfiguredItemSprite(reward.TransformItemId, out placeholder);
                 duplicateOverlayPortrait.enabled = duplicateOverlayPortrait.sprite != null;
                 duplicateOverlaySoulName.text = ToVerticalText(RewardName(reward));
                 duplicateOverlayConversion.text = $"自动转化为碎片 {reward.TransformAmount}";
-                duplicateOverlaySkillName.text = "哼如洪钟";
+                bool hasHero = reward.Type == 60002
+                    && HeroCatalog.TryGet((int)reward.Id, out _);
+                HeroCatalog.TryGet((int)reward.Id, out HeroDefinition definition);
+                duplicateOverlaySkillName.text = hasHero ? definition.SkillName : string.Empty;
+                duplicateOverlaySkillName.gameObject.SetActive(hasHero);
                 duplicateOverlayAmount.text = reward.TransformAmount.ToString();
-                duplicateOverlayPortraitFrame.sprite = resources.LoadFirst("Art/Hero/common_quality_04");
-                duplicateOverlaySkillIcon.sprite = resources.LoadFirst("Art/Hero/skill_641");
+                RewardRecord soul = itemCatalog.DescribeServerReward(reward.TransformItemId, 0, reward.TransformAmount);
+                duplicateOverlayPortraitFrame.sprite = resources.LoadFirst(
+                    $"Art/Hero/common_quality_{Mathf.Clamp(soul.Quality, 1, 7):00}");
+                duplicateOverlaySkillIcon.gameObject.SetActive(hasHero);
+                duplicateOverlaySkillIcon.sprite = hasHero
+                    ? resources.LoadFirst($"Art/Hero/skill_{definition.SkillId}") : null;
             }
             // The single-result animation ends on this composition. Re-assert exact paths after
             // jumping to its final frame because it also changes visibility and scale.
@@ -369,7 +383,8 @@ namespace ProjectX.UI
             SetGraphicVisibleAtPath(root, "Layer/dancichoukaUI/btn_Close", false);
             SetVisibleAtPath(root, "Layer/dancichoukaUI/btn_Continue", false);
             SetNamedText(root.Find("Layer/dancichoukaUI/Congratulations/shenhun"), "shenhun", RewardName(reward));
-            SetNamedText(root.Find("Layer/dancichoukaUI/Skill_1"), "Name", "哼如洪钟");
+            if (reward.Type == 60002 && HeroCatalog.TryGet((int)reward.Id, out HeroDefinition originalHero))
+                SetNamedText(root.Find("Layer/dancichoukaUI/Skill_1"), "Name", originalHero.SkillName);
         }
 
         private void SetOriginalResultGraphicsVisible(bool visible)
@@ -525,15 +540,10 @@ namespace ProjectX.UI
             uint displayAmount = transformed ? reward.TransformAmount : directItem ? reward.Amount : 0;
             if (displayItemId > 0)
             {
-                RewardRecord itemReward = itemCatalog.DescribeReward(displayItemId, 0, displayAmount);
+                RewardRecord itemReward = itemCatalog.DescribeServerReward(displayItemId, 0, displayAmount);
                 transformedResultVisual.SetActive(true);
                 transformedResultVisual.transform.SetAsLastSibling();
-                // Draw pools can return a fragment item directly (Type=2458) or a
-                // duplicated hero conversion (TransformItemId=2458). In both cases
-                // the actual puzzle portrait is Art/Icons/Items/equip{itemId}; `pic` can
-                // point at a generic/legacy icon and is only a compatibility fallback.
-                transformedResultIcon.sprite = resources.LoadItemIcon(displayItemId)
-                    ?? resources.LoadItemIcon(itemReward.Picture);
+                transformedResultIcon.sprite = LoadConfiguredItemSprite(displayItemId, out _);
                 transformedResultIcon.enabled = transformedResultIcon.sprite != null;
                 transformedResultFrame.sprite = resources.LoadFirst(
                     $"Art/Hero/common_quality_{Mathf.Clamp(itemReward.Quality, 1, 7):00}");
@@ -574,12 +584,14 @@ namespace ProjectX.UI
 
         private void RenderResultHeroMetadata(DrawRewardRecord reward)
         {
+            GameObject skillObject = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/Skill_1");
             GameObject qualityObject = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/shenjiang/bg_Level/Level");
             Image qualityImage = qualityObject?.GetComponent<Image>();
             if (qualityImage != null) qualityImage.enabled = false;
             if (reward == null || reward.Type != 60002
                 || !HeroCatalog.TryGet((int)reward.Id, out HeroDefinition definition))
             {
+                skillObject.SetActive(false);
                 if (resultQualityImage != null) resultQualityImage.enabled = false;
                 return;
             }
@@ -604,11 +616,10 @@ namespace ProjectX.UI
                 resultQualityImage.sprite = resources.LoadFirst("Art/Hero/quality_score_" + score);
                 resultQualityImage.enabled = resultQualityImage.sprite != null;
             }
-            GameObject skillObject = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/Skill_1");
             if (skillObject != null)
             {
-                SetNamedText(skillObject.transform, "Name",
-                    definition.SkillId == 641 || reward.Id == 64 ? "哼如洪钟" : definition.SkillName);
+                skillObject.SetActive(true);
+                SetNamedText(skillObject.transform, "Name", definition.SkillName);
                 Image icon = skillObject.transform.Find("Icon")?.GetComponent<Image>();
                 Sprite skillSprite = resources.LoadFirst($"Art/Hero/skill_{definition.SkillId}");
                 if (icon != null && skillSprite != null)
@@ -641,14 +652,9 @@ namespace ProjectX.UI
                     }
                     SetNamedText(panel, "Value",
                         $"{bag.GetTotalQuantityByItemId(result.Kind == 1 ? 1000 : result.Kind == 2 ? 1001 : 1002)}/1");
-                    SetNamedVisible(panel, "Text", false);
+                    SetNamedText(panel, "Text", "继续召唤");
+                    SetNamedVisible(panel, "Text", true);
                 }
-                Transform oldLabel = button.Find("RuntimeContinueLabel");
-                Text label = oldLabel?.GetComponent<Text>();
-                if (label == null)
-                    label = CreateText(button, "RuntimeContinueLabel", Vector2.zero, Vector2.one, 28, TextAnchor.MiddleCenter);
-                label.text = "继续召唤";
-                label.color = new Color(.48f, .16f, .08f, 1f);
             }
             GameObject teaserObject = DrawNodeIds.Get(singleResultView, "Layer/dancichoukaUI/Congratulations/Teaser");
             Text teaser = teaserObject?.GetComponent<Text>();
@@ -817,6 +823,8 @@ namespace ProjectX.UI
         private static string KindName(byte kind) => kind == 1 ? "基础" : kind == 2 ? "高级" : "友情";
         private Sprite LoadRewardSprite(DrawRewardRecord reward, out bool usedPlaceholder)
         {
+            if (reward.TransformItemId > 0)
+                return LoadConfiguredItemSprite(reward.TransformItemId, out usedPlaceholder);
             // /224 encodes a recruited hero as award type 60002 plus its hero id.
             // The item record for 60002 is only the generic "神将" wrapper, while the
             // native result cell uses the actual hero portrait.
@@ -824,23 +832,32 @@ namespace ProjectX.UI
             {
                 return resources.LoadHeroPortrait(hero.Picture, out usedPlaceholder);
             }
-            // Item rewards encode the item id in Type. Prefer that identity so hero
-            // fragments resolve equip2458 rather than a reused legacy `pic` value.
+            // /224 item identities resolve through the formal item table's picture.
             if (reward.Type > 0 && reward.Type < 60000)
-            {
-                Sprite itemSprite = resources.LoadItemIcon(reward.Type, out usedPlaceholder);
-                if (itemSprite != null) return itemSprite;
-            }
+                return LoadConfiguredItemSprite(reward.Type, out usedPlaceholder);
             if (reward.Picture > 0) return resources.LoadItemIcon(reward.Picture, out usedPlaceholder);
             usedPlaceholder = true;
             return null;
         }
 
-        private static string RewardName(DrawRewardRecord reward)
+        private Sprite LoadConfiguredItemSprite(int itemId, out bool usedPlaceholder)
         {
+            RewardRecord item = itemCatalog.DescribeServerReward(itemId, 0, 1);
+            if (item.Picture > 0)
+                return resources.LoadItemIcon(item.Picture, out usedPlaceholder);
+            usedPlaceholder = true;
+            return null;
+        }
+
+        private string RewardName(DrawRewardRecord reward)
+        {
+            if (reward.TransformItemId > 0)
+                return itemCatalog.DescribeServerReward(reward.TransformItemId, 0, reward.TransformAmount).Name;
             if (reward.Type == 60002 && HeroCatalog.TryGet((int)reward.Id, out HeroDefinition hero)
                 && !string.IsNullOrEmpty(hero.Name))
-                return reward.TransformItemId > 0 ? $"{hero.Name}神魂" : hero.Name;
+                return hero.Name;
+            if (reward.Type > 0 && reward.Type < 60000)
+                return itemCatalog.DescribeServerReward(reward.Type, 0, reward.Amount).Name;
             if (!string.IsNullOrEmpty(reward.Name)) return reward.Name;
             if (reward.Type == 60002) return reward.TransformItemId == 0 ? $"神将#{reward.Id}" : $"神将碎片#{reward.TransformItemId}";
             if (reward.Type == 60014) return "将魂";

@@ -259,16 +259,16 @@ namespace ProjectX.UI
             if (!cultivationOnly)
             {
                 detailName = RequireText(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name");
-            detailDescription = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/zhuangbeimiaoshu/Content");
-            detailBaseAttribute = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1/Value");
-            detailStrength = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Level/Value");
-            detailRefine = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Level/Value");
+            detailDescription = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/zhuangbeimiaoshu/Content");
+            detailBaseAttribute = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jichushuxing/Atrribute_1/Value");
+            detailStrength = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Level/Value");
+            detailRefine = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Level/Value");
             Transform detailIconHost = Require(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Node").transform;
             detailQualityFrame = EnsureDetailQualityFrame(detailIconHost);
             detailIcon = EnsureDetailIcon(detailIconHost);
             wearButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan");
                 takeOffButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia");
-                strengthButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Btn_qianghua");
+                strengthButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Btn_qianghua");
             }
             strengthOnceButton = RequireButton(strengthView, "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn");
             refineOnceButton = RequireButton(refineView, "Layer/zhuangbeijinglianUI/jinglian/jinglianxiaohao/jinglianyijiBtn");
@@ -606,6 +606,11 @@ namespace ProjectX.UI
 
         private void ShowDetails(DisplayRecord item)
         {
+            bool refreshSameItem = detailView.GameObject.activeSelf && selected.Uid == item.Uid && selected.Kind == item.Kind;
+            var scrollPositions = new Dictionary<ScrollRect, float>();
+            if (refreshSameItem)
+                foreach (ScrollRect scroll in detailView.GameObject.GetComponentsInChildren<ScrollRect>(true))
+                    if (scroll.content != null) scrollPositions[scroll] = Mathf.Clamp01(scroll.verticalNormalizedPosition);
             activeCultivationMode = -1;
             selected = item;
             Button activeClose = RequireButton(detailView, "Layer/zhuangbeiInfoUI/Popup/Btn_close");
@@ -652,16 +657,16 @@ namespace ProjectX.UI
                 ? item.Equipment.BaseAttributeValue
                 : item.Definition.BaseAttribute != null && item.Definition.BaseAttribute.Length > 1
                     ? unchecked((uint)item.Definition.BaseAttribute[1]) : 0;
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/jichushuxing/Atrribute_1",
+            SetDetailText("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jichushuxing/Atrribute_1",
                 AttributeName(attrType) + "：");
             detailBaseAttribute.text = $"+{attrValue}";
             detailStrength.text = item.Kind == HeroEquipmentKind.Equipment
                 ? $"{item.StrengthLevel}/240" : $"{item.StrengthLevel}/{catalog.MaxFaBaoStrengthLevel}";
             detailRefine.text = item.Kind == HeroEquipmentKind.Equipment
                 ? $"{item.RefineLevel}/50" : $"{item.RefineLevel}/24";
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Atrribute_1",
+            SetDetailText("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Atrribute_1",
                 AttributeName(attrType) + "：");
-            SetDetailText("Layer/zhuangbeiInfoUI/Info/qianghuashuxing/Atrribute_1/Value",
+            SetDetailText("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Atrribute_1/Value",
                 $"+{(item.Kind == HeroEquipmentKind.Equipment ? item.Equipment.StrengthAttributeValue : 0u)}");
             ApplyIcon(detailIcon, item);
             bool worn = item.FormationPosition > 0;
@@ -687,11 +692,11 @@ namespace ProjectX.UI
                 });
                 takeOffButton.onClick.AddListener(() => takeOffEquipment?.Invoke(item.Uid, item.FormationPosition));
                 strengthButton.onClick.AddListener(() => ShowStrength(item));
-                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian", true,
+                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian", true,
                     () => ShowRefine(item));
-                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing",
+                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/juexingshuxing/Btn_juexing",
                     item.Definition.Quality >= 5, () => ShowAwaken(item));
-                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu",
+                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/shenzhushuxing/Btn_shenzhu",
                     item.Definition.Quality >= 6, () => ShowDivine(item));
             }
             else
@@ -699,10 +704,10 @@ namespace ProjectX.UI
                 wearButton.onClick.AddListener(() => ShowChange(item));
                 takeOffButton.onClick.AddListener(() => takeOffFaBao?.Invoke(item.Uid));
                 strengthButton.onClick.AddListener(() => ShowFaBaoStrength(item));
-                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian", true,
+                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian", true,
                     () => ShowFaBaoRefine(item));
-                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing", false, null);
-                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu", false, null);
+                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/juexingshuxing/Btn_juexing", false, null);
+                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/shenzhushuxing/Btn_shenzhu", false, null);
             }
             listView.SetVisible(false);
             detailView.SetVisible(true);
@@ -717,7 +722,8 @@ namespace ProjectX.UI
 
                 EnsureScrollViewportHitSurface(scroll);
                 scroll.StopMovement();
-                scroll.verticalNormalizedPosition = 1f;
+                scroll.verticalNormalizedPosition = scrollPositions.TryGetValue(scroll, out float previousPosition)
+                    ? previousPosition : 1f;
             }
         }
 
@@ -2052,75 +2058,18 @@ namespace ProjectX.UI
         private void ConfigureDetailListLayout()
         {
             GameObject viewportObject = Require(detailView, "Layer/zhuangbeiInfoUI/Info/ListView");
-            RectTransform viewport = viewportObject.GetComponent<RectTransform>();
-            Transform existing = viewport.Find("RuntimeDetailContent");
-            GameObject contentObject = existing != null ? existing.gameObject
-                : new GameObject("RuntimeDetailContent", typeof(RectTransform),
-                    typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
-            RectTransform content = contentObject.GetComponent<RectTransform>();
-            content.SetParent(viewport, false);
-            content.anchorMin = new Vector2(0f, 1f);
-            content.anchorMax = new Vector2(1f, 1f);
-            content.pivot = new Vector2(0.5f, 1f);
-            content.anchoredPosition = Vector2.zero;
-            content.sizeDelta = Vector2.zero;
-
-            VerticalLayoutGroup layout = contentObject.GetComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset();
-            layout.spacing = 0f;
-            layout.childAlignment = TextAnchor.UpperCenter;
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-
-            ContentSizeFitter fitter = contentObject.GetComponent<ContentSizeFitter>();
-            fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            string[] sections =
-            {
-                "jichushuxing", "qianghuashuxing", "jinglianshuxing",
-                "juexingshuxing", "shenzhushuxing", "zhuangbeitaozhuang",
-                "zhuangbeimiaoshu",
-            };
-            foreach (string section in sections)
-            {
-                GameObject node = HeroEquipmentNodeIds.Get(detailView, $"Layer/zhuangbeiInfoUI/Info/{section}");
-                if (node != null)
-                    node.transform.SetParent(content, false);
-            }
-
             ScrollRect scroll = viewportObject.GetComponent<ScrollRect>();
-            if (scroll != null)
-            {
-                scroll.viewport = viewport;
-                scroll.content = content;
-                scroll.horizontal = false;
-                scroll.vertical = true;
-            }
+            if (scroll == null || scroll.content == null || scroll.content.name != "DetailContent")
+                throw new InvalidOperationException("Equipment detail prefab scroll bindings are incomplete.");
         }
 
         private void ConfigureBuildRecommendation()
         {
-            Transform content = detailView.GameObject.GetComponentsInChildren<Transform>(true)
-                .First(value => value.name == "RuntimeDetailContent");
-            Transform existing = content.Find("RuntimeBuildRecommendation");
-            GameObject row = existing != null ? existing.gameObject
-                : new GameObject("RuntimeBuildRecommendation", typeof(RectTransform),
-                    typeof(CanvasRenderer), typeof(Text), typeof(LayoutElement));
-            RectTransform rect = row.GetComponent<RectTransform>();
-            rect.SetParent(content, false);
-            rect.sizeDelta = new Vector2(410f, 60f);
-            buildRecommendationText = row.GetComponent<Text>();
-            buildRecommendationText.font = detailDescription.font;
-            buildRecommendationText.fontSize = 20;
-            buildRecommendationText.color = new Color32(120, 84, 60, 255);
-            buildRecommendationText.alignment = TextAnchor.UpperLeft;
-            buildRecommendationText.horizontalOverflow = HorizontalWrapMode.Wrap;
-            buildRecommendationText.verticalOverflow = VerticalWrapMode.Overflow;
-            buildRecommendationText.raycastTarget = false;
-            row.SetActive(false);
+            buildRecommendationText = detailView.GameObject.GetComponentsInChildren<Text>(true)
+                .FirstOrDefault(value => value.name == "BuildRecommendation");
+            if (buildRecommendationText == null)
+                throw new InvalidOperationException("Equipment detail prefab recommendation is missing.");
+            buildRecommendationText.gameObject.SetActive(false);
         }
 
         private void RefreshBuildRecommendation(DisplayRecord item)
@@ -2132,12 +2081,6 @@ namespace ProjectX.UI
                 ? getHeroAtDisplayPosition?.Invoke(item.FormationPosition) ?? 0 : 0;
             buildRecommendationText.text = HeroBuildRecommendation.Describe(
                 HeroBuildProfileCatalog.Profiles, heroId, item.Equipment.Affix.Key);
-            float height = Mathf.Max(60f, buildRecommendationText.preferredHeight + 20f);
-            buildRecommendationText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, height);
-            LayoutElement element = buildRecommendationText.GetComponent<LayoutElement>();
-            element.preferredWidth = 410f;
-            element.preferredHeight = height;
-            LayoutRebuilder.MarkLayoutForRebuild(buildRecommendationText.rectTransform.parent as RectTransform);
         }
 
         private void LayoutDetailDescription()
@@ -2186,59 +2129,14 @@ namespace ProjectX.UI
         private void ConfigureAffixActions()
         {
             Transform content = detailView.GameObject.GetComponentsInChildren<Transform>(true)
-                .FirstOrDefault(value => value.name == "RuntimeDetailContent");
-            if (content == null) throw new InvalidOperationException("RuntimeDetailContent was not created.");
-            Transform existing = content.Find("RuntimeAffixActions");
-            affixActionRow = existing != null ? existing.gameObject
-                : new GameObject("RuntimeAffixActions", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
-            RectTransform rect = affixActionRow.GetComponent<RectTransform>();
-            rect.SetParent(content, false);
-            rect.sizeDelta = new Vector2(440f, 72f);
-            LayoutElement element = affixActionRow.GetComponent<LayoutElement>();
-            element.preferredWidth = 440f;
-            element.preferredHeight = 72f;
-            HorizontalLayoutGroup layout = affixActionRow.GetComponent<HorizontalLayoutGroup>();
-            layout.padding = new RectOffset(20, 20, 10, 10);
-            layout.spacing = 24f;
-            layout.childAlignment = TextAnchor.MiddleCenter;
-            layout.childControlWidth = false;
-            layout.childControlHeight = false;
-            layout.childForceExpandWidth = false;
-            layout.childForceExpandHeight = false;
-            affixLockButton = EnsureRuntimeAffixButton(affixActionRow.transform, "AffixLockButton");
-            affixRerollButton = EnsureRuntimeAffixButton(affixActionRow.transform, "AffixRerollButton");
+                .FirstOrDefault(value => value.name == "DetailContent");
+            Transform row = content != null ? content.Find("AffixActions") : null;
+            affixActionRow = row != null ? row.gameObject : null;
+            affixLockButton = row != null ? row.Find("AffixLockButton")?.GetComponent<Button>() : null;
+            affixRerollButton = row != null ? row.Find("AffixRerollButton")?.GetComponent<Button>() : null;
+            if (affixActionRow == null || affixLockButton == null || affixRerollButton == null)
+                throw new InvalidOperationException("Equipment detail prefab affix actions are incomplete.");
             affixActionRow.SetActive(false);
-        }
-
-        private static Button EnsureRuntimeAffixButton(Transform parent, string name)
-        {
-            Transform existing = parent.Find(name);
-            GameObject value = existing != null ? existing.gameObject
-                : new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button), typeof(LayoutElement));
-            RectTransform rect = value.GetComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            rect.sizeDelta = new Vector2(185f, 52f);
-            LayoutElement element = value.GetComponent<LayoutElement>();
-            element.preferredWidth = 185f;
-            element.preferredHeight = 52f;
-            Image image = value.GetComponent<Image>();
-            image.color = new Color(0.95f, 0.63f, 0.25f, 1f);
-            Button button = value.GetComponent<Button>();
-            Transform labelTransform = value.transform.Find("Label");
-            GameObject labelObject = labelTransform != null ? labelTransform.gameObject
-                : new GameObject("Label", typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
-            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
-            labelRect.SetParent(value.transform, false);
-            labelRect.anchorMin = Vector2.zero;
-            labelRect.anchorMax = Vector2.one;
-            labelRect.offsetMin = Vector2.zero;
-            labelRect.offsetMax = Vector2.zero;
-            Text label = labelObject.GetComponent<Text>();
-            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            label.fontSize = 22;
-            label.alignment = TextAnchor.MiddleCenter;
-            label.color = new Color(0.35f, 0.12f, 0.04f, 1f);
-            return button;
         }
 
         private static void SetRuntimeButtonLabel(Button button, string value)
@@ -2273,9 +2171,9 @@ namespace ProjectX.UI
             if (cultivationOnly || detailView == null) return;
             foreach (string path in new[]
             {
-                "Layer/zhuangbeiInfoUI/Info/jinglianshuxing/Btn_jinglian",
-                "Layer/zhuangbeiInfoUI/Info/juexingshuxing/Btn_juexing",
-                "Layer/zhuangbeiInfoUI/Info/shenzhushuxing/Btn_shenzhu",
+                "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian",
+                "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/juexingshuxing/Btn_juexing",
+                "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/shenzhushuxing/Btn_shenzhu",
             })
             {
                 GameObject button = HeroEquipmentNodeIds.Get(detailView, path);
@@ -2294,7 +2192,7 @@ namespace ProjectX.UI
 
         private void SetSectionVisible(string section, bool visible)
         {
-            HeroEquipmentNodeIds.Get(detailView, $"Layer/zhuangbeiInfoUI/Info/{section}")?.SetActive(visible);
+            HeroEquipmentNodeIds.Get(detailView, $"Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/{section}")?.SetActive(visible);
         }
 
         private void SetDetailText(string path, string value)

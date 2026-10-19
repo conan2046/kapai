@@ -4,6 +4,7 @@
 #include "spirit_unity.h"
 #include "library_unity.h"
 #include "alchemy_unity.h"
+#include "hero_build_selection.h"
 #include "singleton.h"
 #include "protocol.h"
 #include "online_user.h"
@@ -26116,6 +26117,11 @@ void CPackageDeal::DealPetEquipOperate(CNetMessage *pMsg, int sock)
 			equipMgr.SendPetEquipAffixList(pUser);
 		return;
 	}
+	case CUnityHeroBuildService::QueryOperation:
+	case CUnityHeroBuildService::SaveOperation:
+		CUnityHeroBuildService::Handle(pUser,op,msg);
+		m_socketServer.SendMsg(sock,msg);
+		return;
 	default:
 		break;
 	}

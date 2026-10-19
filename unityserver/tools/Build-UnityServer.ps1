@@ -9,6 +9,7 @@ param(
     [string]$LuaLibrary = "",
     [string]$VcpkgRoot = "",
     [string]$BuildDir = "",
+    [ValidateRange(1,64)][int]$ParallelJobs = 1,
     [switch]$SkipAppLocal,
     [switch]$BuildDatabaseSmoke
 )
@@ -166,7 +167,9 @@ function Copy-RuntimeFileIfChanged {
 & $Cmake @configure
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-& $Cmake --build $BuildDir --config $Configuration --parallel 4
+# All targets deploy vcpkg DLLs into one output directory. Concurrent post-build
+# copies can fail with Win32 sharing violation 32, so serialize by default.
+& $Cmake --build $BuildDir --config $Configuration --parallel $ParallelJobs
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 if (-not $SkipAppLocal) {
@@ -188,7 +191,8 @@ if (-not $SkipAppLocal) {
         if (-not (Test-Path $VcpkgBin)) {
             throw "vcpkg runtime directory not found: $VcpkgBin"
         }
-        foreach ($Pattern in "boost_serialization*.dll", "boost_thread*.dll", "lua51.dll", "zd.dll") {
+        $ZlibRuntime = if ($Configuration -eq "Debug") { "zd.dll" } else { "z.dll" }
+        foreach ($Pattern in "boost_serialization*.dll", "boost_thread*.dll", "lua51.dll", $ZlibRuntime) {
             $RuntimeDlls = @(Get-ChildItem -LiteralPath $VcpkgBin -Filter $Pattern)
             if ($RuntimeDlls.Count -eq 0) {
                 throw "Required vcpkg runtime dependency not found: $VcpkgBin\$Pattern"

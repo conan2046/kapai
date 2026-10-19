@@ -123,7 +123,8 @@ function Xml-Signature([string]$Value) {
 function Read-Rows($Sheet, [string]$Workbook) {
     $result = [Collections.Generic.List[object]]::new()
     $keys = @{}
-    foreach ($r in @(Read-UnityVisualExcelRows $Workbook $Sheet.sheetIndex -SheetName $Sheet.name -RejectFormulas)) {
+    $sourceSheet=if($Sheet.sourceSheet){$Sheet.sourceSheet}else{$Sheet.name}
+    foreach ($r in @(Read-UnityVisualExcelRows $Workbook $Sheet.sheetIndex -SheetName $sourceSheet -RejectFormulas)) {
         if ($Sheet.kind -ne 'xml' -and -not @($r.Values | Where-Object { [string]$_ -ne '' }).Count) { continue }
         $v = [ordered]@{}
         foreach ($k in $Sheet.columns.Keys) {
@@ -171,6 +172,10 @@ function Read-Rows($Sheet, [string]$Workbook) {
     return ,$result.ToArray()
 }
 function Check-Group($Name,$Tables) {
+    if ($Name -eq 'HeroCombat') {
+        . (Join-Path $PSScriptRoot 'Test-UnityCombatTables.ps1')
+        Test-UnityCombatTables $Tables $Root
+    }
     if ($Name -eq 'DongFu') {
         . (Join-Path $PSScriptRoot 'Test-UnityDongFuTables.ps1')
         Test-UnityDongFuTables $Tables $Root
@@ -245,7 +250,10 @@ function Seed-Sql($Group,$Tables,$Seed) {
 }
 foreach ($g in $groups) {
     $tables=@{}
-    foreach ($s in $g.sheets) { $tables[$s.name]=Read-Rows $s (Join-Path $Root ('unitydata/excel/'+$g.workbook)) }
+    foreach ($s in $g.sheets) {
+        $sourceWorkbook=if($s.workbook){$s.workbook}else{$g.workbook}
+        $tables[$s.name]=Read-Rows $s (Join-Path $Root ('unitydata/excel/'+$sourceWorkbook))
+    }
     Check-Group $g.group $tables
     foreach ($output in $g.retiredJsonOutputs) {
         if ($output -cnotmatch '^[a-z0-9_-]+\.json$' -or @($g.sheets | Where-Object { $_.output -eq $output -or $_.jsonOutput -eq $output }).Count) { throw "Invalid/in-use retired JSON output: $output" }

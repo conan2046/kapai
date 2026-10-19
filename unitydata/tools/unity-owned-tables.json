@@ -818,7 +818,7 @@
               "array"
             ]
           },
-          "client": false,
+          "client": true,
           "output": "equipment_affix.json"
         },
         {
@@ -873,7 +873,200 @@
           },
           "client": true,
           "output": "hero_build_profile.json"
-        }
+        },
+      {
+        "name": "combat_effect",
+        "kind": "json",
+        "columns": {
+          "id": "number",
+          "group_id": "number",
+          "priority": "number",
+          "skill_id": "number",
+          "buff_id": "number",
+          "event": "string",
+          "target": "string",
+          "op": "string",
+          "basis": "string",
+          "ratio_bp": "number",
+          "growth_bp": "number",
+          "flat": "number",
+          "cap_basis": "string",
+          "cap_bp": "number",
+          "duration": "number",
+          "probability_bp": "number",
+          "per_turn": "number",
+          "per_battle": "number",
+          "argument": "number",
+          "conditions": "json",
+          "description_template": "string",
+          "budget": "string",
+          "counter_scope": "string",
+          "interval_turns":"number", "ratio_source":"string", "counter_key":"number",
+          "stack_key":"number", "stack_policy":"string", "presentation_skill":"number", "emit_action":"number", "check_skill_immunity":"number", "per_action":"number", "unique_targets":"number",
+            "affix_id":"number", "affix_scope":"string", "affix_alive_only":"number", "growth_basis":"string", "argument_role":"string", "basis_cap":"string", "ratio_divisor":"number", "cap_ratio_source":"string", "duration_source":"string", "amount_budget":"string", "probability_source":"string", "parameter_count":"number", "origin_level":"number", "origin_skill":"number", "binding_scope":"string",
+          "query_effect":"number", "query_attribute":"number", "query_parameter":"number", "query_level":"number"
+        },
+        "blankDefaults": {"query_effect":0,"query_attribute":0,"query_parameter":0,"query_level":0},
+        "sheetIndex": 4,
+        "integerColumns": [
+          "id",
+          "group_id",
+          "priority",
+          "skill_id",
+          "buff_id",
+          "ratio_bp",
+          "growth_bp",
+          "flat",
+          "cap_bp",
+          "duration",
+          "probability_bp",
+          "per_turn",
+          "per_battle",
+          "argument", "interval_turns", "counter_key", "stack_key", "presentation_skill", "emit_action", "check_skill_immunity", "per_action", "unique_targets", "affix_id", "affix_alive_only", "ratio_divisor", "query_effect", "query_attribute", "query_parameter", "query_level"
+        ],
+        "numericStringColumns": [],
+        "jsonKinds": {
+          "conditions": [
+            "array"
+          ]
+        },
+        "client": true,
+        "output": "combat_effect.json"
+      },
+      {
+        "name": "combat_binding",
+        "kind": "json",
+        "columns": {
+          "id": "number",
+          "hero_id": "number",
+          "branch": "number",
+          "enabled": "number",
+          "groups": "json",
+          "status": "string"
+        },
+        "sheetIndex": 5,
+        "integerColumns": [
+          "id",
+          "hero_id",
+          "branch",
+          "enabled"
+        ],
+        "numericStringColumns": [],
+        "jsonKinds": {
+          "groups": [
+            "array"
+          ]
+        },
+        "client": true,
+        "output": "combat_binding.json"
+      },
+      {
+        "name": "combat_strategy",
+        "kind": "json",
+        "columns": {
+          "id": "number",
+          "strategy_id": "number",
+          "priority": "number",
+          "role": "string",
+          "reserve": "number",
+          "emergency": "number",
+          "conditions": "json",
+          "description_template": "string"
+        },
+        "sheetIndex": 6,
+        "integerColumns": [
+          "id",
+          "strategy_id",
+          "priority",
+          "reserve",
+          "emergency"
+        ],
+        "numericStringColumns": [],
+        "jsonKinds": {
+          "conditions": [
+            "array"
+          ]
+        },
+        "client": true,
+        "output": "combat_strategy.json"
+      },
+      {
+        "name": "combat_rule",
+        "kind": "json",
+        "columns": {
+          "id": "number",
+          "key": "string",
+          "value": "number",
+          "scope": "string"
+        },
+        "sheetIndex": 7,
+        "integerColumns": [
+          "id",
+          "value"
+        ],
+        "numericStringColumns": [],
+        "jsonKinds": {},
+        "client": true,
+        "output": "combat_rule.json"
+      },
+      {
+        "name": "combat_periodic",
+        "kind": "json",
+        "columns": {
+          "id": "number", "buff_id": "number", "event": "string", "outcome": "string",
+          "formula": "string", "basis": "string", "param_a": "number", "param_b": "number",
+          "cap_param": "number", "stack_group": "number", "turn_budget": "number",
+          "bonus_buff": "number", "bonus_bp": "number", "description_template": "string", "bonus_affix":"number", "bonus_cap_bp":"number", "zero_action_parameter":"number", "aggregation":"string"
+        },
+        "sheetIndex": 8,
+        "integerColumns": ["id","buff_id","param_a","param_b","cap_param","stack_group","turn_budget","bonus_buff","bonus_bp","bonus_affix","bonus_cap_bp","zero_action_parameter"],
+        "numericStringColumns": [], "jsonKinds": {}, "client": true,
+        "output": "combat_periodic.json"
+      },
+      {
+        "name": "combat_control", "kind": "json",
+        "columns": {"id":"number","buff_id":"number","diminishing":"number","boss_mode":"string","replacement_buff":"number","replacement_value":"number","replacement_duration":"number","refresh_same_origin":"number"},
+        "sheetIndex": 9,
+        "integerColumns": ["id","buff_id","diminishing","replacement_buff","replacement_value","replacement_duration","refresh_same_origin"],
+        "numericStringColumns": [], "jsonKinds": {}, "client": true, "output": "combat_control.json"
+      },
+      {
+        "name": "combat_artifact", "workbook": "fabao.xlsx", "sheetIndex": 2, "kind": "json",
+        "columns": {"id":"number","family":"number","quality":"number","exclusive_group":"string","selection_rank":"number","effect_group":"number","value":"number","enabled":"number","status":"string"},
+        "integerColumns": ["id","family","quality","selection_rank","effect_group","value","enabled"],
+        "numericStringColumns": [], "jsonKinds": {}, "client": true, "output": "combat_artifact.json"
+      },
+      {
+        "name": "combat_set", "workbook": "suit.xlsx", "sheetIndex": 2, "kind": "json",
+        "columns": {"id":"number","suit_id":"number","pieces":"number","effect_group":"number","value":"number","enabled":"number","status":"string"},
+        "integerColumns": ["id","suit_id","pieces","effect_group","value","enabled"],
+        "numericStringColumns": [], "jsonKinds": {}, "client": true, "output": "combat_set.json"
+      },
+      {
+        "name":"suit", "sourceSheet":"Sheet1", "workbook":"suit.xlsx", "sheetIndex":1, "kind":"json",
+        "columns":{"id":"number","suit":"json","name":"string"},
+        "integerColumns":["id"], "numericStringColumns":[], "jsonKinds":{"suit":["array"]}, "client":true, "output":"suit.json"
+      },
+      {
+        "name":"combat_loadout_slot", "sheetIndex":10, "kind":"json",
+        "columns":{"id":"number","kind":"string","priority":"number"},
+        "integerColumns":["id","priority"], "numericStringColumns":[], "jsonKinds":{}, "client":true, "output":"combat_loadout_slot.json"
+      },
+      {
+        "name":"combat_buff_category", "sheetIndex":11, "kind":"json",
+        "columns":{"id":"number","buff_id":"number","category":"number","name":"string"},
+        "integerColumns":["id","buff_id","category"], "numericStringColumns":[], "jsonKinds":{}, "client":true, "output":"combat_buff_category.json"
+      },
+      {
+        "name":"combat_event_policy", "sheetIndex":12, "kind":"json",
+        "columns":{"id":"number","event":"string","extra_depth":"number","description":"string"},
+        "integerColumns":["id","extra_depth"], "numericStringColumns":[], "jsonKinds":{}, "client":true, "output":"combat_event_policy.json"
+      },
+      {
+        "name":"combat_target_policy", "sheetIndex":13, "kind":"json",
+        "columns":{"id":"number","strategy_id":"number","priority":"number","side":"string","role":"string","order":"string","tie_break":"string","count_buff_ids":"json","enabled":"number","description_template":"string"},
+        "integerColumns":["id","strategy_id","priority","enabled"], "numericStringColumns":[], "jsonKinds":{"count_buff_ids":["array"]}, "client":true, "output":"combat_target_policy.json"
+      }
       ]
     },
     {

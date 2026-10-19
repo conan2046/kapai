@@ -6,6 +6,7 @@
 #include "monster.h"
 #include <boost/thread.hpp>
 #include <boost/any.hpp>
+#include "combat_data.h"
 
 class COnlineUser;
 class CFight;
@@ -465,6 +466,7 @@ public:
 		Clear();
 	}
 	void Clear();
+	static bool RunCombatDataRegression(bool probeOnly);
 
 	void SetGroupZhenFaData(uint16 zhenfaId,uint8 zhenfaLevel,uint8 group=EGT_GROUP1);
 
@@ -591,11 +593,21 @@ private:
 			srcPos = 0;
 			id = 0;
 			leftTurn = 0;
+			originSkill = 0;
+			originLevel = 1;
+			appliedDuringRound = -1;
+			periodicTicked = false;
+			combatStackKey = 0;
 			paraList.clear();
 		}
 		uint8 srcPos;	// 施法者pos
 		uint16 id;
 		int leftTurn;
+		uint16 originSkill;
+		int originLevel;
+		int appliedDuringRound;
+		bool periodicTicked;
+		int combatStackKey;
 		vector<int> paraList;	// 参数
 	};
 	
@@ -730,6 +742,7 @@ private:
 	bool IsPassiveToBuff(int trigger,int additiveId);
 	void CalculatePassiveSkill_ExtAttrEffect(uint8 src,uint8 target,vector<ESkillTriggerType> &triggerList,vector<ESkillPassitiveType> passList=vector<ESkillPassitiveType>(),uint16 skillId=0,uint16 skillLevel=0,int value=0);
 	void CalculatePassiveSkill_ExtValue(uint8 src,uint8 target,vector<ESkillTriggerType> &triggerList,vector<SAttrData> &attr,uint16 skillId=0,uint16 skillLevel=0,int value=0);
+	bool CombatPassiveParameters(uint8 src,uint8 target,uint16 skill,SSkillAdditiveEffect* effect,int level,int trigger,vector<int>& parameters,bool rolled=false);
 	void CalculatePassiveSkill_ActionBuff(uint8 src,uint8 target,const vector<ESkillTriggerType> &triggerList);
 	int CalculatePassiveSkill_ExtUnitAndBuff(uint8 src,uint8 target,const vector<ESkillTriggerType> &triggerList,uint16 skillId,uint16 skillLevel,int value=0,vector<SAttrData> *attrData=NULL,bool turnEnd=false,SFightBuffData *buffData=NULL);
 
@@ -812,11 +825,40 @@ private:
 	void DecAllSkillCD(uint8 pos);
 	void ClearAdditiveSkillTurnData(uint8 pos);
 
-	void ClearRandomEnBuff(uint8 pos,uint16 buffNum,uint8 src);
-	void ClearRandomDeBuff(uint8 pos,uint16 buffNum,uint8 src=0);
+	void ClearRandomEnBuff(uint8 pos,uint16 buffNum,uint8 src,uint16 skill=0);
+	void ClearRandomDeBuff(uint8 pos,uint16 buffNum,uint8 src=0,uint16 skill=0);
 	void ClearMulBuff(uint8 pos,uint16 buffId,uint8 src);
 	void ClearBuff(uint8 pos, uint16 buffId, vector<SFightBuffData> *dataList=NULL,uint8 src=0);
-	void AddBuff(uint8 pos, uint8 src, uint16 buffId, uint8 effectTurn=0, vector<int> *para=NULL);
+	bool ApplyCombatBuffRules(uint8 target,SFightBuffData& data);
+	bool ApplyCombatControl(uint8 target,uint16& buff,int& duration,vector<int>& parameters);
+	bool CombatCanRevive(uint8 target,uint8 source,uint16 skill=0);
+	void CombatSnapshotEquipment(uint8 pos,CUser* owner,uint16 heroId);
+	void CombatWriteEntryEvidence();
+	void CombatRecordRevive(uint8 target,uint8 source);
+	bool CombatHaveReviveTarget(uint8 source,uint16 skill=0);
+	bool CombatTryExtraAttack(uint8 source);
+	void CombatShieldLost(uint8 target,uint8 attacker,const SFightBuffData& shield,const char* reason);
+	uint8 CombatPeriodicActions(uint8 target,EFightStep step,CNetMessage& msg,int input);
+	void AddBuff(uint8 pos, uint8 src, uint16 buffId, uint8 effectTurn=0, vector<int> *para=NULL, uint16 originSkill=0, int skillLevel=1, int combatEffect=0);
+	void CombatEvent(const char* event, uint8 src, uint8 target, uint16 skill, uint16 buff,
+		int level, CombatData::Values values, CombatData::Modifiers* modifiers=NULL,const vector<int>* parameters=NULL);
+	void CombatAfterHeal(uint8 src, uint8 target, uint16 skill, int level, int beforeHp, int overheal, bool wasAlive);
+	CombatData::Values CombatTargetFacts(uint8 target,uint8 owner=0);
+	void CombatPassiveList(uint8 src,uint8 target,uint16 skill,int level,int trigger,vector<int>& effects);
+	bool CombatAllowEffect(uint8 src,uint8 target,uint16 skill,int level,uint16 buff,int kind,int passive,int* duration=NULL,int baseDuration=0,bool defaultAllowed=true);
+	int CombatPassiveValue(uint8 src,uint8 target,uint16 skill,int level,SSkillAdditiveEffect* effect,int trigger,int attribute,int value);
+	bool CombatPassiveHeal(uint8 src,uint8 target,uint16 skill,int level,int& hpChange,bool* notifyAfter=NULL);
+	int64 CombatPeriodicRaw(uint8 target,const SFightBuffData& buff,int input);
+	int CombatPeriodicValue(uint8 source,uint8 target,const SFightBuffData& buff,int input,int64 raw);
+	float CombatDirectMultiplier(uint8 source,uint8 target,uint16 skill,int level,float multiplier);
+	int CombatStat(uint8 pos,int kind,int value);
+	int CombatShareDamage(uint8 guardian,int damage,uint16 skill=0,int level=1);
+	bool CombatBoss(uint8 pos);
+	int CombatIgnoreDefense(uint8 source,uint8 target,int initial,uint16 skill=0,int level=1);
+	void CombatDirectHpDamage(uint8 source,uint8 target,uint16 skill,int level,int& damage,int& absorbed,bool pierce,int* revived,bool allowSharedLink=true);
+	uint16 CombatStrategySkill(uint8 pos, const HeroSkillRoleCfg& role);
+	void CombatSortTargets(uint8 source,uint16 skill,uint8* positions,uint8 count,bool allies);
+	bool CombatShieldAllowsLegacy(uint8 target,const SFightBuffData& shield,bool expired);
 
 	void SetState(uint8 pos, int state);
 	void ClearState(uint8 pos, int state);
@@ -839,7 +881,7 @@ private:
 	uint16 GetHeroId(uint8 pos);
 	bool IsRoleSkillUseful(uint8 pos,uint16 skillId);
 	int GetTeamRage(uint8 pos) const;
-	void AddTeamRage(uint8 pos,int value);
+	void AddTeamRage(uint8 pos,int value,bool extra=true);
 	int GetTacticCost(uint8 pos,const HeroSkillRoleCfg &roleCfg);
 	int GetAffixTier(uint8 pos,uint16 affixId) const;
 	int GetAffixValue(uint8 pos,uint16 affixId,uint8 valueIndex) const;
@@ -1033,6 +1075,12 @@ private:
 		bool killUnit_ext_IsLimit;
 		bool rageDamagedThisAction;
 		bool affixSummoned;
+		uint8 combatBranch;
+		uint8 combatStrategy;
+		CombatData::Loadout combatLoadout;
+		int combatHitIndex;
+		int combatActionIndex;
+		bool combatNormalHit,combatDeathRage;
 		uint8 affixTurnCount[49];
 		uint8 affixBattleCount[49];
 		int affixState[49];
@@ -1099,6 +1147,12 @@ private:
 			killUnit_ext_IsLimit = false;
 			rageDamagedThisAction = false;
 			affixSummoned = false;
+			combatBranch = 0;
+			combatLoadout = CombatData::Loadout();
+			combatHitIndex = 0;
+			combatActionIndex = 0;
+			combatNormalHit = combatDeathRage = false;
+			combatStrategy = 0;
 			memset(affixTurnCount,0,sizeof(affixTurnCount));
 			memset(affixBattleCount,0,sizeof(affixBattleCount));
 			memset(affixState,0,sizeof(affixState));
@@ -1193,6 +1247,17 @@ private:
 			return &it->second;
 		}
 
+        void ApplyPassiveAttributeDelta(vector<SAttrData> &attributes)
+        {
+            SUnitBasicAttr before=unitAttr;
+            unitAttr.AddAttrValue(attributes);
+            // Passive writes are deltas, not a replacement equipment sheet.
+            unitAttr.attack=before.attack+(int)((int64)before.attackBase*GetAttrValue(attributes,EAT_AttackAdd)/10000)+GetAttrValue(attributes,EAT_Attack);
+            unitAttr.wufang=before.wufang+(int)((int64)before.wufangBase*GetAttrValue(attributes,EAT_WuFangAdd)/10000)+GetAttrValue(attributes,EAT_WuFang);
+            unitAttr.fafang=before.fafang+(int)((int64)before.fafangBase*GetAttrValue(attributes,EAT_FaFangAdd)/10000)+GetAttrValue(attributes,EAT_FaFang);
+            unitAttr.maxHp=std::max<int64>(1,before.maxHp+before.maxHpBase*GetAttrValue(attributes,EAT_QiXueAdd)/10000+GetAttrValue(attributes,EAT_QiXue));
+            if(hp>unitAttr.maxHp)hp=unitAttr.maxHp;
+        }
 		bool AddPassSkillLimitAttrData(uint64 skillId,uint64 additiveType,uint16 attrType,int addPerValue,int num,int countLimit)
 		{
 			SFightLimitData *pData = GetPassSkillLimitData(skillId,additiveType,attrType);
@@ -1205,7 +1270,7 @@ private:
 			pData->_count += addNum;
 			vector<SAttrData> attrList;
 			attrList.push_back(SAttrData(attrType,addValue));
-			unitAttr.AddAttrValue(attrList);
+			ApplyPassiveAttributeDelta(attrList);
 			pData->_value += addValue;
 			return true;
 		}
@@ -1219,7 +1284,7 @@ private:
 			pData->_count -= decNum;
 			vector<SAttrData> attrList;
 			attrList.push_back(SAttrData(attrType,-decValue));
-			unitAttr.AddAttrValue(attrList);
+			ApplyPassiveAttributeDelta(attrList);
 			pData->_value -= decValue;
 			return true;
 		}
@@ -1233,7 +1298,7 @@ private:
 			pData->_count = num;
 			vector<SAttrData> attrList;
 			attrList.push_back(SAttrData(attrType,addValue-srcValue));
-			unitAttr.AddAttrValue(attrList);
+			ApplyPassiveAttributeDelta(attrList);
 			pData->_value = addValue;
 			return true;
 		}
@@ -1423,6 +1488,12 @@ private:
 	int m_zhaoHuanTimes;
 	int m_fightTurn;	//战斗轮次
 	int m_teamRage[2];	// 神将战意，按双方独立结算，范围0~100
+	CombatData::State m_combatState;
+	int m_combatDepth;
+	int m_combatDamageScale;
+	bool m_combatStatQuery=false;
+	// Optional offline acceptance observer; empty in normal runtime and never changes settlement.
+	std::function<void(uint8,const char*,int,int)> m_combatObserver;
 	bool m_tacticUsedThisTurn[2];	// 战法释放后，本回合暂时关闭守势词条
 	int m_cfgFightId;	// 配置表fightId
 	uint32 m_id;

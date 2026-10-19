@@ -99,6 +99,8 @@ namespace ProjectX.Core
                 onHeroEquipmentTakeOff = services.Lua.GetFunction("OnHeroEquipmentTakeOff");
                 onHeroEquipmentAffixLock = services.Lua.GetFunction("OnHeroEquipmentAffixLock");
                 onHeroEquipmentAffixReroll = services.Lua.GetFunction("OnHeroEquipmentAffixReroll");
+                onHeroBuildQuery = services.Lua.GetFunction("OnHeroBuildQuery");
+                onHeroBuildSave = services.Lua.GetFunction("OnHeroBuildSave");
                 onHeroEquipmentStrength = services.Lua.GetFunction("OnHeroEquipmentStrength");
                 onHeroEquipmentStrengthAll = services.Lua.GetFunction("OnHeroEquipmentStrengthAll");
                 onHeroEquipmentRefine = services.Lua.GetFunction("OnHeroEquipmentRefine");
@@ -323,6 +325,8 @@ namespace ProjectX.Core
             onHeroEquipmentTakeOff?.Dispose();
             onHeroEquipmentAffixLock?.Dispose();
             onHeroEquipmentAffixReroll?.Dispose();
+            onHeroBuildQuery?.Dispose();
+            onHeroBuildSave?.Dispose();
             onHeroEquipmentStrength?.Dispose();
             onHeroEquipmentStrengthAll?.Dispose();
             onHeroEquipmentRefine?.Dispose();
@@ -469,6 +473,7 @@ namespace ProjectX.Core
             bagFlowPresenter?.Dispose();
             rewardPresenter?.Dispose();
             heroPresenter?.Dispose();
+            DisposeHeroBuildSelection();
             heroCultivationPresenter?.Dispose();
             heroEquipmentPresenter?.Dispose();
             taskPresenter?.Dispose();

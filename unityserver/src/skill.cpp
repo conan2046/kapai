@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <fstream>
 #include "rapidjson/document.h"
+#include "combat_data.h"
 
 int SSkillEffectCfg::GetEffectId()
 {
@@ -148,7 +149,20 @@ bool CSkillMgr::Init()
 	m_zhongduBuffs.push_back(ESBUFF_ShiXinDu);
 	m_zhongduBuffs.push_back(ESBUFF_ShiDu);
 	m_zhongduBuffs.push_back(ESBUFF_FuDu);
-	return InitHeroSkillRoleCfg();
+	if (!InitHeroSkillRoleCfg()) return false;
+	CombatData::Catalog combat;
+	std::string combatError;
+	if (!combat.Load("./json", combatError) || !combat.ValidateReferences(
+		[this](int id) { return GetHeroSkillRoleCfg(id) != NULL; },
+		[this](int id) { return GetSkillCfg(id) != NULL; },
+		[this](int id) { return GetBuffCfg(id) != NULL || id == ESBUFF_MianShangTemp || id == ESBUFF_NOT_MOVE; }, combatError,
+		[this](int id) { return GetAdditiveEffectCfg(id) != NULL; }))
+	{
+		cout << "combat data load failed: " << combatError << endl;
+		return false;
+	}
+	CombatData::Current() = std::move(combat);
+	return true;
 }
 
 bool CSkillMgr::InitHeroSkillRoleCfg()

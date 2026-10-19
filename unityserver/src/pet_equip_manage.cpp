@@ -9,8 +9,13 @@
 #include "singleton.h"
 #include "mission_manager.h"
 #include <fstream>
+#include "gyu/g_database.h"
 
 extern const char *gConfigFile;
+
+namespace {
+    std::map<uint16,std::vector<string>> gEquipAffixTierDescriptions;
+}
 
 uint16 CItemCfgManager::CfgFBMaxCnt = 0;
 uint16 CItemCfgManager::CfgFBStartCnt = 0;
@@ -181,12 +186,13 @@ bool CItemCfgManager::InitEquipAffixCfg()
 	}
 
 	m_equipAffixCfgs.clear();
+	gEquipAffixTierDescriptions.clear();
 	for (rapidjson::SizeType i = 0; i < d.Size(); ++i)
 	{
 		const rapidjson::Value& row = d[i];
 		const char* required[] = { "id", "key", "name", "parts", "quality_min", "passive_skill_id",
 			"event", "value1", "value2", "duration", "per_turn_limit", "per_battle_limit",
-			"conflict_group", "desc" };
+			"conflict_group", "desc", "combat_descriptions" };
 		for (size_t k = 0; k < sizeof(required) / sizeof(required[0]); ++k)
 		{
 			if (!row.HasMember(required[k]))
@@ -212,8 +218,10 @@ bool CItemCfgManager::InitEquipAffixCfg()
 		const rapidjson::Value& parts = row["parts"];
 		const rapidjson::Value& value1 = row["value1"];
 		const rapidjson::Value& value2 = row["value2"];
+		const rapidjson::Value& descriptions = row["combat_descriptions"];
 		if (!parts.IsArray() || parts.Empty() || !value1.IsArray() || value1.Size() != 3
-			|| !value2.IsArray() || value2.Size() != 3 || cfg.id == 0 || cfg.key.empty())
+			|| !value2.IsArray() || value2.Size() != 3 || cfg.id == 0 || cfg.key.empty()
+			|| !descriptions.IsArray() || descriptions.Size() != 3)
 		{
 			cout << "CItemCfgManager::InitEquipAffixCfg >> invalid array/value at row " << i << endl;
 			return false;
@@ -238,6 +246,15 @@ bool CItemCfgManager::InitEquipAffixCfg()
 			cout << "CItemCfgManager::InitEquipAffixCfg >> duplicate id " << cfg.id << endl;
 			return false;
 		}
+		vector<string> tierDescriptions;
+		for(rapidjson::SizeType tier=0;tier<descriptions.Size();++tier) {
+			if(!descriptions[tier].IsString() || descriptions[tier].GetStringLength()==0) {
+				cout << "CItemCfgManager::InitEquipAffixCfg >> missing tier description at row " << i << endl;
+				return false;
+			}
+			tierDescriptions.push_back(descriptions[tier].GetString());
+		}
+		gEquipAffixTierDescriptions[cfg.id]=tierDescriptions;
 		m_equipAffixCfgs[cfg.id] = cfg;
 	}
 	if (m_equipAffixCfgs.size() != 48)
@@ -867,12 +884,13 @@ void CEquip::MakeAffixMsg(CNetMessage& msg) const
 {
 	msg << uid << affixSeed << specialAffixId << specialAffixTier << affixLockMask;
 	EquipAffixCfg* cfg = sCItemCfgManager.GetEquipAffixCfg(specialAffixId);
-	if (cfg == NULL || specialAffixTier == 0)
+	const auto descriptions=gEquipAffixTierDescriptions.find(specialAffixId);
+	if (cfg == NULL || specialAffixTier == 0 || specialAffixTier > 3 || descriptions==gEquipAffixTierDescriptions.end())
 	{
 		msg << string("") << string("") << string("") << (int)0 << (int)0;
 		return;
 	}
-	msg << cfg->key << cfg->name << cfg->desc << cfg->GetValue1(specialAffixTier) << cfg->GetValue2(specialAffixTier);
+	msg << cfg->key << cfg->name << descriptions->second[specialAffixTier-1] << cfg->GetValue1(specialAffixTier) << cfg->GetValue2(specialAffixTier);
 }
 
 SSkillData CEquip::GetAffixSkill() const
@@ -1716,6 +1734,7 @@ void CEquipManeger::CalcEquipSuitAttr(uint8 fpos)
 	if (it != m_formationEquips.end())
 	{
 		WearEquipSuit& wearEquips = it->second;
+		wearEquips.suitAttrs.clear();
 		FormationEquipMap& emap = wearEquips.wearEquips;
 		U8tU8Map suitCnt;
 		for (FormationEquipMapIt eit = emap.begin(); eit != emap.end(); ++eit)
@@ -2497,12 +2516,30 @@ namespace
 		if (result == PRO_SUCCESS && equip != NULL)
 			equip->MakeAffixMsg(msg);
 	}
+
+	bool SaveEquipAffixChange(CUser* user,CEquipManeger& equipment,bool includeMoney)
+	{
+		string serialized;
+		equipment.SaveData(serialized);
+		if(serialized.empty() || serialized.find_first_not_of("0123456789abcdefABCDEF")!=string::npos)
+			return false;
+		gyu::db::CGetDbConnect connection;
+		auto* database=connection.GetDbConnect();
+		if(database==NULL || user->GetRoleId()==0)return false;
+		// One UPDATE commits equipment and its cost atomically on both backends.
+		string sql="UPDATE role_info SET pet_equip='"+serialized+"'";
+		if(includeMoney)sql+=",money="+std::to_string(user->GetMoney());
+		sql+=" WHERE id="+std::to_string(user->GetRoleId());
+		return database->Query(sql.c_str());
+	}
 }
 
 bool CEquipManeger::ToggleEquipAffixLock(CUser* user, CNetMessage& msg)
 {
 	uint32 uid = 0;
 	msg >> uid;
+	if(user==NULL){MakeEquipAffixOperateResult(msg,41,PRO_ERROR,"装备没有可锁定的特殊词条",0,NULL);return false;}
+	boost::recursive_mutex::scoped_lock saveLock(user->m_mutex);
 	CEquip* equip = GetEqiup(uid);
 	if (user == NULL || equip == NULL || equip->specialAffixId == 0 || equip->specialAffixTier == 0)
 	{
@@ -2515,7 +2552,13 @@ bool CEquipManeger::ToggleEquipAffixLock(CUser* user, CNetMessage& msg)
 		MakeEquipAffixOperateResult(msg, 41, PRO_ERROR, "仅红色及以上品质装备可锁定特殊词条", 0, NULL);
 		return false;
 	}
+	const uint8 previousLock=equip->affixLockMask;
 	equip->affixLockMask ^= 0x01;
+	if(!SaveEquipAffixChange(user,*this,false)) {
+		equip->affixLockMask=previousLock;
+		MakeEquipAffixOperateResult(msg,41,PRO_ERROR,"特殊词条保存失败，锁定状态未改变",GetEquipAffixRerollCost(equip),NULL);
+		return false;
+	}
 	const bool locked = (equip->affixLockMask & 0x01) != 0;
 	MakeEquipAffixOperateResult(msg, 41, PRO_SUCCESS,
 		locked ? "特殊词条已锁定：重铸时保留词条类型" : "特殊词条已解锁：重铸时重新随机词条",
@@ -2527,6 +2570,8 @@ bool CEquipManeger::RerollEquipAffix(CUser* user, CNetMessage& msg)
 {
 	uint32 uid = 0;
 	msg >> uid;
+	if(user==NULL){MakeEquipAffixOperateResult(msg,42,PRO_ERROR,"装备没有可重铸的特殊词条",0,NULL);return false;}
+	boost::recursive_mutex::scoped_lock saveLock(user->m_mutex);
 	CEquip* equip = GetEqiup(uid);
 	if (user == NULL || equip == NULL || equip->specialAffixId == 0 || equip->specialAffixTier == 0)
 	{
@@ -2548,6 +2593,8 @@ bool CEquipManeger::RerollEquipAffix(CUser* user, CNetMessage& msg)
 
 	const uint16 oldId = equip->specialAffixId;
 	const uint8 oldTier = equip->specialAffixTier;
+	const uint32 oldSeed = equip->affixSeed;
+	const int oldMoney = user->GetMoney();
 	const bool locked = (equip->affixLockMask & 0x01) != 0;
 	uint16 rolledId = oldId;
 	uint8 rolledTier = oldTier;
@@ -2569,10 +2616,19 @@ bool CEquipManeger::RerollEquipAffix(CUser* user, CNetMessage& msg)
 	if (locked && rolledTier == oldTier)
 		rolledTier = cfg->quality >= 7 ? (oldTier == 3 ? 2 : 3) : (oldTier == 2 ? 1 : 2);
 
-	user->AddMoney(-static_cast<int>(cost));
+	user->m_money -= static_cast<int>(cost);
 	equip->affixSeed = seed;
 	equip->specialAffixId = rolledId;
 	equip->specialAffixTier = rolledTier;
+	if(!SaveEquipAffixChange(user,*this,true)) {
+		user->m_money=oldMoney;
+		equip->affixSeed=oldSeed;
+		equip->specialAffixId=oldId;
+		equip->specialAffixTier=oldTier;
+		MakeEquipAffixOperateResult(msg,42,PRO_ERROR,"特殊词条保存失败，金币和词条未改变",GetEquipAffixRerollCost(equip),NULL);
+		return false;
+	}
+	user->SendUpdateInfo(EUUT_Money);
 	if (equip->fpos > 0)
 		user->UpdateZhenFaPetInfo(equip->fpos);
 	char resultText[160];
@@ -2699,6 +2755,13 @@ void CEquipManeger::TakeOffPetEquip(CUser* user, CNetMessage& msg)
 	CheckEquipQHDS(fpos, user);
 	msg << PRO_SUCCESS << MakeStringColor(LANGUAGE_TRANSFORM_1990, TIPS_SUCCESS_COLOR);
 	user->UpdateZhenFaPetInfo(fpos);
+}
+
+void CEquipManeger::GetWornEquipment(uint8 fpos, FormationEquipMap& snapshot) const
+{
+	snapshot.clear();
+	auto it=m_formationEquips.find(fpos);
+	if(it!=m_formationEquips.end()) snapshot=it->second.wearEquips;
 }
 
 WearEquipSuit* CEquipManeger::GetWearEquipSuit(uint8 pos)
