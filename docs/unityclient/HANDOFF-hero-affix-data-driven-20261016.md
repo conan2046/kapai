@@ -1,5 +1,50 @@
 # 神将流派数据化续接（2026-10-16）
 
+## 当前检查点（2026-10-21，Unity MCP实测与发布收口）
+
+- 已连接E工程Unity 2022.3.62f3c1，Bootstrap/1334×750；真实路线为Steam标题→旧的回忆→Slot10→神将→自动策略，所有点击经过EventSystem/Raycast校验首个命中，未调用Presenter或onClick.Invoke。六策略逐项保存、服务端回包和即时SQLite一致，随后恢复57控制3、64守护2；Branch0/1/2均不可见且不可交互。
+- 为验证持久化只进行一次必要重启；重新登录后57/64依然为分支0、策略3/2。再从副本实际挑战进入自动战斗，采集6份真实before_first_round快照：两英雄分支始终0，策略3/2，法宝1001的20001组/400值和全体原技能仍在。Unity已解析到胜利回放（含自动普攻、641和111技能及战意事件），无战中手动施法。
+- 同批实际检查装备背包详情：词条在装备左侧、旧描述节点隐藏、无穿戴/卸下按钮或调试推荐文案；从英雄槽位打开蓝色法宝1，显示护盾4%及“已选用”状态，保留更换/卸下操作。所有业务操作均走实际入口；未消耗打造/重铸材料。末次Console错误0；Play已停止，诊断环境变量已还原，本轮启动的kapai已退出，未修改迁移门禁状态，用户最终画面确认仍由用户执行。
+- 存档影响：正常登录离线收益和副本奖励按游戏规则结算；词条兼容为既有UID2121200101蓝装从空词条补为55“血痕回意”1阶（原种子1045232675及锁定值不变）。全部装备/法宝基础记录、等级和穿戴字段逐字节相同，57/64策略仍172/8；未将整份pet_equip压缩串变化误判为装备丢失。完整前像及equipment-comparison.json留在本轮证据目录。
+- 验收中入口未就绪/离线收益遮罩两类输入被校验拒绝，未派发业务点击；补充等待活动目标与失败即停后路线通过，原失败响应均保留。全量导出测试原隔离夹具漏带洞府表要求的图片，已按正式crop配置复制必要图片到夹具；同时补上中文字典的独立源值对照，不改游戏资源。
+- 发布范围为本次装备/法宝描述与操作规则、68词条维护源和导出链、新20效果接入、A/B入口退役及旧档迁移。其他美术、洞府、场景、无关Excel及手调的其他Hero Prefab保留在工作区，不入本次提交。证据.local/hero-ab-release-20261021/，重点six-strategies-result.json、reload-64-loaded.json、combat-entry.jsonl、battle-replay.json和final-console.json；截图unityclient/Captures/Editor/hero-ab-release-20261021/。
+- 发布前通过：装备维护7项、当前13工作簿的全表字段对照、All/Both/ValidateOnly的237份正式产物。旧测试读取同步为sheet名称/relationship解析，支持中文字典、灵气成本类型和装备持续/次数继承值；运行时派生说明由专项测试覆盖。40文件白名单暂存，160项无关改动哈希保持；代码空白检查严格通过，Prefab保留Unity生成的空字符串字段格式。原生二进制与上轮9项离线迁移、12项协议及完整战斗回归的已验哈希一致。
+
+## 当前检查点（2026-10-20，旧档A/B迁移完成，自动策略保留）
+
+- 本节覆盖下方“旧存档未迁移”的历史状态。玩家英雄入场分支固定0，原技能文件不改；策略0沿用原有选技，1–5救场/守护/控制/爆发/持续仍独立保存，行动时按冷却、战意和场面判断。策略资格改读hero_skill_role，不再依赖A/B开放状态。319/43只返回原版可用，319/44拒绝任何非0分支，协议结构不变。
+- SQLite服务启动在接受登录前批量迁移role_info.bank_item：只归零正式英雄的分支位，保留有效策略和高3位，非法策略6/7独立回落0；不要求英雄已招募或打开过策略页。先用SQLite备份API生成旁路备份，再事务更新；失败整批回滚，重复启动不写入、不再备份。入场读取也强制原版并独立保留策略，避免恢复旧档后重新生效。离线入口：kapai.exe --migrate-hero-selections <现有SQLite文件>，工作目录unityserver/config；仅离线执行，不开监听、不加载角色夹具，不修改其他表。
+- 已检查当前LocalServer及Saves/Slot01、02、03、10共5份有效数据库，Trash和历史证据不动。只有Slot10角色1000003有2条待迁移：57从173→172，保留控制3；64从9→8，保留守护2。全部数据库剩余0条A/B，完整schema/全部其他表和字段/存档metadata均保持，integrity=ok。备份在Slot10/projectx.db.before-ab-retirement-1792493505159438.db。
+- 原生Debug构建及完整combat-data-regression通过（含新增装备60档位/68候选）；离线迁移9项通过，覆盖256种打包值、整库其他数据、备份、幂等、末批SQL失败回滚和坏数据拒绝；真实隔离SQLite协议12项通过，含自动启动迁移、旧A/B拒绝、六策略保存、SQL失败回滚和重启读回。证据.local/hero-ab-retirement-20261020/，优先current-saves-migration.json、offline-regression/results.json、protocol-regression/results.json、native-regression.log、build.log。
+- 68条装备词条、法宝/套装及正式Excel/导出数据本轮不改，旧A/B表仍留作历史和后续清理。Unity MCP未连接，未启动E的Unity，未做本次真实Play画面复测。未提交/推送、未启用子代理。
+
+## 当前检查点（2026-10-20，49–68启用与A/B选择入口下线）
+
+- 用户已明确选择“接入并启用打造和战斗”，覆盖下方新增20条待确认的历史状态。equipment_combat/equipment_affix当前68条启用，新增20条三档、部位、品质、5049–5068被动均完整；hero_combat/combat_effect增加37条，现893条。具体首版数值及预算见HERO_AFFIX_INTEGRATION.md顶部。
+- 删除8列：conflict_group（未执行的预留分组）及7列审核/来源/建议/旧A/B原文。完整原表归档在Outputs/hero-review-20261020/装备词条来源归档-20261020.xlsx。正式18列保留用户最新相邻布局，H/I第一组类型及数值、J/K第二组、L含义、Q/R启停状态。原48条参数、当前列宽/行高、法宝70/套装20及原3技能XML保留。
+- 服务端48条上限及固定红装门槛移除，按正式表筛选；原48条仍要求红装，新20条紫2/橙8/红7/金3。锁定/重铸品质检查已同步，非金3万、金5万、锁定翻倍。增加复活类主动技能冷却职责及装备限时物防标记；叠层上限读副参数。
+- 布阵相关A/B选择控件Branch0/1/2在Prefab和刷新逻辑中隐藏，入口改“自动策略”，策略保存branch=0。Prefab仅4行变化，布局资源保留。**旧存档A/B未批量迁移，旧AB配置未删；按钮下线不等于旧档AB效果停用。** 后续原版英雄切换仍需处理旧档及入场快照，不能直接删除combat_binding。
+- 已验证：63目标正式导出/ValidateOnly，原生Debug构建及完整combat-data-regression，新增60个档位触发用例/68条生成覆盖/品质部位门槛/多人预算/覆盖与到期/伤害上限，7组维护表回归；UI View+Store按Unity程序集离线C#编译通过。仅两类配置的8份JSON改变，其余54份不变。E的Unity MCP未连接，未启动Unity，真实Play及用户画面验收仍未覆盖。
+- 最新证据在.local/gear-table-consolidation-20261020/enable-new/，优先final-verification.json、native-regression-final.log、maintenance-tests.log、build-final.log、ui-compile-netstandard.log及validate-final.log。初次const签名编译错误、击杀夹具未真实阵亡的失败均保留，修正后通过。未改玩家存档、未提交推送、未启用子代理。
+- 既有Test-CombatDataExport的装备列已按旧列→字段名→当前表头解析，4个受影响的时长/次数/负曲线拒绝用例通过；证据legacy-tool.log。未重跑历史全量池。
+
+以下为本轮启用前的维护记录，仅作历史，不能将20条重新覆盖成待配置或用旧作者恢复已删除字段。
+
+## 当前检查点（2026-10-20，装备维护源合并）
+
+- 本次中文分组/状态及数值类型补充已通过63目标ValidateOnly与10组维护回归；62份运行JSON不变。数值数组、用户配置表列宽/行高不变，新增20条仍未启用。最新验证日志为`value-types/validate.log`及`value-types/tests.log`，逐格保留报告为`value-types/verification.json`。
+- 最新补充：conflict_group及config_status中文化并有下拉；分组仍允许空白，状态“已配置 / 待定数值 / 停用”先翻译再做原门控，兼容旧英文。equipment_affix新增X/Y/Z三列（EDITOR）标注两组数值类型与含义，并给H/I的136个数据单元格添加说明，加4条表头备注，原47备注保留，现187备注。48条依实际combat_effect核对，20条类型待确认、不启用。注意词条25二组未读取、30二组为正数判定、44二组实际延长回合且旧描述混用次数/回合，当前仅记录未改旧描述或执行行为。字典读取以结束行隔离各节；事件55–112，分组119–128，状态134–136。备份及核验在`.local/gear-table-consolidation-20261020/value-types/`，禁止用旧作者覆盖。
+- 最新：equipment_affix/event的68行填写值已中文化；同工作簿“词条字段说明”B55:B112→E55:E112提供58项翻译，导出清单columnDictionaries驱动转换，程序仍用原英文事件。兼容旧英文，未知中文/重复映射拒绝落盘。新增G2备注，原46备注、其他配置值及当前列宽/行高不变；备份/逐格核验/回归证据在`.local/gear-table-consolidation-20261020/event-chinese/`，新增20条仍未启用。禁止直接把中文写进生成JSON。
+- 用户已确认20种提取效果都可采用；本轮明确选择“先合并维护表，新增20条待数值确认后启用”，不要替用户填三档强度或启用新生成池。
+- 正式维护源新增`unitydata/excel/equipment_combat.xlsx`：equipment_affix共68条（48 ready导出，20 pending_values不导出），另含combat_artifact 70件、combat_set 20条和维护/清理说明。原hero_combat.xlsx的equipment_affix、fabao.xlsx的combat_artifact、suit.xlsx的combat_set已迁出，旧维护sheet移除，原基础sheet与无关包部件保留。
+- 导出清单与导出器读取新工作簿；pending_values在类型解析前拦截，非法启用/重复身份拒绝落盘。旧改表测试按sheet路由到新工作簿。输出组、JSON路径及现有战斗配置不变。
+- 用户纠正工作簿格式后，正式文件已恢复原来源表的四行彩色表头、原说明/导出标记、列宽、紧凑行高及边框；数据行逐格未变。不要运行旧author_workbook.mjs重新覆盖，格式修正备份和证据在`.local/gear-table-consolidation-20261020/format-fix/`。
+- 后续已补23字段的46条表头原生Excel备注，并加“词条字段说明”页（用途、例子、17条取值字典、58个事件中文对照）。真实部位为1武器/2护肩/3衣服/4护腕；event分类、value1/value2单位、0/空值及预留分组标签均有解释。现有数据和用户当前列宽/行高逐项未变，证据在`.local/gear-table-consolidation-20261020/field-notes/`；保留当前备注版，不跑旧作者覆盖。
+- 用户最新关注：先恢复原版技能、去掉A/B，再清理A/B表。技能XML本身未被改写；需要切换分支及旧档兼容。**本轮尚未去A/B**，不能直接删除combat_binding或A/B效果。只禁用绑定会让ReadBattleSelection连带丢失已存自动策略，下一阶段需兼容为branch=0但保留strategy，并覆盖UI/保存/入场快照及原版技能回归。
+- 保留自动策略、技能职责、选目标、公共规则、周期/控制、槽位、Buff类别和事件深度表；combat_effect继续共用。hero_build_profile、combat_binding与无引用A/B效果待切换验证后再退役。详细维护源和清理判断见HERO_AFFIX_INTEGRATION.md顶部及新工作簿维护说明。
+- 验证：正式导出/ValidateOnly通过63个目标，62份运行/生成JSON及3份原技能XML字节未变；5组维护门控回归、旧改表工具2个拒绝用例通过。第4组原预期错误信息与首个非法字段不符，修正后单独复验，原失败保留。新增20条未做运行时验证，因为尚未启用。
+- 本轮备份及验证目录`.local/gear-table-consolidation-20261020/`，重点看`preservation-final.json`、`package-preservation.json`、`tests.log`、`test04-corrected.log`、`existing-tool.log`、`export-final.log`和`validate-final.log`；未改Prefab/.meta/玩家存档，未启用Unity MCP、未提交推送。r88之后的工作簿结构不能被下方历史作者覆盖。
+
 ## 结论与授权
 
 2026-10-19 r88：用户明确授权“允许将C1作为已知编辑器问题继续记录，先合入功能分支”。本次按调整后的合入条件将codex/hero-affix-data-driven合入main；C1继续未关闭，但不再阻塞本次合入，不宣称已定位或修复。C2–C6及r86两项P2修复的既有验证保持原适用范围，不重跑已通过战斗池或人工画面验收。E其他94项脏文件、玩家存档、最新Prefab及.meta独立保留；未授权子代理。
@@ -71,6 +116,15 @@
 3. r75画面与完整流程人工确认已记录；只待r76缺图修复后的画面核对，不重复已通过流程。提交/推送仍需单独授权。参考模型必须明确frozen-original-with-two-array-bound-corrections、pristine_original_equivalence_claimed=false；r73首次冷却差异与越界的精确因果仍为推断。
 
 ### r74停止检查点（已从新任务恢复，以下保留历史）
+
+**2026-10-19 r74已在批次边界停止：会话记录超过项目20MiB硬上限，须新任务续接；目标未完成、不可合并。** Unity仍打开，未进入Play；未持重载锁，项目MCP覆盖已恢复enabled=false，用户8081服务保留，native/编译进程0。
+
+- 已完成：当前两处护盾/中毒数组越界修复，65535个Buff ID逐项查询及原生回归通过，Release CTest4/4通过；最小ASan旧循环栈越界/修复循环退出0。E通过Git三方适配r74共5文件，91保护及真实暂存区未变；E原生Debug二进制尚未重编。r72保存截图已查看：真实4成员战斗结束后正常返回第一章地图，未发现停在首回合；最终用户画面确认仍待办。
+- 最终统一r74：56/99批（0000–0559）560场/6720检查点全部零差异，批次边界主动停止，无失败批。参考为独立reference-query-r74，仅两处循环边界修正，冻结原155生产源未改；必须标reference_model=frozen-original-with-two-array-bound-corrections，pristine_original_equivalence_claimed=false。修复与r73首次冷却差异的精确因果尚未直接插桩证实，不能将推断当已证实根因。
+- **下次直接执行**：先校验final-r74-progress.json、frozen-r74及最后56份results/input-fingerprints；确认源码/二进制/夹具/正式输入未变后移除final-r74-stop.request，给run-final-r73.ps1补安全Resume（现脚本拒绝已有freeze，不可直接重跑），仅执行剩余标准start560–710共16批、closure0/6/36共3批、loadout共24批。不要重跑已通过56批或任何表作者。全部完成后summarize-formal-loadouts.py r74，再summarize-unified-r52c.py r74；两工具已支持参考模型一致性，目标774场/9288点。当前Release SHA26766ACBDC143CBD7FC930EBB95AD05A7A1B8EE299F0F88B98B914040C47D0C4；修正版参考SHA946454709A9318083A1279B4F4F7C43B95D782C5BE905FF947D5B86B78BD144C；夹具97A9F120D1508575E4E36F371CFAD6D277E992CC68DD5E75401C986DDE16CD0B。
+- 随后：E原生重编/回归→MCP核对实际E实例及稳定编译→沿既有Slot10真实入口继续分支/构筑入场快照、Unity整体性能及普通无重载锁Play，域重载精确触发者仍待定位；输出最终完整实际战斗判定顺序，再由用户验收画面。原5项禁用/替换/参数拦截口径不变，仍不计实触发。Slot10保留，不二次Setup，不覆盖玩家存档/最新Prefab/meta。未提交、推送或启用子代理。
+
+### r74实施历史（以下为停止前记录）
 
 **2026-10-19 r74已在批次边界停止：会话记录超过项目20MiB硬上限，须新任务续接；目标未完成、不可合并。** Unity仍打开，未进入Play；未持重载锁，项目MCP覆盖已恢复enabled=false，用户8081服务保留，native/编译进程0。
 

@@ -12359,7 +12359,7 @@ void CFight::AddTeamRage(uint8 pos,int value,bool extra)
 
 int CFight::GetAffixTier(uint8 pos,uint16 affixId) const
 {
-	if(pos == 0 || pos > MAX_MEMBER || affixId == 0 || affixId > 48)
+	if(pos == 0 || pos > MAX_MEMBER || affixId == 0)
 		return 0;
 	const SFightMember &member = m_members[pos-1];
 	const EquipAffixCfg* config=sCItemCfgManager.GetEquipAffixCfg(affixId);
@@ -12403,7 +12403,7 @@ int CFight::GetTeamBestAffixValue(uint8 pos,uint16 affixId,uint8 valueIndex)
 
 bool CFight::TryTriggerAffix(uint8 pos,uint16 affixId)
 {
-	if(pos == 0 || pos > MAX_MEMBER || affixId == 0 || affixId > 48 || GetAffixTier(pos,affixId) == 0)
+	if(pos == 0 || pos > MAX_MEMBER || affixId == 0 || GetAffixTier(pos,affixId) == 0)
 		return false;
 	EquipAffixCfg *pCfg = sCItemCfgManager.GetEquipAffixCfg(affixId);
 	if(pCfg == NULL)
@@ -12942,7 +12942,7 @@ void CFight::CalculateFight(CNetMessage &msg)
 	{
 		if(!IsEmpty(affixPos))
 		{
-			memset(m_members[affixPos-1].affixTurnCount,0,sizeof(m_members[affixPos-1].affixTurnCount));
+			m_members[affixPos-1].affixTurnCount.clear();
 			memset(m_members[affixPos-1].affixTurnValue,0,sizeof(m_members[affixPos-1].affixTurnValue));
 		}
 	}

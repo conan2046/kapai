@@ -250,8 +250,8 @@ bool Catalog::Load(const std::string& dir, std::string& error) {
             if((e.op=="copy_buff" && e.parameterCount) || (!In(e.op,"buff|copy_buff") && e.parameterCount!=1))throw std::runtime_error("invalid buff parameter count");
             e.actionLimit=Int(row,"per_action",0,65535);e.uniqueTargets=Int(row,"unique_targets",0,65535);
             e.affix=Int(row,"affix_id");e.affixScope=Token(row,"affix_scope","owner|team_highest|team_highest_value2");e.affixAliveOnly=Int(row,"affix_alive_only",0,1)!=0;
-            if(e.bindingScope!="owner" && e.affix)throw std::runtime_error("invalid team binding modifier");
-            e.growthBasis=Str(row,"growth_basis");e.argumentRole=Token(row,"argument_role","fixed|regular|tactic|all");
+            if(e.bindingScope!="owner" && e.bindingScope!="source_mark" && e.bindingScope!="target_mark" && e.affix)throw std::runtime_error("invalid team binding modifier");
+            e.growthBasis=Str(row,"growth_basis");e.argumentRole=Token(row,"argument_role","fixed|regular|tactic|all|revive");
             e.basisCap=Str(row,"basis_cap");
             e.ratioDivisor=Int(row,"ratio_divisor",1,1000000);
             if(e.ratioSource=="constant" && e.ratioDivisor!=10000)throw std::runtime_error("constant coefficient cannot use a dynamic divisor");

@@ -1,5 +1,15 @@
 # Shared by the formal exporter. Validates every row before any output is written.
 function Test-UnityCombatTables($Tables, [string]$Root) {
+    $passiveIds=@{}
+    foreach($affix in $Tables.equipment_affix) {
+        if($affix.id -lt 1 -or $affix.id -gt 65535 -or $affix.passive_skill_id -lt 1 -or $affix.passive_skill_id -gt 65535 -or $passiveIds.ContainsKey([string]$affix.passive_skill_id)){throw 'Invalid or duplicate affix passive identity'}
+        $passiveIds[[string]$affix.passive_skill_id]=$true
+        if($affix.quality_min -lt 1 -or $affix.quality_min -gt 7 -or $affix.parts.Count -lt 1 -or @($affix.parts|Where-Object {$_ -notin @(1,2,3,4)}).Count){throw 'Invalid affix quality/parts'}
+        foreach($curve in @('value1','value2')) {
+            if($affix[$curve].Count -ne 3 -or @($affix[$curve]|Where-Object {[string]$_ -notmatch '^\d+$' -or [decimal]$_ -gt [int]::MaxValue}).Count){throw "Invalid affix three-tier curve: $($affix.id).$curve"}
+        }
+        if($affix.duration -lt 0 -or $affix.duration -gt 255 -or $affix.per_turn_limit -lt 0 -or $affix.per_turn_limit -gt 65535 -or $affix.per_battle_limit -lt 0 -or $affix.per_battle_limit -gt 65535){throw 'Invalid affix duration/budget'}
+    }
     $effectFields=@('one','gear_value','turn','source_alive','source_summoned','source_hp','source_hp_bp','source_max_hp','source_attack','rage','target_hp','target_max_hp','target_missing_hp','target_hp_bp','target_alive','target_boss','target_shield','target_debuff_categories','target_has_debuff','source_hard_control','position')
     $effectFields+=@('source_position','target_hard_control','target_hp_bp_ceil','target_shield_amount','enemies_alive','target_attack_type')
     $contextFields=@{
@@ -320,7 +330,7 @@ function Test-UnityCombatTables($Tables, [string]$Root) {
         if($r.ratio_source -eq 'constant' -and $r.ratio_divisor -ne 10000){throw 'Constant coefficient cannot use a dynamic divisor'}
         if($r.cap_ratio_source -notin @('constant','gear_value','affix_value1','affix_value2')){throw 'Invalid combat cap ratio source'}
         if($r.cap_ratio_source -ne 'constant' -and -not $r.cap_bp){throw 'Dynamic cap requires positive cap coefficient'}
-        if($r.argument_role -notin @('fixed','regular','tactic','all') -or ($r.argument_role -ne 'fixed' -and ($r.op -ne 'cooldown' -or $r.argument))){throw 'Invalid skill role argument'}
+        if($r.argument_role -notin @('fixed','regular','tactic','all','revive') -or ($r.argument_role -ne 'fixed' -and ($r.op -ne 'cooldown' -or $r.argument))){throw 'Invalid skill role argument'}
         if($r.op -eq 'gate' -and ($(if($r.counter_scope -eq 'target'){$r.target -notin @('target','target_any')}else{$r.target -notin @('self','self_any')}) -or $r.probability_bp -ne 10000 -or $r.basis -ne 'one' -or $r.ratio_bp -or $r.growth_bp -or $r.flat -or $r.cap_bp -or $r.duration -or $r.argument)){throw 'Invalid event gate'}
         if($r.op -eq 'chance_gate' -and ($(if($r.counter_scope -eq 'target'){$r.target -notin @('target','target_any')}else{$r.target -notin @('self','self_any')}) -or $r.basis -ne 'one' -or $r.ratio_bp -or $r.growth_bp -or $r.flat -or $r.cap_bp -or $r.duration -or $r.argument -or $r.budget -ne 'none')){throw 'Invalid chance gate'}
         if($r.op -eq 'reset_counter') {

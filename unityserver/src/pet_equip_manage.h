@@ -259,7 +259,6 @@ struct EquipAffixCfg
 	string key;
 	string name;
 	string event;
-	string conflictGroup;
 	string desc;
 	vector<uint8> parts;
 	int value1[3];

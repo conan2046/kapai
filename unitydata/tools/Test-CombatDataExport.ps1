@@ -15,13 +15,13 @@ foreach($relative in @('unitydata/excel','unityserver/config','unityserver/sql/s
 $workbook=Join-Path $Root 'unitydata/excel/hero_combat.xlsx'
 $copy=Join-Path $fixture 'unitydata/excel/hero_combat.xlsx'
 Copy-Item -LiteralPath $workbook -Destination $copy
-foreach($name in @('fabao.xlsx','suit.xlsx')){Copy-Item -LiteralPath (Join-Path $Root "unitydata/excel/$name") -Destination (Join-Path $fixture 'unitydata/excel')}
+foreach($name in @('fabao.xlsx','suit.xlsx','equipment_combat.xlsx')){Copy-Item -LiteralPath (Join-Path $Root "unitydata/excel/$name") -Destination (Join-Path $fixture 'unitydata/excel')}
 foreach($part in @('json','xml')){
     Copy-Item -LiteralPath (Join-Path $Root "unityserver/config/$part") -Destination (Join-Path $fixture 'unityserver/config') -Recurse
 }
 Copy-Item -LiteralPath (Join-Path $Root 'unityserver/sql/sqlite/001_initial_schema.sql') -Destination (Join-Path $fixture 'unityserver/sql/sqlite')
 $sourceHash=(Get-FileHash -LiteralPath $workbook).Hash
-$equipmentHashes=@{};foreach($name in @('fabao.xlsx','suit.xlsx')){$equipmentHashes[$name]=(Get-FileHash -LiteralPath (Join-Path $Root "unitydata/excel/$name")).Hash}
+$equipmentHashes=@{};foreach($name in @('fabao.xlsx','suit.xlsx','equipment_combat.xlsx')){$equipmentHashes[$name]=(Get-FileHash -LiteralPath (Join-Path $Root "unitydata/excel/$name")).Hash}
 function Get-CombatBinaryHash {
     # Permit an external reader/writer handle without removing the before/after
     # binary-integrity check. Fail if metadata changes during this hash read.
@@ -77,9 +77,16 @@ function Test-CaseSelected([string]$Name) {
 # Deliberate corruption/sensitivity fixtures only: mutate a single XLSX cell,
 # keeping all other package parts intact. Production tables are never edited.
 function Reset-Fixture {
-    foreach($name in @('hero_combat.xlsx','fabao.xlsx','suit.xlsx')){Copy-Item -LiteralPath (Join-Path $Root "unitydata/excel/$name") -Destination (Join-Path $fixture 'unitydata/excel') -Force}
+    foreach($name in @('hero_combat.xlsx','fabao.xlsx','suit.xlsx','equipment_combat.xlsx')){Copy-Item -LiteralPath (Join-Path $Root "unitydata/excel/$name") -Destination (Join-Path $fixture 'unitydata/excel') -Force}
 }
 function Set-FixtureCell([string]$Sheet,[string]$Column,[int]$Row,[string]$Value,[string]$WorkbookFile='hero_combat.xlsx') {
+    if($Sheet -in @('equipment_affix','combat_artifact','combat_set')){$WorkbookFile='equipment_combat.xlsx'}
+    # Older sensitivity cases use the original A:N affix layout. Resolve its
+    # logical field against the current header after user column moves/cleanup.
+    if($Sheet -eq 'equipment_affix' -and $Column -cmatch '^[A-N]$') {
+        $legacyFields=@('id','key','name','parts','quality_min','passive_skill_id','event','value1','value2','duration','per_turn_limit','per_battle_limit','conflict_group','desc')
+        $Column=$legacyFields[[int][char]$Column-65]
+    }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $zip=$null
     for($attempt=0;$attempt -lt 6;$attempt++) {
@@ -218,7 +225,7 @@ $cases+=@(
     @{name='invalid_overheal_cap';sheet='combat_rule';column='C';row=47;value='10001';error='Invalid combat shared rule'}
     @{name='unbound_inherited_duration';sheet='combat_effect';column='O';row=5;value='-1';error='Inherited duration requires a valid affix binding'}
     @{name='zero_inherited_duration';sheet='equipment_affix';column='J';row=12;value='0';error='Invalid inherited affix duration'}
-    @{name='excess_inherited_duration';sheet='equipment_affix';column='J';row=12;value='256';error='Invalid inherited affix duration'}
+    @{name='excess_inherited_duration';sheet='equipment_affix';column='J';row=12;value='256';error='Invalid affix duration/budget'}
     @{name='hero_gear_selector';sheet='combat_effect';column='G';row=5;value='highest_gear_ally';error='Equipment selector requires equipment group'},
     @{name='zero_rage_budget';sheet='combat_rule';column='C';row=27;value='0';error='Invalid combat shared rule'}
     @{name='unreachable_tactic_cost';sheet='combat_rule';column='C';row=36;value='101';error='Tactic minimum exceeds rage cap'}
@@ -283,8 +290,8 @@ $cases+=@(
     @{name='cost_query_rng';sheet='combat_effect';column='P';row=72;value='5000';error='Cost query must be a deterministic modifier'},
     @{name='cost_query_budget';sheet='combat_effect';column='Q';row=72;value='1';error='Cost query must be a deterministic modifier'},
     @{name='inherited_budget_unbound';sheet='combat_effect';column='AF';row=73;value='0';error='Inherited budget requires a valid affix binding'},
-    @{name='inherited_budget_negative';sheet='equipment_affix';column='K';row=8;value='-1';error='Invalid inherited affix budget'},
-    @{name='inherited_budget_excess';sheet='equipment_affix';column='K';row=28;value='65536';error='Invalid inherited affix budget'},
+    @{name='inherited_budget_negative';sheet='equipment_affix';column='K';row=8;value='-1';error='Invalid affix duration/budget'},
+    @{name='inherited_budget_excess';sheet='equipment_affix';column='K';row=28;value='65536';error='Invalid affix duration/budget'},
     @{name='invalid_budget_sentinel';sheet='combat_effect';column='Q';row=74;value='-2';error='Invalid combat effect range'},
     @{name='final_heal_query_rng';sheet='combat_effect';column='P';row=78;value='5000';error='Healing/usefulness query must be deterministic'},
     @{name='usefulness_query_budget';sheet='combat_effect';column='Q';row=85;value='1';error='Healing/usefulness query must be deterministic'},
@@ -339,7 +346,7 @@ $cases+=@(
     @{name='chance_wrong_operator';sheet='combat_effect';column='probability_source';row=124;value='affix_value1';error='Invalid dynamic probability contract'}
     @{name='chance_missing_binding';sheet='combat_effect';column='affix_id';row=123;value='0';error='Invalid dynamic probability contract'}
     @{name='chance_curve_above_limit';sheet='equipment_affix';column='H';row=19;value='[2500,4000,10001]';error='Invalid dynamic probability range'}
-    @{name='chance_curve_negative';sheet='equipment_affix';column='H';row=19;value='[2500,4000,-1]';error='Invalid dynamic probability range'}
+    @{name='chance_curve_negative';sheet='equipment_affix';column='H';row=19;value='[2500,4000,-1]';error='Invalid affix three-tier curve'}
     @{name='chance_target_scope';sheet='combat_effect';column='counter_scope';row=123;value='target';error='Invalid chance gate'}
     @{name='chance_multiple_targets';sheet='combat_effect';column='target';row=123;value='allies';error='Invalid chance gate'}
     @{name='chance_nonzero_payload';sheet='combat_effect';column='flat';row=123;value='1';error='Invalid chance gate'}

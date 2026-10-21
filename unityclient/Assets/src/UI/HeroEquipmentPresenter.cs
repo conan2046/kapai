@@ -136,6 +136,7 @@ namespace ProjectX.UI
         private DisplayRecord selected;
         private DisplayRecord changeCurrent;
         private bool returnToListOnDetailClose = true;
+        private bool detailFromHeroSlot;
         private HeroEquipmentKind activeKind = HeroEquipmentKind.Equipment;
         private int formationPosition = 1;
         private int missingIconCount;
@@ -259,15 +260,15 @@ namespace ProjectX.UI
             if (!cultivationOnly)
             {
                 detailName = RequireText(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name");
-            detailDescription = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/zhuangbeimiaoshu/Content");
+            detailDescription = RequireText(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/zhuangbeimiaoshu/Content");
             detailBaseAttribute = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jichushuxing/Atrribute_1/Value");
             detailStrength = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Level/Value");
             detailRefine = RequireText(detailView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Level/Value");
             Transform detailIconHost = Require(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Node").transform;
             detailQualityFrame = EnsureDetailQualityFrame(detailIconHost);
             detailIcon = EnsureDetailIcon(detailIconHost);
-            wearButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan");
-                takeOffButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia");
+            wearButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_genghuan");
+                takeOffButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_xiexia");
                 strengthButton = RequireButton(detailView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Btn_qianghua");
             }
             strengthOnceButton = RequireButton(strengthView, "Layer/zhuangbeiqianghuaUI/qianghua/qianghuaxiaohao/qianghuaBtn");
@@ -383,6 +384,7 @@ namespace ProjectX.UI
             activeKind = kind;
             selected = default;
             returnToListOnDetailClose = true;
+            detailFromHeroSlot = false;
             HideDetails();
             Render();
             listView.SetVisible(true);
@@ -393,6 +395,7 @@ namespace ProjectX.UI
             formationPosition = Mathf.Clamp(selectedFormationPosition, 1, 5);
             activeKind = slot <= 4 ? HeroEquipmentKind.Equipment : HeroEquipmentKind.FaBao;
             returnToListOnDetailClose = false;
+            detailFromHeroSlot = true;
             Render();
             DisplayRecord item = items.FirstOrDefault(value =>
                 value.FormationPosition == formationPosition && value.Slot == slot);
@@ -411,6 +414,7 @@ namespace ProjectX.UI
         public int RenderKind(HeroEquipmentKind kind)
         {
             activeKind = kind;
+            detailFromHeroSlot = false;
             selected = default;
             HideDetails();
             Render();
@@ -584,6 +588,7 @@ namespace ProjectX.UI
             button.onClick.AddListener(() =>
             {
                 returnToListOnDetailClose = true;
+                detailFromHeroSlot = false;
                 ShowDetails(item);
             });
             Transform cultivateTransform = cell.Find("Btn_yangcheng");
@@ -606,6 +611,8 @@ namespace ProjectX.UI
 
         private void ShowDetails(DisplayRecord item)
         {
+            bool canOperate = detailFromHeroSlot && item.FormationPosition > 0
+                && item.FormationPosition == formationPosition;
             bool refreshSameItem = detailView.GameObject.activeSelf && selected.Uid == item.Uid && selected.Kind == item.Kind;
             var scrollPositions = new Dictionary<ScrollRect, float>();
             if (refreshSameItem)
@@ -625,19 +632,21 @@ namespace ProjectX.UI
             if (popupTitle != null)
                 popupTitle.text = item.Kind == HeroEquipmentKind.FaBao ? "法宝信息" : "装备信息";
             detailName.text = item.Definition.Name;
-            string description = string.IsNullOrEmpty(item.Definition.Description)
-                ? $"模板：{item.Definition.Id}　品质：{item.Definition.Quality}　槽位：{item.Slot}"
-                : item.Definition.Description;
+            SetDetailText("Layer/zhuangbeiInfoUI/zhuangbei/zhuangbeimiaoshu/Title/Title",
+                item.Kind == HeroEquipmentKind.FaBao ? "法宝机制" : "装备词条");
+            string description = item.Definition.Description ?? string.Empty;
             if (item.Kind == HeroEquipmentKind.Equipment && item.Equipment.Affix.IsValid)
             {
                 HeroEquipmentAffix affix = item.Equipment.Affix;
                 string lockState = (affix.LockMask & 1) != 0 ? "已锁定" : "未锁定";
-                description += $"\n<color=#D56A30>[特殊词条·T{affix.Tier}·{lockState}] {affix.Name}</color>\n{affix.Description}" +
-                    $"\n<color=#4F8FBC>推荐：{AffixBuildRecommendation(affix.Key)}</color>";
+                string prefix = string.IsNullOrWhiteSpace(description) ? string.Empty : description.Trim() + "\n";
+                description = prefix + $"<color=#D56A30>{affix.Name} · {affix.Tier}阶 · {lockState}</color>\n{catalog.GetAffixDescription(affix)}";
             }
+            else if (item.Kind == HeroEquipmentKind.FaBao)
+                description = catalog.GetArtifactDescription(item.FaBao, faBao.Items);
+            if (string.IsNullOrWhiteSpace(description)) description = "暂无额外效果说明。";
             detailDescription.text = description;
-            RefreshBuildRecommendation(item);
-            bool hasAffixActions = item.Kind == HeroEquipmentKind.Equipment && item.Equipment.Affix.IsValid;
+            bool hasAffixActions = canOperate && item.Kind == HeroEquipmentKind.Equipment && item.Equipment.Affix.IsValid;
             affixActionRow.SetActive(hasAffixActions);
             if (hasAffixActions)
             {
@@ -668,43 +677,55 @@ namespace ProjectX.UI
                 AttributeName(attrType) + "：");
             SetDetailText("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Atrribute_1/Value",
                 $"+{(item.Kind == HeroEquipmentKind.Equipment ? item.Equipment.StrengthAttributeValue : 0u)}");
+            BindDetailCultivationAttributes("jinglianshuxing", item.Definition.RefineAttributes, item.RefineLevel);
+            int awakenLevel = item.Kind == HeroEquipmentKind.Equipment ? item.Equipment.GetLevel(3) : 0;
+            int divineLevel = item.Kind == HeroEquipmentKind.Equipment ? item.Equipment.GetLevel(4) : 0;
+            SetDetailText("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/juexingshuxing/Level/Value",
+                catalog.GetAwaken(awakenLevel)?.Name ?? "0星0品");
+            SetDetailText("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/shenzhushuxing/Level/Value",
+                catalog.GetDivine(divineLevel)?.Name ?? "0阶0层");
+            BindDetailCultivationAttributes("juexingshuxing", item.Definition.AwakenAttributes, awakenLevel,
+                item.Kind == HeroEquipmentKind.Equipment
+                    ? catalog.GetAwakenAdditionalAttributes(item.Slot, awakenLevel) : null);
+            BindDetailCultivationAttributes("shenzhushuxing", item.Definition.DivineAttributes, divineLevel);
             ApplyIcon(detailIcon, item);
-            bool worn = item.FormationPosition > 0;
-            wearButton.gameObject.SetActive(true);
-            takeOffButton.gameObject.SetActive(worn);
+            wearButton.gameObject.SetActive(canOperate);
+            takeOffButton.gameObject.SetActive(canOperate);
             wearButton.onClick.RemoveAllListeners();
             takeOffButton.onClick.RemoveAllListeners();
             strengthButton.onClick.RemoveAllListeners();
-            strengthButton.gameObject.SetActive(true);
+            strengthButton.gameObject.SetActive(canOperate);
             SetSectionVisible("jichushuxing", true);
             SetSectionVisible("qianghuashuxing", true);
             SetSectionVisible("jinglianshuxing", true);
             SetSectionVisible("juexingshuxing", item.Kind == HeroEquipmentKind.Equipment && item.Definition.Quality >= 5);
             SetSectionVisible("shenzhushuxing", item.Kind == HeroEquipmentKind.Equipment && item.Definition.Quality >= 6);
             SetSectionVisible("zhuangbeitaozhuang", false);
-            LayoutDetailDescription();
+            SetSectionVisible("zhuangbeimiaoshu", false);
             if (item.Kind == HeroEquipmentKind.Equipment)
             {
-                wearButton.onClick.AddListener(() =>
+                if (canOperate)
                 {
-                    if (item.FormationPosition == 0) wearEquipment?.Invoke(item.Uid, formationPosition);
-                    else ShowChange(item);
-                });
-                takeOffButton.onClick.AddListener(() => takeOffEquipment?.Invoke(item.Uid, item.FormationPosition));
-                strengthButton.onClick.AddListener(() => ShowStrength(item));
-                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian", true,
+                    wearButton.onClick.AddListener(() => ShowChange(item));
+                    takeOffButton.onClick.AddListener(() => takeOffEquipment?.Invoke(item.Uid, item.FormationPosition));
+                    strengthButton.onClick.AddListener(() => ShowStrength(item));
+                }
+                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian", canOperate,
                     () => ShowRefine(item));
                 BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/juexingshuxing/Btn_juexing",
-                    item.Definition.Quality >= 5, () => ShowAwaken(item));
+                    canOperate && item.Definition.Quality >= 5, () => ShowAwaken(item));
                 BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/shenzhushuxing/Btn_shenzhu",
-                    item.Definition.Quality >= 6, () => ShowDivine(item));
+                    canOperate && item.Definition.Quality >= 6, () => ShowDivine(item));
             }
             else
             {
-                wearButton.onClick.AddListener(() => ShowChange(item));
-                takeOffButton.onClick.AddListener(() => takeOffFaBao?.Invoke(item.Uid));
-                strengthButton.onClick.AddListener(() => ShowFaBaoStrength(item));
-                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian", true,
+                if (canOperate)
+                {
+                    wearButton.onClick.AddListener(() => ShowChange(item));
+                    takeOffButton.onClick.AddListener(() => takeOffFaBao?.Invoke(item.Uid));
+                    strengthButton.onClick.AddListener(() => ShowFaBaoStrength(item));
+                }
+                BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian", canOperate,
                     () => ShowFaBaoRefine(item));
                 BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/juexingshuxing/Btn_juexing", false, null);
                 BindDetailCultivationButton("Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/shenzhushuxing/Btn_shenzhu", false, null);
@@ -914,6 +935,7 @@ namespace ProjectX.UI
         public bool PrepareDetails(uint uid, int selectedFormationPosition)
         {
             formationPosition = Mathf.Clamp(selectedFormationPosition, 1, 5);
+            detailFromHeroSlot = true;
             if (!equipment.TryGet(uid, out HeroEquipmentRecord value)) return false;
             activeKind = HeroEquipmentKind.Equipment;
             Render();
@@ -2072,60 +2094,6 @@ namespace ProjectX.UI
             buildRecommendationText.gameObject.SetActive(false);
         }
 
-        private void RefreshBuildRecommendation(DisplayRecord item)
-        {
-            bool visible = item.Kind == HeroEquipmentKind.Equipment && item.Equipment.Affix.IsValid;
-            buildRecommendationText.gameObject.SetActive(visible);
-            if (!visible) return;
-            int heroId = item.FormationPosition > 0
-                ? getHeroAtDisplayPosition?.Invoke(item.FormationPosition) ?? 0 : 0;
-            buildRecommendationText.text = HeroBuildRecommendation.Describe(
-                HeroBuildProfileCatalog.Profiles, heroId, item.Equipment.Affix.Key);
-        }
-
-        private void LayoutDetailDescription()
-        {
-            RectTransform section = detailDescription.transform.parent as RectTransform;
-            RectTransform title = section != null
-                ? section.Find("Title")?.GetComponent<RectTransform>() : null;
-            RectTransform body = detailDescription.rectTransform;
-            if (section == null || title == null || body == null) return;
-
-            float titleHeight = title.rect.height;
-            float bodyHeight = Mathf.Max(1f, detailDescription.preferredHeight);
-            const float gap = 6f;
-            const float bottomPadding = 6f;
-            section.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical,
-                titleHeight + gap + bodyHeight + bottomPadding);
-
-            title.anchorMin = new Vector2(title.anchorMin.x, 1f);
-            title.anchorMax = new Vector2(title.anchorMax.x, 1f);
-            title.pivot = new Vector2(title.pivot.x, 1f);
-            title.anchoredPosition = new Vector2(title.anchoredPosition.x, 0f);
-
-            body.anchorMin = new Vector2(0f, 1f);
-            body.anchorMax = new Vector2(0f, 1f);
-            body.pivot = new Vector2(0f, 1f);
-            body.anchoredPosition = new Vector2(body.anchoredPosition.x, -titleHeight - gap);
-            body.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, bodyHeight);
-            switch (detailDescription.alignment)
-            {
-                case TextAnchor.MiddleLeft:
-                case TextAnchor.LowerLeft:
-                    detailDescription.alignment = TextAnchor.UpperLeft;
-                    break;
-                case TextAnchor.MiddleCenter:
-                case TextAnchor.LowerCenter:
-                    detailDescription.alignment = TextAnchor.UpperCenter;
-                    break;
-                case TextAnchor.MiddleRight:
-                case TextAnchor.LowerRight:
-                    detailDescription.alignment = TextAnchor.UpperRight;
-                    break;
-            }
-            LayoutRebuilder.MarkLayoutForRebuild(section.parent as RectTransform);
-        }
-
         private void ConfigureAffixActions()
         {
             Transform content = detailView.GameObject.GetComponentsInChildren<Transform>(true)
@@ -2143,27 +2111,6 @@ namespace ProjectX.UI
         {
             Text label = button?.GetComponentInChildren<Text>(true);
             if (label != null) label.text = value;
-        }
-
-        private static string AffixBuildRecommendation(string key)
-        {
-            string prefix = string.IsNullOrEmpty(key) ? string.Empty : key.Split('-')[0];
-            switch (prefix)
-            {
-                case "SHIELD": return "护盾守护流｜护盾、援护、减伤";
-                case "HEAL": return "治疗复苏流｜治疗、净化、复活";
-                case "GUARD": return "嘲讽承伤流｜前排坦克、援护";
-                case "COUNTER": return "反击荆棘流｜受击反打、分伤";
-                case "CRIT": return "暴击斩杀流｜单体爆发、收割";
-                case "COMBO": return "连击追击流｜普攻连段、追加行动";
-                case "BREAK": return "破盾破法流｜穿透、驱盾、法术爆发";
-                case "CONTROL": return "控制先手流｜眩晕、沉默、速度压制";
-                case "DOT": return "持续伤害流｜毒、灼烧、异常扩散";
-                case "DEBUFF": return "弱化禁疗流｜减益、禁疗、易伤";
-                case "DEATH": return "献祭召唤流｜死亡触发、召唤";
-                case "TACTIC": return "战意战法流｜战法循环、团队辅助";
-                default: return "通用构筑｜按神将技能标签搭配";
-            }
         }
 
         private void ConfigureCultivationButtons()
@@ -2199,6 +2146,45 @@ namespace ProjectX.UI
         {
             Text text = HeroEquipmentNodeIds.Get(detailView, path)?.GetComponent<Text>();
             if (text != null) text.text = value;
+        }
+
+        private void BindDetailCultivationAttributes(string section, IReadOnlyList<int[]> attributes, int level,
+            IReadOnlyList<int[]> additionalAttributes = null)
+        {
+            GameObject sectionObject = HeroEquipmentNodeIds.Get(detailView,
+                $"Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/{section}");
+            if (sectionObject == null) return;
+            var totals = new SortedDictionary<int, long>();
+            foreach (int[] attribute in attributes ?? Array.Empty<int[]>())
+            {
+                if (attribute == null || attribute.Length < 2) continue;
+                totals.TryGetValue(attribute[0], out long current);
+                totals[attribute[0]] = checked(current + (long)attribute[1] * level);
+            }
+            foreach (int[] attribute in additionalAttributes ?? Array.Empty<int[]>())
+            {
+                if (attribute == null || attribute.Length < 2) continue;
+                totals.TryGetValue(attribute[0], out long current);
+                totals[attribute[0]] = checked(current + attribute[1]);
+            }
+            KeyValuePair<int, long>[] values = totals.ToArray();
+            Transform[] rows = sectionObject.transform.Cast<Transform>()
+                .Where(value => value.name.StartsWith("Atrribute_", StringComparison.Ordinal))
+                .OrderBy(value => value.GetSiblingIndex()).ToArray();
+            if (values.Length > rows.Length)
+                throw new InvalidOperationException($"Equipment detail {section} has too few authored attribute rows.");
+            for (int index = 0; index < rows.Length; index++)
+            {
+                rows[index].gameObject.SetActive(index < values.Length);
+                if (index >= values.Length) continue;
+                Text label = rows[index].GetComponent<Text>();
+                if (label != null) label.text = AttributeName(values[index].Key) + "：";
+                long amount = values[index].Value;
+                string number = values[index].Key >= 10
+                    ? (amount / 100d).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%"
+                    : amount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                SetText(rows[index], "Value", (amount >= 0 ? "+" : string.Empty) + number);
+            }
         }
 
         private static string AttributeName(int type)

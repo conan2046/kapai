@@ -65,13 +65,13 @@ namespace ProjectX.UI
         private void Close() { if (panel != null) panel.SetActive(false); }
         private void ChooseBranch(int branch)
         {
-            if (store == null || store.IsPending(hero) || !store.TryGet(hero, out HeroBuildSelection state) || !state.CanSelect(branch)) return;
-            save?.Invoke(hero, branch, state.Strategy);
+            // Branch selection is retired from the player-facing formation UI.
+            return;
         }
         private void ChooseStrategy(int strategy)
         {
-            if (store == null || store.IsPending(hero) || !store.TryGet(hero, out HeroBuildSelection state) || !state.CanSelect(state.Branch)) return;
-            save?.Invoke(hero, state.Branch, strategy);
+            if (store == null || store.IsPending(hero) || !store.TryGet(hero, out HeroBuildSelection state) || !state.CanSelect(0)) return;
+            save?.Invoke(hero, 0, strategy);
         }
         private void Render()
         {
@@ -83,15 +83,14 @@ namespace ProjectX.UI
             HeroBuildSelection state = default;
             bool ready = store != null && store.TryGet(hero, out state), pending = store != null && store.IsPending(hero);
             for (int i = 0; i < branchButtons.Length; i++)
-            { branchButtons[i].interactable = ready && !pending && state.CanSelect(i); Mark(branchSelected, i, ready && state.Branch == i); }
+            { branchButtons[i].gameObject.SetActive(false); branchButtons[i].interactable = false; Mark(branchSelected, i, false); }
             for (int i = 0; i < strategyButtons.Length; i++)
-            { strategyButtons[i].interactable = ready && !pending && state.CanSelect(state.Branch); Mark(strategySelected, i, ready && state.Strategy == i); }
-            selection.text = ready ? BranchName(state.Branch) + " / " + StrategyName(state.Strategy) : "请选择流派和自动策略";
+            { strategyButtons[i].interactable = ready && !pending && state.CanSelect(0); Mark(strategySelected, i, ready && state.Strategy == i); }
+            selection.text = ready ? StrategyName(state.Strategy) : "请选择自动策略";
             string error = store != null ? store.Error(hero) : string.Empty;
             status.text = pending ? (store.IsSaving(hero) ? "保存中…" : "读取中…") : !string.IsNullOrEmpty(error) ? error
-                : ready && !state.CanSelect(state.Branch) ? "当前流派尚未开放，请选择其他流派" : "战斗中自动执行";
+                : ready && !state.CanSelect(0) ? "当前英雄配置不可用" : "战斗中自动执行";
         }
-        private static string BranchName(int value) => value == 1 ? "流派 A" : value == 2 ? "流派 B" : "原版";
         private static string StrategyName(int value)
         { string[] names = { "原有策略", "救场", "守护", "控制", "爆发", "持续" }; return value >= 0 && value < names.Length ? names[value] : names[0]; }
         private static bool Complete(Button[] values, int count)

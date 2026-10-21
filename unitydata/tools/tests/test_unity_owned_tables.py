@@ -1,6 +1,6 @@
 """Isolated source -> exporter -> JSON/XML/SQLite acceptance (stdlib only)."""
 from pathlib import Path
-import csv, hashlib, io, json, shutil, sqlite3, subprocess, unittest, uuid, zipfile
+import csv, hashlib, io, json, posixpath, shutil, sqlite3, subprocess, unittest, uuid, zipfile
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -8,7 +8,14 @@ EXPORTER = ROOT / 'unitydata/tools/Export-UnityOwnedTables.ps1'
 MANIFEST = json.loads((ROOT/'unitydata/tools/unity-owned-tables.json').read_text(encoding='utf-8'))
 NS={'s':'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 
-def workbook_rows(path, index):
+def workbook_sheet_part(archive, index=1, sheet_name=None):
+    sheets=ET.fromstring(archive.read('xl/workbook.xml')).findall('s:sheets/s:sheet',NS)
+    sheet=next(s for s in sheets if s.get('name')==sheet_name) if sheet_name else sheets[index-1]
+    rid=sheet.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id')
+    target=next(r.get('Target') for r in ET.fromstring(archive.read('xl/_rels/workbook.xml.rels')) if r.get('Id')==rid)
+    return target.lstrip('/') if target.startswith('/') else posixpath.normpath('xl/'+target)
+
+def workbook_rows(path, index, sheet_name=None):
     with zipfile.ZipFile(path) as z:
         strings=[]
         if 'xl/sharedStrings.xml' in z.namelist():
@@ -17,9 +24,30 @@ def workbook_rows(path, index):
             if c.get('t')=='inlineStr':return ''.join(c.find('s:is',NS).itertext())
             v=c.findtext('s:v',default='',namespaces=NS)
             return strings[int(v)] if c.get('t')=='s' else v
-        rows=ET.fromstring(z.read(f'xl/worksheets/sheet{index}.xml')).findall('s:sheetData/s:row',NS)
+        rows=ET.fromstring(z.read(workbook_sheet_part(z,index,sheet_name))).findall('s:sheetData/s:row',NS)
         headers={''.join(x for x in c.get('r') if x.isalpha()):value(c) for c in rows[0].findall('s:c',NS)}
         return [{headers[''.join(x for x in c.get('r') if x.isalpha())]:value(c) for c in r.findall('s:c',NS)} for r in rows if int(r.get('r'))>=5]
+
+def dictionary_labels(path, definition):
+    with zipfile.ZipFile(path) as z:
+        strings=[]
+        if 'xl/sharedStrings.xml' in z.namelist():
+            strings=[''.join(si.itertext()) for si in ET.fromstring(z.read('xl/sharedStrings.xml')).findall('s:si',NS)]
+        part=workbook_sheet_part(z,sheet_name=definition['sheet'])
+        cells={}
+        for cell in ET.fromstring(z.read(part)).findall('.//s:sheetData/s:row/s:c',NS):
+            value=cell.findtext('s:v',default='',namespaces=NS)
+            if cell.get('t')=='s':value=strings[int(value)]
+            elif cell.get('t')=='inlineStr':value=''.join(cell.find('s:is',NS).itertext())
+            cells[cell.get('r')]=value.strip()
+        labels={}
+        for row in range(definition['firstDataRow'],definition['lastDataRow']+1):
+            label=cells.get(definition['labelColumn']+str(row),'')
+            value=cells.get(definition['valueColumn']+str(row),'')
+            if label or value:
+                assert label and value and label not in labels
+                labels[label]=value
+        return labels
 
 def patch_cell(path,index,address,value=None,formula=None,delete_row=None):
     with zipfile.ZipFile(path) as z:parts={n:z.read(n) for n in z.namelist()}
@@ -59,11 +87,22 @@ class UnityOwnedTablesTests(unittest.TestCase):
         cls.root=ROOT/'.local/unitydata-closure-tests'/uuid.uuid4().hex
         cls.root.mkdir(parents=True)
         (cls.root/'unitydata/excel').mkdir(parents=True)
-        for g in MANIFEST['groups']:shutil.copy2(ROOT/'unitydata/excel'/g['workbook'],cls.root/'unitydata/excel'/g['workbook'])
+        books={g['workbook'] for g in MANIFEST['groups']}
+        books.update(s['workbook'] for g in MANIFEST['groups'] for s in g['sheets'] if s.get('workbook'))
+        # Combat validation also checks artifact/set IDs against the base books.
+        books.update(('fabao.xlsx','suit.xlsx'))
+        for book in books:shutil.copy2(ROOT/'unitydata/excel'/book,cls.root/'unitydata/excel'/book)
         for rel in ['unityserver/config/json','unityserver/config/xml','unityserver/config/source','unityserver/sql/sqlite']:
             shutil.copytree(ROOT/rel,cls.root/rel)
         for rel in ['unitydata/export/client/source','unityclient/Assets/Resources/ProjectXData']:
             shutil.copytree(ROOT/rel,cls.root/rel)
+        # The full exporter validates formal crop sprites as well as table data.
+        crops=json.loads((ROOT/'unityserver/config/json/dongfu_crop.json').read_text(encoding='utf-8-sig'))
+        sprites={row[field] for row in crops for field in ('icon_key','initial_resource_key','middle_resource_key','mature_resource_key')}
+        for key in sprites:
+            relative=Path('unityclient/Assets')/(key+'.png')
+            (cls.root/relative).parent.mkdir(parents=True,exist_ok=True)
+            shutil.copy2(ROOT/relative,cls.root/relative)
         cls.run_export('All')
     @classmethod
     def run_export(cls,group,validate=False,success=True,mode='Both'):
@@ -77,12 +116,34 @@ class UnityOwnedTablesTests(unittest.TestCase):
         for g in MANIFEST['groups']:
             for s in g['sheets']:
                 with self.subTest(group=g['group'],sheet=s['name']):
-                    expected=workbook_rows(self.root/'unitydata/excel'/g['workbook'],s['sheetIndex'])
+                    expected=workbook_rows(self.root/'unitydata/excel'/s.get('workbook',g['workbook']),s['sheetIndex'],s.get('sourceSheet',s['name']))
+                    if s['kind']!='xml':expected=[row for row in expected if any(str(v) for v in row.values())]
+                    for field,definition in s.get('columnDictionaries',{}).items():
+                        book=definition.get('workbook',s.get('workbook',g['workbook']))
+                        labels=dictionary_labels(self.root/'unitydata/excel'/book,definition)
+                        canonical=set(labels.values());separator=definition.get('separator','')
+                        for row in expected:
+                            raw=row.get(field,'')
+                            if definition.get('allowBlank') and not raw.strip():continue
+                            parts=raw.split(separator) if separator else [raw]
+                            assert all(p.strip() in labels or p.strip() in canonical for p in parts)
+                            row[field]=separator.join(labels.get(p.strip(),p.strip()) for p in parts)
+                    gate=s.get('exportGate')
+                    if gate:expected=[r for r in expected if r.get(gate['column'])=='1']
+                    expected=[{k:r.get(k,'') for k in s['columns']} for r in expected]
                     for r in expected:
                         for k,t in s['columns'].items():
                             if t=='number':r[k]=float(r[k])
                             elif t=='json':r[k]=json.loads(r[k])
                             elif t=='bool':r[k]=r[k] in ['1','true']
+                            elif t=='resource-cost':r[k]=[int(v) for v in r[k].split(';')] if r[k].strip() else None
+                    if s['name']=='combat_effect':
+                        affix_sheet=next(table for table in g['sheets'] if table['name']=='equipment_affix')
+                        affixes=workbook_rows(self.root/'unitydata/excel'/affix_sheet.get('workbook',g['workbook']),affix_sheet['sheetIndex'],'equipment_affix')
+                        limits={int(row['id']):row for row in affixes}
+                        for row in expected:
+                            for field,source in [('duration','duration'),('per_turn','per_turn_limit'),('per_battle','per_battle_limit')]:
+                                if row[field]==-1:row[field]=int(limits[int(row['affix_id'])][source])
                     client_expected=expected
                     expected=[{k:v for k,v in r.items() if k not in s.get('clientOnlyColumns',[])} for r in expected]
                     kind=s['kind'];folder={'json':'json','xml':'xml','csv':'source'}[kind]
@@ -96,7 +157,9 @@ class UnityOwnedTablesTests(unittest.TestCase):
                         for r in actual:
                             for k,t in s['columns'].items():
                                 if t=='number':r[k]=float(r[k])
-                    self.assertEqual(expected,actual)
+                    # Derived descriptions and frozen metadata are checked by
+                    # their dedicated tests; compare every formal source field here.
+                    self.assertEqual(expected,[{k:r[k] for k in expected[0]} for r in actual] if expected else actual)
                     if s['client']:
                         a=self.root/'unitydata/export/client/source/Configs'/s['output'];b=self.root/'unityclient/Assets/Resources/ProjectXData/Configs'/s['output']
                         self.assertEqual(a.read_bytes(),b.read_bytes())
@@ -112,7 +175,7 @@ class UnityOwnedTablesTests(unittest.TestCase):
         cases=[('Fish',1,'B5',137),('Answer',1,'B5',2),('HappyWheel',1,'E5',2),('FaBaoSearch',1,'C5',41),('HeroCombat',1,'D5',[3,2,1]),('Attributes',1,'B5','测试属性名称'),('CasualGameplay',1,'F5','8123'),('RoleBattle',1,'C5','1001')]
         for group,index,cell,value in cases:
             g=next(g for g in MANIFEST['groups'] if g['group']==group);s=g['sheets'][0]
-            path=self.root/'unitydata/excel'/g['workbook'];backup=path.read_bytes();before=fingerprint(self.root)
+            path=self.root/'unitydata/excel'/s.get('workbook',g['workbook']);backup=path.read_bytes();before=fingerprint(self.root)
             if isinstance(value,list):value=json.dumps(value)
             try:
                 patch_cell(path,index,cell,value);self.run_export(group)

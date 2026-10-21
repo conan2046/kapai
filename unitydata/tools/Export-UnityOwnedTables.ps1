@@ -123,14 +123,76 @@ function Xml-Signature([string]$Value) {
 function Read-Rows($Sheet, [string]$Workbook) {
     $result = [Collections.Generic.List[object]]::new()
     $keys = @{}
+    $gatedIdentities = @{}
+    $dictionaries = @{}
+    $dictionaryFields=@()
+    if($Sheet.columnDictionaries){$dictionaryFields=@($Sheet.columnDictionaries.Keys)}
+    foreach($field in $dictionaryFields) {
+        $definition=$Sheet.columnDictionaries[$field]
+        $isGateStatus=$Sheet.exportGate -and $field -eq $Sheet.exportGate.statusColumn
+        if($Sheet.columns[$field] -ne 'string' -and -not $isGateStatus){throw "Dictionary requires a string column: $($Sheet.name).$field"}
+        $dictionaryWorkbook=if($definition.workbook){Join-Path (Split-Path $Workbook -Parent) $definition.workbook}else{$Workbook}
+        $map=@{};$canonical=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        $columnMap=@{};$columnMap[[string]$definition.labelColumn]='label';$columnMap[[string]$definition.valueColumn]='value'
+        $lastRow=if($definition.lastDataRow){[int]$definition.lastDataRow}else{1048576}
+        foreach($entry in @(Read-UnityVisualExcelRows -Path $dictionaryWorkbook -SheetName $definition.sheet -ColumnMap $columnMap -FirstDataRow $definition.firstDataRow -LastDataRow $lastRow -RejectFormulas)) {
+            $label=([string]$entry.label).Trim();$value=([string]$entry.value).Trim()
+            if(-not $label -and -not $value){continue}
+            if(-not $label -or -not $value){throw "Incomplete source dictionary $($Sheet.name).$field"}
+            if($map.ContainsKey($label)){throw "Duplicate dictionary label $($Sheet.name).${field}: $label"}
+            if(-not $canonical.Add($value)){throw "Duplicate dictionary value $($Sheet.name).${field}: $value"}
+            $map[$label]=$value
+        }
+        if(-not $map.Count){throw "Empty source dictionary $($Sheet.name).$field"}
+        $dictionaries[$field]=@{labels=$map;canonical=$canonical;separator=[string]$definition.separator;allowBlank=[bool]$definition.allowBlank}
+    }
+    function Convert-SourceLabel([string]$Field,[string]$Raw) {
+        if(-not $dictionaries.ContainsKey($Field)){return $Raw}
+        $dictionary=$dictionaries[$Field]
+        if($dictionary.allowBlank -and [string]::IsNullOrWhiteSpace($Raw)){return ''}
+        $parts=if($dictionary.separator){@($Raw -split [regex]::Escape($dictionary.separator))}else{@($Raw)}
+        $translated=[Collections.Generic.List[string]]::new()
+        foreach($part in $parts) {
+            $label=([string]$part).Trim()
+            if($dictionary.labels.ContainsKey($label)){$translated.Add($dictionary.labels[$label])}
+            elseif($dictionary.canonical.Contains($label)){$translated.Add($label)}
+            else{throw "Unknown source label $($Sheet.name).${Field}: $label"}
+        }
+        return $translated -join $dictionary.separator
+    }
     $sourceSheet=if($Sheet.sourceSheet){$Sheet.sourceSheet}else{$Sheet.name}
     foreach ($r in @(Read-UnityVisualExcelRows $Workbook $Sheet.sheetIndex -SheetName $sourceSheet -RejectFormulas)) {
         if ($Sheet.kind -ne 'xml' -and -not @($r.Values | Where-Object { [string]$_ -ne '' }).Count) { continue }
+        # Editorial draft rows share the maintenance sheet with live records.
+        # Validate their identity/status before skipping them; never serialize
+        # incomplete curves, proposed quality gates or placeholder descriptions.
+        if ($Sheet.exportGate) {
+            $gate=$Sheet.exportGate
+            foreach($field in @($gate.column,$gate.statusColumn)+@($gate.requiredFields)) {
+                if(-not $r.Contains($field) -or [string]::IsNullOrWhiteSpace([string]$r[$field])) {
+                    throw "Missing gated field $($Sheet.name).$field"
+                }
+            }
+            foreach($field in @($gate.uniqueFields)) {
+                $identity="$field`:$($r[$field])"
+                if($gatedIdentities.ContainsKey($identity)){throw "Duplicate gated identity $($Sheet.name).${identity}"}
+                $gatedIdentities[$identity]=$true
+            }
+            if([string]$r.id -notmatch '^[1-9]\d*$'){throw "Invalid gated ID $($Sheet.name): $($r.id)"}
+            $flag=[string]$r[$gate.column];$status=Convert-SourceLabel $gate.statusColumn ([string]$r[$gate.statusColumn])
+            if($flag -notin @('0','1')){throw "Invalid export gate $($Sheet.name).$($gate.column)=$flag"}
+            if($flag -eq '0') {
+                if($status -notin @($gate.disabledStatuses)){throw "Invalid disabled status $($Sheet.name): $status"}
+                continue
+            }
+            if($status -cne $gate.enabledStatus){throw "Unready row cannot be enabled $($Sheet.name): $($r.id)"}
+        }
         $v = [ordered]@{}
         foreach ($k in $Sheet.columns.Keys) {
             if (-not $r.Contains($k)) { throw "Missing field $($Sheet.name).$k" }
             $raw = [string]$r[$k]
             if([string]::IsNullOrWhiteSpace($raw) -and $Sheet.blankDefaults -and $Sheet.blankDefaults.ContainsKey($k)) { $raw=[string]$Sheet.blankDefaults[$k] }
+            $raw=Convert-SourceLabel $k $raw
             $v[$k] = switch ($Sheet.columns[$k]) {
                 'number' {
                     if ($raw -notmatch '^-?\d+(\.\d+)?$') { throw "Invalid number $($Sheet.name).${k}=$raw" }

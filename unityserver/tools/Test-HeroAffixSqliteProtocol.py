@@ -172,53 +172,59 @@ def run_build_selection(db,start,stop,report,directory):
     with login() as sock:
         original=bank_snapshot(db)
         old=build_selection(sock);responses.append(old)
-        checks['legacy_disabled_choice_preserved']=(old['result']==1 and old['branch']==2 and old['strategy']==0
-            and old['available']==3 and old['effective_branch']==old['effective_strategy']==0
+        checks['legacy_ab_retired_strategy_preserved']=(old['result']==1 and old['branch']==0 and old['strategy']==3
+            and old['available']==1 and old['effective_branch']==0 and old['effective_strategy']==3
+            and original['state']['8'][61057]==0xac and original['state']['8'][61010]==0xb0
             and bank_snapshot(db)['blob']==original['blob'])
+        backups=list(db.parent.glob(db.name+'.before-ab-retirement-*.db'))
+        assert len(backups)==1
+        checks['startup_backup_preserves_legacy_selections']=(bank_snapshot(backups[0])['state']['8'][61057]==0xad
+            and bank_snapshot(backups[0])['state']['8'][61010]==0xb2)
         normal=build_selection(sock,57,0,1);responses.append(normal)
         baseline=bank_snapshot(db)
         checks['normal_branch_strategy_active']=(normal['result']==1 and normal['effective_branch']==0 and normal['effective_strategy']==1
             and baseline['state']['8'][61057]==0xa4)
-        for hero,branch,strategy in ((10,1,1),(65535,1,1),(57,2,1),(57,3,1),(57,1,6),(57,255,255)):
+        for hero,branch,strategy in ((10,0,1),(65535,0,1),(57,1,1),(57,2,1),(57,3,1),(57,0,6),(57,255,255)):
             reply=build_selection(sock,hero,branch,strategy);responses.append(reply)
             assert reply['result']==0 and reply['message'] and bank_snapshot(db)['blob']==baseline['blob']
         for op,payload in ((43,b''),(43,struct.pack('<HB',57,0)),(44,struct.pack('<H',57))):
             reply=build_selection(sock,payload=payload,operation=op);responses.append(reply)
             assert reply['result']==0 and bank_snapshot(db)['blob']==baseline['blob']
-        checks['ownership_disabled_range_and_length_rejections']=True
+        checks['ownership_retired_ab_range_and_length_rejections']=True
         reject_updates(True)
-        assert build_selection(sock,57,1,2)['result']==0
+        assert build_selection(sock,57,0,2)['result']==0
         failed=build_selection(sock);assert (failed['branch'],failed['strategy'])==(0,1)
-        assert build_selection(sock,64,2,4)['result']==0
+        assert build_selection(sock,64,0,4)['result']==0
         failed_absent=build_selection(sock,64);assert (failed_absent['branch'],failed_absent['strategy'])==(0,0)
         checks['failed_memory_and_database_rollback']=bank_snapshot(db)['blob']==baseline['blob']
         reject_updates(False)
-        selected=build_selection(sock,57,1,2);responses.append(selected)
+        selected=build_selection(sock,57,0,2);responses.append(selected)
         committed=bank_snapshot(db)
-        checks['immediate_commit_and_reserved_bits']=(selected['result']==1 and selected['effective_branch']==1
-            and selected['effective_strategy']==2 and committed['state']['8'][61057]==0xa9)
+        checks['immediate_commit_and_reserved_bits']=(selected['result']==1 and selected['effective_branch']==0
+            and selected['effective_strategy']==2 and committed['state']['8'][61057]==0xa8)
         checks['failed_absent_key_removed']=61064 not in committed['state']['8']
         same_other_data(baseline,committed,{61057})
-        second=build_selection(sock,64,2,4);responses.append(second)
-        assert second['result']==1 and (second['effective_branch'],second['effective_strategy'])==(2,4)
-        assert bank_snapshot(db)['state']['8'][61064]==18
-        for strategy in range(1,6):
-            reply=build_selection(sock,57,1,strategy)
-            assert reply['result']==1 and (reply['effective_branch'],reply['effective_strategy'])==(1,strategy)
-            assert bank_snapshot(db)['state']['8'][61057]==(0xa0|1|(strategy<<2))
-        checks['both_branches_and_all_five_strategies']=True
+        second=build_selection(sock,64,0,4);responses.append(second)
+        assert second['result']==1 and (second['effective_branch'],second['effective_strategy'])==(0,4)
+        assert bank_snapshot(db)['state']['8'][61064]==16
+        for strategy in range(6):
+            reply=build_selection(sock,57,0,strategy)
+            assert reply['result']==1 and (reply['effective_branch'],reply['effective_strategy'])==(0,strategy)
+            assert bank_snapshot(db)['state']['8'][61057]==(0xa0|(strategy<<2))
+        checks['original_skills_and_all_six_strategies']=True
         reject_updates(True)
         unchanged=bank_snapshot(db)['blob']
-        assert build_selection(sock,57,1,5)['result']==1 and bank_snapshot(db)['blob']==unchanged
+        assert build_selection(sock,57,0,5)['result']==1 and bank_snapshot(db)['blob']==unchanged
         reject_updates(False);checks['idempotent_selection_no_write']=True
         assert build_selection(sock,57,0,0)['result']==1 and bank_snapshot(db)['state']['8'][61057]==0xa0
-        assert build_selection(sock,57,1,5)['result']==1
+        assert build_selection(sock,57,0,5)['result']==1
         final=bank_snapshot(db);same_other_data(baseline,final,{61057,61064})
         checks['other_ext_maps_tail_money_fixed_save_data_preserved']=True
     stop();start()
     with login() as sock:
         first,second=build_selection(sock,57),build_selection(sock,64);responses.extend((first,second))
-        checks['restart_saved_and_effective_choices']=(first['branch'],first['strategy'],first['effective_branch'],first['effective_strategy'])==(1,5,1,5) and (second['branch'],second['strategy'],second['effective_branch'],second['effective_strategy'])==(2,4,2,4)
+        checks['restart_saved_and_effective_choices']=(first['branch'],first['strategy'],first['effective_branch'],first['effective_strategy'])==(0,5,0,5) and (second['branch'],second['strategy'],second['effective_branch'],second['effective_strategy'])==(0,4,0,4)
+        checks['repeat_startup_does_not_migrate_again']=len(list(db.parent.glob(db.name+'.before-ab-retirement-*.db')))==1
     report['hero_build_checks']=checks;report['passed']=all(checks.values())
     (directory/'hero-build-responses.json').write_text(json.dumps(responses,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps(dict(passed=report['passed'],checks=checks),ensure_ascii=False))
@@ -287,7 +293,7 @@ def main():
         if args.hero_build:
             bank=connection.execute('SELECT bank_item FROM role_info WHERE id=?',(ROLE,)).fetchone()[0]
             state=decode_bank(bank);assert bytes(codec.expand(encode_bank(state)))==bytes(codec.expand(bank))
-            state['8'][61057]=0xa2;state['8'].pop(61064,None)
+            state['8'][61057]=0xad;state['8'][61010]=0xb2;state['8'].pop(61064,None)
             connection.execute('UPDATE role_info SET bank_item=? WHERE id=?',(encode_bank(state),ROLE))
     with socket.socket() as check:
         assert check.connect_ex(('127.0.0.1',PORT)) != 0, '8711 already occupied'

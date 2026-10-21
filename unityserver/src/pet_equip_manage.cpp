@@ -192,7 +192,7 @@ bool CItemCfgManager::InitEquipAffixCfg()
 		const rapidjson::Value& row = d[i];
 		const char* required[] = { "id", "key", "name", "parts", "quality_min", "passive_skill_id",
 			"event", "value1", "value2", "duration", "per_turn_limit", "per_battle_limit",
-			"conflict_group", "desc", "combat_descriptions" };
+			"desc", "combat_descriptions" };
 		for (size_t k = 0; k < sizeof(required) / sizeof(required[0]); ++k)
 		{
 			if (!row.HasMember(required[k]))
@@ -212,7 +212,6 @@ bool CItemCfgManager::InitEquipAffixCfg()
 		cfg.duration = row["duration"].GetInt();
 		cfg.perTurnLimit = row["per_turn_limit"].GetInt();
 		cfg.perBattleLimit = row["per_battle_limit"].GetInt();
-		cfg.conflictGroup = row["conflict_group"].GetString();
 		cfg.desc = row["desc"].GetString();
 
 		const rapidjson::Value& parts = row["parts"];
@@ -257,12 +256,12 @@ bool CItemCfgManager::InitEquipAffixCfg()
 		gEquipAffixTierDescriptions[cfg.id]=tierDescriptions;
 		m_equipAffixCfgs[cfg.id] = cfg;
 	}
-	if (m_equipAffixCfgs.size() != 48)
+	if (m_equipAffixCfgs.empty())
 	{
-		cout << "CItemCfgManager::InitEquipAffixCfg >> expected 48 rows, got " << m_equipAffixCfgs.size() << endl;
+		cout << "CItemCfgManager::InitEquipAffixCfg >> empty affix catalog" << endl;
 		return false;
 	}
-	cout << "equipment_affix.json >> loaded 48 special affixes" << endl;
+	cout << "equipment_affix.json >> loaded " << m_equipAffixCfgs.size() << " special affixes" << endl;
 	return true;
 }
 
@@ -274,15 +273,15 @@ EquipAffixCfg* CItemCfgManager::GetEquipAffixCfg(uint16 id)
 
 static bool IsEquipAffixRuntimeEnabledV1(uint16 id)
 {
-	// S6事件总线已覆盖完整48条词条，正式池不再保留A/B批白名单差异。
-	return id >= 1 && id <= 48;
+	const auto* config = sCItemCfgManager.GetEquipAffixCfg(id);
+	return config != NULL && config->passiveSkillId > 0;
 }
 
 bool CItemCfgManager::RollEquipAffix(uint8 part, uint8 quality, uint32 seed, uint16& affixId, uint8& tier) const
 {
 	affixId = 0;
 	tier = 0;
-	if (quality < 6 || part < 1 || part > 4)
+	if (quality < 1 || quality > 7 || part < 1 || part > 4)
 		return false;
 	vector<uint16> pool;
 	for (EquipAffixCfgMapCIt it = m_equipAffixCfgs.begin(); it != m_equipAffixCfgs.end(); ++it)
@@ -2501,7 +2500,8 @@ namespace
 		if (equip == NULL)
 			return 0;
 		CEquipCfg* cfg = sCItemCfgManager.GetEquipCfg(equip->id);
-		if (cfg == NULL || cfg->quality < 6)
+		const auto* affix = sCItemCfgManager.GetEquipAffixCfg(equip->specialAffixId);
+		if (cfg == NULL || affix == NULL || cfg->quality < affix->qualityMin || !affix->IsPartAllowed(cfg->part))
 			return 0;
 		uint32 cost = cfg->quality >= 7 ? EQUIP_AFFIX_REROLL_GOLD_COST : EQUIP_AFFIX_REROLL_RED_COST;
 		return (equip->affixLockMask & 0x01) != 0 ? cost * 2 : cost;
@@ -2547,9 +2547,9 @@ bool CEquipManeger::ToggleEquipAffixLock(CUser* user, CNetMessage& msg)
 		return false;
 	}
 	CEquipCfg* cfg = sCItemCfgManager.GetEquipCfg(equip->id);
-	if (cfg == NULL || cfg->quality < 6)
+	if (cfg == NULL || GetEquipAffixRerollCost(equip) == 0)
 	{
-		MakeEquipAffixOperateResult(msg, 41, PRO_ERROR, "仅红色及以上品质装备可锁定特殊词条", 0, NULL);
+		MakeEquipAffixOperateResult(msg, 41, PRO_ERROR, "当前装备不满足词条品质或部位条件", 0, NULL);
 		return false;
 	}
 	const uint8 previousLock=equip->affixLockMask;
@@ -2582,7 +2582,7 @@ bool CEquipManeger::RerollEquipAffix(CUser* user, CNetMessage& msg)
 	uint32 cost = GetEquipAffixRerollCost(equip);
 	if (cfg == NULL || cost == 0)
 	{
-		MakeEquipAffixOperateResult(msg, 42, PRO_ERROR, "仅红色及以上品质装备可重铸特殊词条", 0, NULL);
+		MakeEquipAffixOperateResult(msg, 42, PRO_ERROR, "当前装备不满足词条品质或部位条件", 0, NULL);
 		return false;
 	}
 	if (user->GetMoney() < cost)

@@ -784,6 +784,15 @@ void CFight::CombatEvent(const char* name,uint8 src,uint8 target,uint16 skill,ui
             if (command.op == "rage") { AddTeamRage(recipient,amount); return; }
             if (command.op == "cooldown") {
                 if(definition && definition->argumentRole=="all"){member->DecAllSkillCD(amount);return;}
+                if(definition && definition->argumentRole=="revive") {
+                    auto& skills=SingletonCSkillMgr::instance();
+                    for(const auto& entry:member->skill_list) {
+                        auto* cfg=skills.GetSkillCfg(entry.id);
+                        const auto* active=cfg?skills.GetActiveEffectCfg(cfg->activeEffect.GetEffectId()):nullptr;
+                        if(active && active->effect_type==ESkill_Active_FuHuo)member->DecSkillCD(entry.id,amount);
+                    }
+                    return;
+                }
                 int skill=command.argument;
                 if(definition && definition->argumentRole!="fixed") {
                     const auto* role=SingletonCSkillMgr::instance().GetHeroSkillRoleCfg(GetHeroId(src));
@@ -3790,6 +3799,11 @@ bool CFight::RunCombatDataRegression(bool probeOnly)
         <<",\"dead_leader_opening_shield\":"<<deadLeaderOpeningShield<<",\"tie_later_opening_shield\":"<<tieLaterOpeningShield<<",\"tie_first_opening_shield\":"<<tieFirstOpeningShield
         <<gatedFields
         <<",\"expiry_damage\":"<<expiryDamage<<",\"dispel_damage\":"<<dispelDamage<<",\"clean_reuse\":"<<(cleanReuse ? 1 : 0)<<",\"seed\":1729}"<<std::endl;
+    if(!probeOnly) {
+        // Run after the frozen scenarios so the new chance gates cannot alter
+        // their RNG sequence or captured battle-state measurements.
+        #include "../tests/NewEquipmentAffixRegression.inc"
+    }
     return probeOnly || (shield==200 && rage==9 && cooldown==5 && nextRage==12 && guard==2000 && baseSuitCounter==1200 && staleSuitTiers==0
         && pursuit==600 && repeated==600 && control==2 && poison==1200 && explosion==552 && strategySkill==tacticSkill
         && ruleShieldCap==5000 && ruleShieldRefresh==2000 && ruleShieldTotal==5000 && enemyShield==5000

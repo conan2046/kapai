@@ -705,8 +705,8 @@ namespace ProjectX.UI
             });
             foreach (string path in new[]
             {
-                "Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan",
-                "Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia",
+                "Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_genghuan",
+                "Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_xiexia",
                 "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Btn_qianghua",
                 "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian",
                 "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/juexingshuxing/Btn_juexing",
@@ -731,7 +731,9 @@ namespace ProjectX.UI
             GetNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/BuildRecommendation")?.SetActive(false);
             GetNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/AffixActions")?.SetActive(false);
             SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/zhuangbei/Namebg/Name", definition.Name);
-            SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/zhuangbeimiaoshu/Content", definition.Description);
+            GetNode(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/zhuangbeimiaoshu")?.SetActive(false);
+            SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/zhuangbei/zhuangbeimiaoshu/Content",
+                string.IsNullOrWhiteSpace(definition.Description) ? "暂无额外效果说明。" : definition.Description);
             if (definition.BaseAttribute != null && definition.BaseAttribute.Length >= 2)
             {
                 SetText(equipmentInfoView, "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jichushuxing/Atrribute_1",

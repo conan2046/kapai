@@ -1081,8 +1081,8 @@ private:
 		int combatHitIndex;
 		int combatActionIndex;
 		bool combatNormalHit,combatDeathRage;
-		uint8 affixTurnCount[49];
-		uint8 affixBattleCount[49];
+		std::map<uint16,uint8> affixTurnCount;
+		std::map<uint16,uint8> affixBattleCount;
 		int affixState[49];
 		int affixTurnValue[49];
 		uint16 affixTargetMask[49];
@@ -1153,8 +1153,8 @@ private:
 			combatActionIndex = 0;
 			combatNormalHit = combatDeathRage = false;
 			combatStrategy = 0;
-			memset(affixTurnCount,0,sizeof(affixTurnCount));
-			memset(affixBattleCount,0,sizeof(affixBattleCount));
+			affixTurnCount.clear();
+			affixBattleCount.clear();
 			memset(affixState,0,sizeof(affixState));
 			memset(affixTurnValue,0,sizeof(affixTurnValue));
 			memset(affixTargetMask,0,sizeof(affixTargetMask));

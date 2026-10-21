@@ -1,6 +1,8 @@
 # Shared narrow reader for client visual tables. Row 1 is keys, rows 2..4 are
 # export scope, descriptions and types; data begins at row 5.
-function Read-UnityVisualExcelRows([string]$Path, [int]$SheetIndex = 1, [string]$SheetName, [switch]$RejectFormulas) {
+function Read-UnityVisualExcelRows([string]$Path, [int]$SheetIndex = 1, [string]$SheetName, [switch]$RejectFormulas,
+    [hashtable]$ColumnMap, [ValidateRange(1,1048576)][int]$FirstDataRow = 5,
+    [ValidateRange(1,1048576)][int]$LastDataRow = 1048576) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [IO.Compression.ZipFile]::OpenRead($Path)
     try {
@@ -42,13 +44,20 @@ function Read-UnityVisualExcelRows([string]$Path, [int]$SheetIndex = 1, [string]
         }
         $headers = @{}
         $rows = @($sheet.SelectNodes('//s:sheetData/s:row', $ns))
-        foreach ($cell in $rows[0].SelectNodes('s:c', $ns)) {
-            $key = Read-VisualExcelCell $cell
-            if ($RejectFormulas -and $key -and $key -in $headers.Values) { throw "Duplicate Excel column: $key" }
-            $headers[[regex]::Match($cell.r,'^[A-Z]+').Value] = $key
+        if($ColumnMap) {
+            foreach($column in $ColumnMap.Keys) {
+                if($column -cnotmatch '^[A-Z]{1,3}$' -or [string]::IsNullOrWhiteSpace([string]$ColumnMap[$column]) -or $ColumnMap[$column] -in $headers.Values){throw 'Invalid Excel column map'}
+                $headers[$column]=[string]$ColumnMap[$column]
+            }
+        } else {
+            foreach ($cell in $rows[0].SelectNodes('s:c', $ns)) {
+                $key = Read-VisualExcelCell $cell
+                if ($RejectFormulas -and $key -and $key -in $headers.Values) { throw "Duplicate Excel column: $key" }
+                $headers[[regex]::Match($cell.r,'^[A-Z]+').Value] = $key
+            }
         }
         foreach ($row in $rows) {
-            if ([int]$row.r -lt 5) { continue }
+            if ([int]$row.r -lt $FirstDataRow -or [int]$row.r -gt $LastDataRow) { continue }
             $record = [ordered]@{}
             foreach ($cell in $row.SelectNodes('s:c', $ns)) {
                 if ($RejectFormulas -and $cell.SelectSingleNode('s:f',$ns)) { throw "Formula cache is not a Unity source value: $SheetName $($cell.r)" }

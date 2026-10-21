@@ -2,6 +2,9 @@
 #include "pack_deal.h"
 #include "main.h"
 #include "jingjie_unity.h"
+#include "hero_build_selection.h"
+#include "skill.h"
+#include <filesystem>
 #include <chrono>
 #include <thread>
 #include "singleton.h"
@@ -3961,6 +3964,13 @@ static void WaitForLocalShutdownCommand()
 
 int main(int argc,char **argv)
 {
+	if(argc==3 && strcmp(argv[1],"--migrate-hero-selections")==0)
+	{
+		// Offline maintenance only: do not initialize gameplay, listeners or fixtures.
+		if(!std::filesystem::is_regular_file(argv[2]) || !SingletonCSkillMgr::instance().Init())return 1;
+		CDatabaseSql database;
+		return database.ConnectSqlite(argv[2]) && CUnityHeroBuildService::MigrateLegacySelections(database,argv[2]) ? 0 : 1;
+	}
 	if (argc == 2 && (strcmp(argv[1],"--combat-data-regression") == 0 || strcmp(argv[1],"--combat-data-probe") == 0))
 	{
 		try { return CFight::RunCombatDataRegression(strcmp(argv[1],"--combat-data-probe") == 0) ? 0 : 1; }
@@ -4010,6 +4020,16 @@ int main(int argc,char **argv)
 		return -1;
 	
 	cout << "[local] main: CMainClass::Init" << endl;
+	if(sqliteOptions.enabled)
+	{
+		CGetDbConnect connection;
+		CDatabaseSql* database=connection.GetDbConnect();
+		if(database==NULL || !CUnityHeroBuildService::MigrateLegacySelections(*database,sqliteOptions.databasePath))
+		{
+			cout << "Hero selection migration failed; logins have not started" << endl;
+			return -1;
+		}
+	}
 	CMainClass *pMain = new CMainClass;
 	boost::thread *shutdownThread = NULL;
 	if(pMain->Init(cfg))

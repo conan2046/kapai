@@ -47,6 +47,35 @@ namespace ProjectX.Data
     }
 
     [Serializable]
+    public sealed class EquipmentAffixDescription
+    {
+        [JsonProperty("id")] public int Id { get; set; }
+        [JsonProperty("key")] public string Key { get; set; }
+        [JsonProperty("desc")] public string Template { get; set; }
+        [JsonProperty("duration")] public int Duration { get; set; }
+        [JsonProperty("per_turn_limit")] public int PerTurnLimit { get; set; }
+        [JsonProperty("per_battle_limit")] public int PerBattleLimit { get; set; }
+    }
+
+    [Serializable]
+    public sealed class EquipmentArtifactMechanism
+    {
+        [JsonProperty("id")] public int Id { get; set; }
+        [JsonProperty("exclusive_group")] public string ExclusiveGroup { get; set; }
+        [JsonProperty("selection_rank")] public int SelectionRank { get; set; }
+        [JsonProperty("enabled")] public int Enabled { get; set; }
+        [JsonProperty("description")] public string Description { get; set; }
+    }
+
+    [Serializable]
+    public sealed class EquipmentCombatSlot
+    {
+        [JsonProperty("id")] public int Id { get; set; }
+        [JsonProperty("kind")] public string Kind { get; set; }
+        [JsonProperty("priority")] public int Priority { get; set; }
+    }
+
+    [Serializable]
     public sealed class EquipmentSuitDefinition
     {
         [JsonProperty("id")] public int Id { get; set; }
@@ -91,6 +120,7 @@ namespace ProjectX.Data
         [JsonProperty("level")] public int Level { get; set; }
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("cost")] public int[][] Cost { get; set; }
+        [JsonProperty("attr_add")] public int[][] AdditionalAttributes { get; set; }
     }
 
     [Serializable]
@@ -157,6 +187,9 @@ namespace ProjectX.Data
     {
         private readonly Dictionary<int, EquipmentDefinition> equipment = new Dictionary<int, EquipmentDefinition>();
         private readonly Dictionary<int, EquipmentDefinition> faBao = new Dictionary<int, EquipmentDefinition>();
+        private readonly Dictionary<int, EquipmentAffixDescription> affixDescriptions = new Dictionary<int, EquipmentAffixDescription>();
+        private readonly Dictionary<int, EquipmentArtifactMechanism> artifactMechanisms = new Dictionary<int, EquipmentArtifactMechanism>();
+        private readonly Dictionary<int, EquipmentCombatSlot> combatSlots = new Dictionary<int, EquipmentCombatSlot>();
         private readonly Dictionary<int, EquipmentStrengthDefinition> strength = new Dictionary<int, EquipmentStrengthDefinition>();
         private readonly Dictionary<int, EquipmentSuitDefinition> suits = new Dictionary<int, EquipmentSuitDefinition>();
         private readonly Dictionary<int, int> equipmentByFragment = new Dictionary<int, int>();
@@ -177,6 +210,12 @@ namespace ProjectX.Data
         {
             Load("ProjectXData/Configs/equip", equipment);
             Load("ProjectXData/Configs/fabao", faBao);
+            TextAsset affixAsset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/equipment_affix");
+            if (affixAsset == null) throw new InvalidOperationException("Equipment affix descriptions are missing.");
+            foreach (EquipmentAffixDescription value in JsonConvert.DeserializeObject<EquipmentAffixDescription[]>(affixAsset.text)
+                ?? Array.Empty<EquipmentAffixDescription>())
+                if (value != null && value.Id > 0) affixDescriptions[value.Id] = value;
+            LoadArtifactMechanisms();
             LoadStrength();
             LoadSuits();
             LoadComposition();
@@ -188,6 +227,79 @@ namespace ProjectX.Data
         public EquipmentDefinition GetEquipment(int id)
             => equipment.TryGetValue(id, out EquipmentDefinition value)
                 ? value : EquipmentDefinition.Missing(id, HeroEquipmentKind.Equipment);
+
+        public string GetAffixDescription(HeroEquipmentAffix affix)
+        {
+            if (!affixDescriptions.TryGetValue(affix.Id, out EquipmentAffixDescription definition)
+                || definition.Key != affix.Key || string.IsNullOrWhiteSpace(definition.Template))
+                return "词条说明暂不可用。";
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            return definition.Template
+                .Replace("{value1}", affix.Value1.ToString(culture))
+                .Replace("{value2}", affix.Value2.ToString(culture))
+                .Replace("{value1_pct}", (affix.Value1 / 100d).ToString("0.##", culture))
+                .Replace("{value2_pct}", (affix.Value2 / 100d).ToString("0.##", culture))
+                .Replace("{duration}", definition.Duration.ToString(culture))
+                .Replace("{per_turn_limit}", definition.PerTurnLimit.ToString(culture))
+                .Replace("{per_battle_limit}", definition.PerBattleLimit.ToString(culture));
+        }
+
+        private void LoadArtifactMechanisms()
+        {
+            TextAsset mechanisms = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/combat_artifact");
+            TextAsset slots = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/combat_loadout_slot");
+            if (mechanisms == null || slots == null)
+                throw new InvalidOperationException("Artifact mechanism or loadout slot configuration is missing.");
+            foreach (EquipmentArtifactMechanism value in JsonConvert.DeserializeObject<EquipmentArtifactMechanism[]>(mechanisms.text)
+                ?? Array.Empty<EquipmentArtifactMechanism>())
+                if (value != null && value.Id > 0) artifactMechanisms[value.Id] = value;
+            foreach (EquipmentCombatSlot value in JsonConvert.DeserializeObject<EquipmentCombatSlot[]>(slots.text)
+                ?? Array.Empty<EquipmentCombatSlot>())
+                if (value != null && value.Id > 0) combatSlots[value.Id] = value;
+        }
+
+        public EquipmentArtifactMechanism GetArtifactMechanism(int templateId)
+            => artifactMechanisms.TryGetValue(templateId, out EquipmentArtifactMechanism value) ? value : null;
+
+        public FaBaoRecord? GetSelectedArtifactMechanism(FaBaoRecord item, IEnumerable<FaBaoRecord> inventory)
+        {
+            EquipmentArtifactMechanism mechanism = GetArtifactMechanism(item.TemplateId);
+            if (item.FormationPosition <= 0 || mechanism == null) return null;
+            FaBaoRecord? winner = null;
+            int bestRank = int.MinValue;
+            // Match the server: slot order breaks ties; selection precedes the enabled check.
+            foreach (FaBaoRecord candidate in inventory
+                .Where(value => value.FormationPosition == item.FormationPosition
+                    && combatSlots.TryGetValue(value.Slot, out EquipmentCombatSlot slot) && slot.Kind == "artifact")
+                .OrderBy(value => combatSlots[value.Slot].Priority))
+            {
+                EquipmentArtifactMechanism config = GetArtifactMechanism(candidate.TemplateId);
+                if (config == null || config.ExclusiveGroup != mechanism.ExclusiveGroup) continue;
+                if (winner.HasValue && config.SelectionRank <= bestRank) continue;
+                winner = candidate;
+                bestRank = config.SelectionRank;
+            }
+            return winner;
+        }
+
+        public string GetArtifactDescription(FaBaoRecord item, IEnumerable<FaBaoRecord> inventory)
+        {
+            EquipmentArtifactMechanism mechanism = GetArtifactMechanism(item.TemplateId);
+            if (mechanism == null) return "特殊机制信息暂不可用。";
+            string status;
+            if (mechanism.Enabled == 0) status = "暂未开放";
+            else if (item.FormationPosition <= 0) status = "未穿戴";
+            else
+            {
+                FaBaoRecord? winner = GetSelectedArtifactMechanism(item, inventory);
+                status = !winner.HasValue ? "无法确认"
+                    : winner.Value.Uid == item.Uid ? "已选用，入场后按条件生效"
+                    : $"未选用：{winner.Value.Definition.Name}优先";
+            }
+            string description = string.IsNullOrWhiteSpace(mechanism.Description)
+                ? "机制说明暂不可用。" : mechanism.Description.Trim();
+            return description + "\n状态：" + status + "\n两件属性均计入，特殊机制仅选一件。";
+        }
 
         public EquipmentDefinition GetFaBao(int id)
             => faBao.TryGetValue(id, out EquipmentDefinition value)
@@ -223,6 +335,19 @@ namespace ProjectX.Data
 
         public EquipmentAwakenDefinition GetAwaken(int level)
             => awaken.TryGetValue(level, out EquipmentAwakenDefinition value) ? value : null;
+
+        public IReadOnlyList<int[]> GetAwakenAdditionalAttributes(int part, int level)
+        {
+            var totals = new SortedDictionary<int, int>();
+            foreach (EquipmentAwakenDefinition stage in awaken.Values.Where(value => value.Level <= level))
+                foreach (int[] attribute in stage.AdditionalAttributes ?? Array.Empty<int[]>())
+                {
+                    if (attribute == null || attribute.Length != 3 || attribute[0] != part) continue;
+                    totals.TryGetValue(attribute[1], out int current);
+                    totals[attribute[1]] = checked(current + attribute[2]);
+                }
+            return totals.Select(value => new[] { value.Key, value.Value }).ToArray();
+        }
 
         public EquipmentDivineDefinition GetDivine(int level)
             => divine.TryGetValue(level, out EquipmentDivineDefinition value) ? value : null;

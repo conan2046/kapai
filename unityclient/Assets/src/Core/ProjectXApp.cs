@@ -2880,7 +2880,7 @@ namespace ProjectX.Core
             heroEquipmentPresenter.Show(1, HeroEquipmentKind.Equipment);
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)) { Fail("HeroEquip G4 target equipment detail was unavailable."); yield break; }
-            Button wear = heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>();
+            Button wear = heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_genghuan")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(wear)) { Fail("HeroEquip G4 wear EventSystem input was unavailable."); yield break; }
             MarkValidationControl("HE-23-DETAIL-CHANGE");
             deadline = Time.realtimeSinceStartup + 12f;
@@ -2889,14 +2889,14 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 initial replacement did not move source equipment to the bag."); yield break; }
 
             if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 2) || !InvokeEventSystemClick(
-                heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>()))
+                heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_genghuan")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 source wear@2 EventSystem input was unavailable."); yield break; }
             deadline = Time.realtimeSinceStartup + 12f;
             while (GetHeroEquipmentFormation(sourceUid) != 2 && Time.realtimeSinceStartup < deadline) yield return null;
             if (GetHeroEquipmentFormation(sourceUid) != 2) { Fail("HeroEquip G4 source equipment did not wear at position 2."); yield break; }
 
             if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 2) || !InvokeEventSystemClick(
-                heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>()))
+                heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_genghuan")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 cross-position change popup did not open."); yield break; }
             yield return null;
             Toggle changeFilter = heroEquipmentChangeView.FindNode("Layer/Popup/CheckBox")?.GetComponent<Toggle>();
@@ -2914,7 +2914,7 @@ namespace ProjectX.Core
             { Fail("HeroEquip G4 change close did not hide the popup."); yield break; }
             MarkValidationControl("HE-27-CHANGE-CLOSE");
             if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 2) || !InvokeEventSystemClick(
-                heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/Btn_genghuan")?.GetComponent<Button>()))
+                heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_genghuan")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 cross-position change popup could not reopen."); yield break; }
             yield return null;
             Button targetCandidate = heroEquipmentPresenter.GetChangeCandidateAction(targetUid);
@@ -2927,7 +2927,7 @@ namespace ProjectX.Core
             if (!crossSwap) { Fail("HeroEquip G4 cross-position server swap did not converge in the Lua mirror."); yield break; }
 
             if (!heroEquipmentPresenter.PrepareDetails(targetUid, 2)) { Fail("HeroEquip G4 target takeoff detail unavailable."); yield break; }
-            Button takeOff = heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/Btn_xiexia")?.GetComponent<Button>();
+            Button takeOff = heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_xiexia")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(takeOff)) { Fail("HeroEquip G4 takeoff EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-24-DETAIL-TAKEOFF");
             deadline = Time.realtimeSinceStartup + 12f;

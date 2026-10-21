@@ -780,6 +780,32 @@
       "sheets": [
         {
           "name": "equipment_affix",
+          "workbook": "equipment_combat.xlsx",
+          "columnDictionaries": {
+            "event": {
+              "sheet": "词条字段说明",
+              "firstDataRow": 55,
+              "lastDataRow": 112,
+              "labelColumn": "B",
+              "valueColumn": "E",
+              "separator": " / "
+            },
+            "config_status": {
+              "sheet": "词条字段说明",
+              "firstDataRow": 134,
+              "lastDataRow": 136,
+              "labelColumn": "B",
+              "valueColumn": "E"
+            }
+          },
+          "exportGate": {
+            "column": "enabled",
+            "statusColumn": "config_status",
+            "enabledStatus": "ready",
+            "disabledStatuses": ["pending_values", "disabled"],
+            "requiredFields": ["id", "key", "name"],
+            "uniqueFields": ["id", "key"]
+          },
           "kind": "json",
           "columns": {
             "id": "number",
@@ -794,7 +820,6 @@
             "duration": "number",
             "per_turn_limit": "number",
             "per_battle_limit": "number",
-            "conflict_group": "string",
             "desc": "string"
           },
           "sheetIndex": 1,
@@ -1031,13 +1056,13 @@
         "numericStringColumns": [], "jsonKinds": {}, "client": true, "output": "combat_control.json"
       },
       {
-        "name": "combat_artifact", "workbook": "fabao.xlsx", "sheetIndex": 2, "kind": "json",
+        "name": "combat_artifact", "workbook": "equipment_combat.xlsx", "sheetIndex": 2, "kind": "json",
         "columns": {"id":"number","family":"number","quality":"number","exclusive_group":"string","selection_rank":"number","effect_group":"number","value":"number","enabled":"number","status":"string"},
         "integerColumns": ["id","family","quality","selection_rank","effect_group","value","enabled"],
         "numericStringColumns": [], "jsonKinds": {}, "client": true, "output": "combat_artifact.json"
       },
       {
-        "name": "combat_set", "workbook": "suit.xlsx", "sheetIndex": 2, "kind": "json",
+        "name": "combat_set", "workbook": "equipment_combat.xlsx", "sheetIndex": 3, "kind": "json",
         "columns": {"id":"number","suit_id":"number","pieces":"number","effect_group":"number","value":"number","enabled":"number","status":"string"},
         "integerColumns": ["id","suit_id","pieces","effect_group","value","enabled"],
         "numericStringColumns": [], "jsonKinds": {}, "client": true, "output": "combat_set.json"
