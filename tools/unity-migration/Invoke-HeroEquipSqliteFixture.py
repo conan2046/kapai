@@ -259,6 +259,7 @@ def role_state(connection, user_id, role_id):
 
 def assert_setup(connection, user_id, role_id):
     state = role_state(connection, user_id, role_id)
+    assert_fixture_realm(connection, role_id, 70)
     expected_equipment = [[SOURCE_UID, 1001, 1], [TARGET_UID, 1301, 0], [DIVINE_UID, 1401, 0]] + [
         [uid, 1001, 0] for uid in SCROLL_UIDS]
     if (state["level"] != 70 or state["money"] < 5_000_000
@@ -274,6 +275,7 @@ def assert_setup(connection, user_id, role_id):
 
 def assert_visual_setup(connection, user_id, role_id):
     state = role_state(connection, user_id, role_id)
+    assert_fixture_realm(connection, role_id, 99)
     expected_equipment = [
         [uid, template_id, 1]
         for uid, template_id in zip(VISUAL_EQUIPMENT_UIDS, VISUAL_EQUIPMENT_TEMPLATES)
@@ -288,6 +290,40 @@ def assert_visual_setup(connection, user_id, role_id):
             or state["integrity"] != "ok"):
         raise RuntimeError(f"HeroEquip G5 visual fixture assertion failed: {state}")
     return state
+
+
+def set_fixture_realm(connection, role_id, level):
+    # The formal realm state overrides role_info.level on login. Keep both in
+    # sync when testing an existing Steam save; the immutable DB backup owns restore.
+    exists = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='unity_jingjie_state'").fetchone()
+    if exists:
+        connection.execute(
+            "UPDATE unity_jingjie_state SET current_id=?,experience='0' WHERE role_id=?",
+            (level, role_id))
+
+
+def assert_fixture_realm(connection, role_id, level):
+    exists = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='unity_jingjie_state'").fetchone()
+    if exists:
+        row = connection.execute(
+            "SELECT current_id FROM unity_jingjie_state WHERE role_id=?", (role_id,)).fetchone()
+        if row is not None and int(row[0]) != level:
+            raise RuntimeError(f"HeroEquip fixture realm mismatch: {row[0]} != {level}")
+
+
+def assert_persisted_cultivation(state):
+    levels = {}
+    for uid, encoded in state["persistence"]["equipmentRecords"]:
+        raw = bytes.fromhex(encoded)
+        levels[uid] = dict(struct.unpack_from("<BH", raw, 16 + index * 3)
+                           for index in range(raw[15]))
+    expected = [(SOURCE_UID, 1), (TARGET_UID, 1), (TARGET_UID, 2),
+                (TARGET_UID, 3), (DIVINE_UID, 4)]
+    if any(levels.get(uid, {}).get(kind, 0) <= 0 for uid, kind in expected):
+        raise RuntimeError("HeroEquip mutation checkpoint lacks persisted cultivation transactions; "
+                           "stop the local server and wait for SQLite flush before capturing")
 
 
 def main():
@@ -323,6 +359,7 @@ def main():
                  formation_blob(row[1]),
                  visual_equipment_blob(row[2]) if visual else fixture_equipment_blob(row[2]),
                  args.role_id))
+            set_fixture_realm(connection, args.role_id, 99 if visual else 70)
             connection.commit()
             fixture = (assert_visual_setup if visual else assert_setup)(connection, args.user_id, args.role_id)
         finally:
@@ -358,6 +395,7 @@ def main():
             state = role_state(connection, args.user_id, args.role_id)
         finally:
             connection.close()
+        assert_persisted_cultivation(state)
         if state["semanticHash"] == snapshot["fixtureSemanticHash"]:
             raise RuntimeError("HeroEquip SQLite transaction did not change the authoritative role state")
         snapshot["mutationSemanticHash"] = state["semanticHash"]

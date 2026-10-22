@@ -2738,6 +2738,120 @@ namespace ProjectX.Core
             Complete("COMPLETE: HeroEquip G5 visual fixed-identity 11-state capture passed");
         }
 
+        private bool heroEquipmentValidationRouteReady;
+
+        private IEnumerator OpenHeroEquipmentPageForValidation(bool fromHero)
+        {
+            heroEquipmentValidationRouteReady = false;
+            for (int attempt = 0; attempt < 8 && oneLevelFrameView?.GameObject.activeInHierarchy == true; attempt++)
+            {
+                if (!InvokeEventSystemClick(oneLevelFrameView.FindNode(
+                    "Layer/Panel_12/Title/CloseBtn")?.GetComponent<Button>()))
+                { Fail("HeroEquip validation could not close the current equipment page."); yield break; }
+                yield return null;
+            }
+            if (oneLevelFrameView?.GameObject.activeInHierarchy == true)
+            { Fail("HeroEquip validation did not return to the main UI."); yield break; }
+            float deadline = Time.realtimeSinceStartup + 12f;
+            while (mainView?.GameObject.activeInHierarchy != true && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            // The native wear entry opens the equipment hub directly; the old HUD submenu is hidden.
+            Button entry = mainView.FindNode(fromHero ? FormationPath : EquipmentMenuPath)?.GetComponent<Button>();
+            deadline = Time.realtimeSinceStartup + 12f;
+            while ((entry == null || !entry.gameObject.activeInHierarchy || !entry.interactable)
+                && Time.realtimeSinceStartup < deadline)
+            {
+                yield return null;
+                entry = mainView.FindNode(fromHero ? FormationPath : EquipmentMenuPath)?.GetComponent<Button>();
+            }
+            if (!InvokeEventSystemClick(entry))
+            { Fail("HeroEquip validation entry EventSystem input was unavailable."); yield break; }
+            deadline = Time.realtimeSinceStartup + 12f;
+            while (!(fromHero ? IsHeroOpen : heroEquipmentListView?.GameObject.activeInHierarchy == true)
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            heroEquipmentValidationRouteReady = fromHero ? IsHeroOpen
+                : heroEquipmentListView?.GameObject.activeInHierarchy == true;
+            if (!heroEquipmentValidationRouteReady) Fail("HeroEquip validation entry did not open its destination.");
+        }
+
+        private IEnumerator OpenHeroEquipmentSlotForValidation(int position, int slot)
+        {
+            yield return OpenHeroEquipmentPageForValidation(true);
+            if (!heroEquipmentValidationRouteReady) yield break;
+            heroEquipmentValidationRouteReady = false;
+            int heroId = services.Formation.CombatHeroes[position - 1];
+            Button heroRow = heroListView.GameObject.GetComponentsInChildren<Transform>(true)
+                .FirstOrDefault(value => value.name == $"Hero_{heroId}_{position - 1}")?.GetComponent<Button>();
+            if (!InvokeEventSystemClick(heroRow) || heroPresenter.SelectedPosition != position
+                || !InvokeEventSystemClick(heroDetailView.FindNode(
+                    $"Layer/EquipUI/Bg/bg/EquipIcon{slot}")?.GetComponent<Button>()))
+            { Fail($"HeroEquip validation hero {position} slot {slot} input was unavailable."); yield break; }
+            float deadline = Time.realtimeSinceStartup + 12f;
+            while (heroEquipmentDetailView?.GameObject.activeInHierarchy != true
+                && heroEquipmentChangeView?.GameObject.activeInHierarchy != true
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            heroEquipmentValidationRouteReady = heroEquipmentDetailView?.GameObject.activeInHierarchy == true
+                || heroEquipmentChangeView?.GameObject.activeInHierarchy == true;
+            if (!heroEquipmentValidationRouteReady)
+                Fail($"HeroEquip validation hero {position} slot {slot} did not open inventory.");
+        }
+
+        private IEnumerator OpenHeroEquipmentCultivationForValidation(uint uid, int mode)
+        {
+            yield return OpenHeroEquipmentPageForValidation(false);
+            if (!heroEquipmentValidationRouteReady) yield break;
+            heroEquipmentValidationRouteReady = false;
+            yield return ScrollHeroEquipmentActionForValidation(
+                heroEquipmentListView.FindNode("Layer/zhuangbeibeibaoUI/TableView")?.GetComponent<ScrollRect>(),
+                () => heroEquipmentPresenter.GetListCultivateAction(uid));
+            if (!heroEquipmentValidationRouteReady) yield break;
+            heroEquipmentValidationRouteReady = false;
+            if (!InvokeEventSystemRaycastClick(heroEquipmentPresenter.GetListCultivateAction(uid)))
+            { Fail($"HeroEquip validation bag cultivation entry for {uid} was unavailable."); yield break; }
+            if (mode > 0 && !InvokeEventSystemClick(oneLevelFrameView.FindNode(
+                $"Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button{mode + 1}_StrengthRuntime")?.GetComponent<Button>()))
+            { Fail($"HeroEquip validation cultivation tab {mode} was unavailable."); yield break; }
+            yield return null;
+            heroEquipmentValidationRouteReady = heroEquipmentPresenter.SelectedUid == uid
+                && heroEquipmentPresenter.IsCultivationSubviewExclusive(mode);
+            if (!heroEquipmentValidationRouteReady)
+                Fail($"HeroEquip validation cultivation target {uid} mode {mode} did not open.");
+        }
+
+        private IEnumerator ScrollHeroEquipmentActionForValidation(ScrollRect scroll, Func<Button> getAction)
+        {
+            heroEquipmentValidationRouteReady = false;
+            if (scroll?.viewport == null)
+            { Fail("HeroEquip validation inventory viewport was unavailable."); yield break; }
+            scroll.StopMovement();
+            scroll.verticalNormalizedPosition = 1f;
+            yield return null;
+            for (int attempt = 0; attempt < 32; attempt++)
+            {
+                Button action = getAction();
+                Canvas canvas = scroll.GetComponentInParent<Canvas>();
+                Camera camera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+                    ? canvas.worldCamera : null;
+                RectTransform rect = action?.transform as RectTransform;
+                if (rect != null && action.gameObject.activeInHierarchy && RectTransformUtility.RectangleContainsScreenPoint(
+                    scroll.viewport, RectTransformUtility.WorldToScreenPoint(camera, rect.TransformPoint(rect.rect.center)), camera))
+                { heroEquipmentValidationRouteReady = true; yield break; }
+                if (!InvokeEventSystemDrag(scroll, -0.1f)) break;
+                yield return null;
+            }
+            Fail("HeroEquip validation could not scroll the requested inventory action into view.");
+        }
+
+        private IEnumerator SelectHeroEquipmentCandidateForValidation(uint uid)
+        {
+            yield return ScrollHeroEquipmentActionForValidation(
+                heroEquipmentChangeView.FindNode("Layer/Popup/TableView")?.GetComponent<ScrollRect>(),
+                () => heroEquipmentPresenter.GetChangeCandidateAction(uid));
+            if (!heroEquipmentValidationRouteReady) yield break;
+            heroEquipmentValidationRouteReady = InvokeEventSystemRaycastClick(heroEquipmentPresenter.GetChangeCandidateAction(uid));
+            if (!heroEquipmentValidationRouteReady) Fail($"HeroEquip validation candidate {uid} input was unavailable.");
+        }
+
         private IEnumerator RunHeroEquipmentG4ValidationRoutine()
         {
             const uint sourceUid = 2121072641;
@@ -2797,8 +2911,8 @@ namespace ProjectX.Core
             MarkValidationControl("HE-00-WEAR-TOGGLE");
             yield return null;
             yield return CaptureHeroEquipmentG5State("g1-wear-popup-open.png");
-            Button equipmentEntry = mainView.FindNode(EquipmentBagPath)?.GetComponent<Button>();
-            if (!InvokeEventSystemClick(equipmentEntry)) { Fail("HeroEquip G4 equipment entry EventSystem input was unavailable."); yield break; }
+            // Clicking the native wear entry above already requested the equipment hub.
+            Button equipmentEntry = wearToggle;
             MarkValidationControl("HE-01-MAIN-EQUIPMENT");
             float deadline = Time.realtimeSinceStartup + 12f;
             while (!IsHeroEquipmentOpen && Time.realtimeSinceStartup < deadline) yield return null;
@@ -2842,6 +2956,9 @@ namespace ProjectX.Core
             if (recycleEntry == null || recycleEntry.activeInHierarchy)
             { Fail("HeroEquip G4 excluded recycle entry was not hidden."); yield break; }
             MarkValidationControl("HE-10-EQUIPMENT-RECYCLE-ENTRY");
+            yield return ScrollHeroEquipmentActionForValidation(bagScroll,
+                () => heroEquipmentPresenter.GetListItemAction(targetUid));
+            if (!heroEquipmentValidationRouteReady) yield break;
             Button targetListItem = heroEquipmentPresenter.GetListItemAction(targetUid);
             if (!InvokeEventSystemClick(targetListItem) || !heroEquipmentPresenter.IsDetailVisible)
             { Fail("HeroEquip G4 equipment list item did not open detail through EventSystem."); yield break; }
@@ -2869,33 +2986,38 @@ namespace ProjectX.Core
             }
             MarkValidationControl("HE-09-EQUIPMENT-CULTIVATE");
             Button cultivationTarget = heroEquipmentPresenter.GetCultivationTargetAction(sourceUid);
-            if (!InvokeEventSystemClick(cultivationTarget))
-            { Fail("HeroEquip G4 cultivation equipment selector was unavailable."); yield break; }
-            MarkValidationControl("HE-31-STRENGTH-EQUIPMENT-SELECT");
+            if (cultivationTarget?.gameObject.activeInHierarchy == true)
+            { Fail("HeroEquip G4 unequipped cultivation leaked a wearer equipment selector."); yield break; }
             Transform bagPrompt = heroEquipmentListView.GameObject.GetComponentsInChildren<Transform>(true)
                 .FirstOrDefault(value => value.name == "Prompt" && value.parent?.name == "Btn_yangcheng");
             if (bagPrompt == null)
             { Fail("HeroEquip G4 equipment cultivation red-dot node was missing."); yield break; }
             MarkValidationControl("HE-83-BAG-RED-DOT");
-            heroEquipmentPresenter.Show(1, HeroEquipmentKind.Equipment);
-
-            if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)) { Fail("HeroEquip G4 target equipment detail was unavailable."); yield break; }
+            yield return OpenHeroEquipmentSlotForValidation(1, sourceBefore.Slot);
+            if (!heroEquipmentValidationRouteReady) yield break;
             Button wear = heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_genghuan")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(wear)) { Fail("HeroEquip G4 wear EventSystem input was unavailable."); yield break; }
+            yield return SelectHeroEquipmentCandidateForValidation(targetUid);
+            if (!heroEquipmentValidationRouteReady) yield break;
             MarkValidationControl("HE-23-DETAIL-CHANGE");
             deadline = Time.realtimeSinceStartup + 12f;
             while (GetHeroEquipmentFormation(targetUid) != 1 && Time.realtimeSinceStartup < deadline) yield return null;
             if (GetHeroEquipmentFormation(targetUid) != 1 || GetHeroEquipmentFormation(sourceUid) != 0)
             { Fail("HeroEquip G4 initial replacement did not move source equipment to the bag."); yield break; }
 
-            if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 2) || !InvokeEventSystemClick(
-                heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_genghuan")?.GetComponent<Button>()))
-            { Fail("HeroEquip G4 source wear@2 EventSystem input was unavailable."); yield break; }
+            yield return OpenHeroEquipmentSlotForValidation(2, sourceBefore.Slot);
+            if (!heroEquipmentValidationRouteReady) yield break;
+            if (!heroEquipmentChangeView.GameObject.activeInHierarchy)
+            { Fail("HeroEquip G4 empty hero slot did not open equipment selection."); yield break; }
+            yield return SelectHeroEquipmentCandidateForValidation(sourceUid);
+            if (!heroEquipmentValidationRouteReady) yield break;
             deadline = Time.realtimeSinceStartup + 12f;
             while (GetHeroEquipmentFormation(sourceUid) != 2 && Time.realtimeSinceStartup < deadline) yield return null;
             if (GetHeroEquipmentFormation(sourceUid) != 2) { Fail("HeroEquip G4 source equipment did not wear at position 2."); yield break; }
 
-            if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 2) || !InvokeEventSystemClick(
+            yield return OpenHeroEquipmentSlotForValidation(2, sourceBefore.Slot);
+            if (!heroEquipmentValidationRouteReady) yield break;
+            if (!InvokeEventSystemClick(
                 heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_genghuan")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 cross-position change popup did not open."); yield break; }
             yield return null;
@@ -2913,12 +3035,14 @@ namespace ProjectX.Core
             if (!InvokeEventSystemClick(changeClose) || heroEquipmentChangeView.GameObject.activeSelf)
             { Fail("HeroEquip G4 change close did not hide the popup."); yield break; }
             MarkValidationControl("HE-27-CHANGE-CLOSE");
-            if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 2) || !InvokeEventSystemClick(
+            yield return OpenHeroEquipmentSlotForValidation(2, sourceBefore.Slot);
+            if (!heroEquipmentValidationRouteReady) yield break;
+            if (!InvokeEventSystemClick(
                 heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_genghuan")?.GetComponent<Button>()))
             { Fail("HeroEquip G4 cross-position change popup could not reopen."); yield break; }
             yield return null;
-            Button targetCandidate = heroEquipmentPresenter.GetChangeCandidateAction(targetUid);
-            if (!InvokeEventSystemClick(targetCandidate)) { Fail("HeroEquip G4 target change candidate EventSystem input was unavailable."); yield break; }
+            yield return SelectHeroEquipmentCandidateForValidation(targetUid);
+            if (!heroEquipmentValidationRouteReady) yield break;
             MarkValidationControl("HE-29-CHANGE-WEAR");
             deadline = Time.realtimeSinceStartup + 12f;
             while ((GetHeroEquipmentFormation(targetUid) != 2 || GetHeroEquipmentFormation(sourceUid) != 1)
@@ -2926,7 +3050,8 @@ namespace ProjectX.Core
             bool crossSwap = GetHeroEquipmentFormation(targetUid) == 2 && GetHeroEquipmentFormation(sourceUid) == 1;
             if (!crossSwap) { Fail("HeroEquip G4 cross-position server swap did not converge in the Lua mirror."); yield break; }
 
-            if (!heroEquipmentPresenter.PrepareDetails(targetUid, 2)) { Fail("HeroEquip G4 target takeoff detail unavailable."); yield break; }
+            yield return OpenHeroEquipmentSlotForValidation(2, sourceBefore.Slot);
+            if (!heroEquipmentValidationRouteReady) yield break;
             Button takeOff = heroEquipmentDetailView.FindNode("Layer/zhuangbeiInfoUI/zhuangbei/caozuo/Btn_xiexia")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(takeOff)) { Fail("HeroEquip G4 takeoff EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-24-DETAIL-TAKEOFF");
@@ -2935,10 +3060,8 @@ namespace ProjectX.Core
             if (GetHeroEquipmentFormation(targetUid) != 0 || GetHeroEquipmentFormation(sourceUid) != 1)
             { Fail("HeroEquip G4 takeoff did not restore source/target slot ownership."); yield break; }
 
-            if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)) { Fail("HeroEquip G4 strength detail unavailable."); yield break; }
-            if (!InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Btn_qianghua")?.GetComponent<Button>()))
-            { Fail("HeroEquip G4 strength entry EventSystem input unavailable."); yield break; }
+            yield return OpenHeroEquipmentCultivationForValidation(targetUid, 0);
+            if (!heroEquipmentValidationRouteReady) yield break;
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all was visible for an unequipped item."); yield break; }
             MarkValidationControl("HE-25-EQUIPMENT-STRENGTH-ENTRY");
@@ -2962,10 +3085,20 @@ namespace ProjectX.Core
             if (GetHeroEquipmentStrengthLevel(targetUid) <= targetStrengthBeforeFive)
             { Fail("HeroEquip G4 five-strength transaction did not update op=16 state."); yield break; }
 
-            if (!heroEquipmentPresenter.PrepareDetails(sourceUid, 1)
-                || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                    "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/qianghuashuxing/Btn_qianghua")?.GetComponent<Button>()))
-            { Fail("HeroEquip G4 strengthen-all entry unavailable."); yield break; }
+            yield return OpenHeroEquipmentCultivationForValidation(sourceUid, 0);
+            if (!heroEquipmentValidationRouteReady) yield break;
+            cultivationTarget = heroEquipmentPresenter.GetCultivationTargetAction(sourceUid);
+            if (!InvokeEventSystemClick(cultivationTarget))
+            { Fail("HeroEquip G4 equipped cultivation equipment selector was unavailable."); yield break; }
+            MarkValidationControl("HE-31-STRENGTH-EQUIPMENT-SELECT");
+            Button previousHero = heroEquipmentCultivateView.FindNode(
+                "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Button_L")?.GetComponent<Button>();
+            Button nextHero = heroEquipmentCultivateView.FindNode(
+                "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Button_R")?.GetComponent<Button>();
+            if (!InvokeEventSystemClick(previousHero) || !InvokeEventSystemClick(nextHero))
+            { Fail("HeroEquip G4 equipped cultivate previous/next hero input was unavailable."); yield break; }
+            MarkValidationControl("HE-45-CULTIVATE-PREV-HERO");
+            MarkValidationControl("HE-46-CULTIVATE-NEXT-HERO");
             if (!heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all was hidden for the equipped item on the strength tab."); yield break; }
             int sourceStrengthBefore = GetHeroEquipmentStrengthLevel(sourceUid);
@@ -2978,10 +3111,8 @@ namespace ProjectX.Core
             if (GetHeroEquipmentStrengthLevel(sourceUid) <= sourceStrengthBefore)
             { Fail("HeroEquip G4 strengthen-all transaction did not update source equipment."); yield break; }
 
-            if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)
-                || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                    "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/jinglianshuxing/Btn_jinglian")?.GetComponent<Button>()))
-            { Fail("HeroEquip G4 refine entry EventSystem input unavailable."); yield break; }
+            yield return OpenHeroEquipmentCultivationForValidation(targetUid, 1);
+            if (!heroEquipmentValidationRouteReady) yield break;
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all leaked onto the refine tab."); yield break; }
             if (!heroEquipmentPresenter.AreCultivationAttributesBound(1))
@@ -3071,7 +3202,11 @@ namespace ProjectX.Core
                 || autoRefined.GetLevel(2) <= refineBeforeAuto)
             { Fail("HeroEquip G4 auto-refine transaction did not update op=16 state."); yield break; }
 
-            ShowHeroEquipmentFragments();
+            yield return OpenHeroEquipmentPageForValidation(false);
+            if (!heroEquipmentValidationRouteReady) yield break;
+            if (!InvokeEventSystemClick(oneLevelFrameView.FindNode(
+                "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button3_Runtime")?.GetComponent<Button>()))
+            { Fail("HeroEquip G4 equipment fragment tab input was unavailable."); yield break; }
             MarkValidationControl("HE-05-EQUIPMENT-PIECES");
             ScrollRect fragmentScroll = heroEquipmentFragmentView.FindNode(
                 "Layer/suipianUI/Bag/TableView")?.GetComponent<ScrollRect>();
@@ -3162,10 +3297,8 @@ namespace ProjectX.Core
             }
             yield return CaptureHeroEquipmentG5State("g1-equipment-pieces-empty.png");
 
-            if (!heroEquipmentPresenter.PrepareDetails(targetUid, 1)
-                || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                    "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/juexingshuxing/Btn_juexing")?.GetComponent<Button>()))
-            { Fail("HeroEquip G4 awaken entry EventSystem input unavailable."); yield break; }
+            yield return OpenHeroEquipmentCultivationForValidation(targetUid, 2);
+            if (!heroEquipmentValidationRouteReady) yield break;
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all leaked onto the awaken tab."); yield break; }
             if (!heroEquipmentPresenter.AreCultivationAttributesBound(2))
@@ -3220,10 +3353,8 @@ namespace ProjectX.Core
                 "HE-63-AUTO-STAR-CONFIRM", "HE-64-AUTO-STAR-CANCEL", "HE-65-AUTO-STAR-CLOSE"
             }) MarkValidationControl(hiddenId);
 
-            if (!heroEquipmentPresenter.PrepareDetails(divineUid, 1)
-                || !InvokeEventSystemClick(heroEquipmentDetailView.FindNode(
-                    "Layer/zhuangbeiInfoUI/Info/ListView/DetailContent/shenzhushuxing/Btn_shenzhu")?.GetComponent<Button>()))
-            { Fail("HeroEquip G4 shenzhu entry EventSystem input unavailable."); yield break; }
+            yield return OpenHeroEquipmentCultivationForValidation(divineUid, 3);
+            if (!heroEquipmentValidationRouteReady) yield break;
             if (heroEquipmentPresenter.IsStrengthAllVisible)
             { Fail("HeroEquip G4 strengthen-all leaked onto the shenzhu tab."); yield break; }
             if (!heroEquipmentPresenter.AreCultivationAttributesBound(3))
@@ -3310,14 +3441,8 @@ namespace ProjectX.Core
                 MarkValidationControl(cultivateTabIds[tab]);
                 yield return null;
             }
-            Button previousHero = heroEquipmentCultivateView.FindNode(
-                "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Button_L")?.GetComponent<Button>();
-            Button nextHero = heroEquipmentCultivateView.FindNode(
-                "Layer/zhuangbeiyangchengUI/zhuangbei/Panel_zhujue/Button_R")?.GetComponent<Button>();
-            if (!InvokeEventSystemClick(previousHero) || !InvokeEventSystemClick(nextHero))
-            { Fail("HeroEquip G4 cultivate previous/next hero EventSystem input unavailable."); yield break; }
-            MarkValidationControl("HE-45-CULTIVATE-PREV-HERO");
-            MarkValidationControl("HE-46-CULTIVATE-NEXT-HERO");
+            if (previousHero.gameObject.activeInHierarchy || nextHero.gameObject.activeInHierarchy)
+            { Fail("HeroEquip G4 unequipped cultivation leaked wearer navigation."); yield break; }
 
             ShowHeroEquipmentFragments();
             yield return null;
@@ -3359,18 +3484,10 @@ namespace ProjectX.Core
                 yield return null;
             }
 
-            mainView = services.UiRouter.FindByKey(UiPrefabKey.MainHud, true) ?? mainView;
-            GameObject wearMenu = mainView.FindNode("Layer/Main_UI/tankuang2");
-            if (wearMenu?.activeInHierarchy != true && !InvokeEventSystemClick(wearToggle))
-            {
-                Fail($"HeroEquip G4 could not reopen the wear submenu for FaBao isolation: "
-                    + $"main={mainView.GameObject.activeSelf}, wearToggle={wearToggle != null}, "
-                    + $"toggleActive={wearToggle?.gameObject.activeInHierarchy}, menu={wearMenu?.activeInHierarchy}, "
-                    + $"frame={oneLevelFrameView.GameObject.activeSelf}, stack={services.UiStack.Current?.GameObject?.name}.");
-                yield break;
-            }
-            yield return null;
-            Button faBaoEntry = mainView.FindNode(FaBaoBagPath)?.GetComponent<Button>();
+            yield return OpenHeroEquipmentPageForValidation(false);
+            if (!heroEquipmentValidationRouteReady) yield break;
+            Button faBaoEntry = oneLevelFrameView.FindNode(
+                "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.GetComponent<Button>();
             if (!InvokeEventSystemClick(faBaoEntry))
             { Fail("HeroEquip G4 FaBao sibling entry EventSystem input unavailable."); yield break; }
             MarkValidationControl("HE-02-MAIN-FABAO");
@@ -3379,14 +3496,15 @@ namespace ProjectX.Core
             if (!IsHeroEquipmentOpen)
             { Fail("HeroEquip G4 FaBao sibling bag did not open."); yield break; }
             Button faBaoTab = oneLevelFrameView.FindNode(
-                "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button1")?.GetComponent<Button>();
-            if (faBaoTab == null || faBaoTab.interactable)
-            { Fail("HeroEquip G4 selected FaBao tab state was not source-equivalent."); yield break; }
+                "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime")?.GetComponent<Button>();
+            if (faBaoTab == null || heroEquipmentPresenter.ActiveKind != HeroEquipmentKind.FaBao)
+            { Fail("HeroEquip G4 selected FaBao tab did not show the FaBao inventory."); yield break; }
             MarkValidationControl("HE-11-FABAO-BAG-TAB");
             GameObject faBaoFragmentTab = oneLevelFrameView.FindNode(
-                "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button2_Runtime");
-            if (faBaoFragmentTab == null || faBaoFragmentTab.activeInHierarchy)
-            { Fail("HeroEquip G4 excluded FaBao fragment tab was not hidden."); yield break; }
+                "Layer/Panel_12/Bg/Btn_ListView/Panel_10/Button3_Runtime");
+            if (faBaoFragmentTab == null || !faBaoFragmentTab.activeInHierarchy
+                || heroEquipmentFragmentView.GameObject.activeSelf)
+            { Fail("HeroEquip G4 shared equipment fragment tab leaked fragment contents into FaBao inventory."); yield break; }
             MarkValidationControl("HE-12-FABAO-FRAGMENT-TAB");
             MarkValidationControl("HE-15-FABAO-FRAGMENT-ACTIONS-DEFERRED");
             Button faBaoHelp = oneLevelFrameView.FindNode(

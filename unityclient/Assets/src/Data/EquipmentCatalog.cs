@@ -51,10 +51,7 @@ namespace ProjectX.Data
     {
         [JsonProperty("id")] public int Id { get; set; }
         [JsonProperty("key")] public string Key { get; set; }
-        [JsonProperty("desc")] public string Template { get; set; }
-        [JsonProperty("duration")] public int Duration { get; set; }
-        [JsonProperty("per_turn_limit")] public int PerTurnLimit { get; set; }
-        [JsonProperty("per_battle_limit")] public int PerBattleLimit { get; set; }
+        [JsonProperty("combat_descriptions")] public string[] CombatDescriptions { get; set; }
     }
 
     [Serializable]
@@ -231,17 +228,11 @@ namespace ProjectX.Data
         public string GetAffixDescription(HeroEquipmentAffix affix)
         {
             if (!affixDescriptions.TryGetValue(affix.Id, out EquipmentAffixDescription definition)
-                || definition.Key != affix.Key || string.IsNullOrWhiteSpace(definition.Template))
+                || definition.Key != affix.Key || affix.Tier < 1
+                || definition.CombatDescriptions == null || affix.Tier > definition.CombatDescriptions.Length)
                 return "词条说明暂不可用。";
-            var culture = System.Globalization.CultureInfo.InvariantCulture;
-            return definition.Template
-                .Replace("{value1}", affix.Value1.ToString(culture))
-                .Replace("{value2}", affix.Value2.ToString(culture))
-                .Replace("{value1_pct}", (affix.Value1 / 100d).ToString("0.##", culture))
-                .Replace("{value2_pct}", (affix.Value2 / 100d).ToString("0.##", culture))
-                .Replace("{duration}", definition.Duration.ToString(culture))
-                .Replace("{per_turn_limit}", definition.PerTurnLimit.ToString(culture))
-                .Replace("{per_battle_limit}", definition.PerBattleLimit.ToString(culture));
+            string description = definition.CombatDescriptions[affix.Tier - 1];
+            return string.IsNullOrWhiteSpace(description) ? "词条说明暂不可用。" : description;
         }
 
         private void LoadArtifactMechanisms()
