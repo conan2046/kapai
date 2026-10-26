@@ -1,5 +1,5 @@
 # Field and reference validation invoked by the existing Unity-owned export chain.
-function Test-UnityDongFuTables($Tables, [string]$Root) {
+function Test-UnityDongFuTables($Tables, [string]$Root, $ItemRows=$null) {
     $schema = Get-Content (Join-Path $PSScriptRoot 'dongfu-schema.json') -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
     foreach ($definition in $schema.tables) {
         $rows = @($Tables[$definition.name])
@@ -63,7 +63,7 @@ function Test-UnityDongFuTables($Tables, [string]$Root) {
         if (-not $active[$Table].ContainsKey([string]$Id)) { throw "DongFu inactive/missing reference: ${Table}/${Id}" }
     }
     $itemIds=@{}
-    foreach ($row in @(Get-Content (Join-Path $Root 'unityserver/config/json/item.json') -Raw -Encoding UTF8 | ConvertFrom-Json)) { $itemIds[[string]$row.id]=$true }
+    foreach ($row in $(if($null -ne $ItemRows){@($ItemRows)}else{@(Get-Content (Join-Path $Root 'unityserver/config/json/item.json') -Raw -Encoding UTF8 | ConvertFrom-Json)})) { $itemIds[[string]$row.id]=$true }
     function Require-DongFuItem([long]$Id) { if (-not $itemIds.ContainsKey([string]$Id)) { throw "DongFu missing formal item: $Id" } }
     foreach ($definition in $schema.tables) { foreach ($row in $active[$definition.name].Values) {
         foreach ($field in @('cost_items','outputs')) { if ($row.Contains($field)) { foreach ($pair in $row[$field]) { Require-DongFuItem $pair[0] } } }

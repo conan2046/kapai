@@ -19,13 +19,10 @@ struct MapNodeCfg
 	uint16 levelLimit;
 	uint32 nextNodeId;
 	uint32 rewardId;
-	uint32 fixId;
 	uint32 fightId;
 	int allUserAwardId;	// 帮派副本通关奖励
 	string name;
-	MultiAward firstAward;
-	MultiAward normalAward;
-	MultiAward moneyAward;
+	MultiAward showAward;
 	MultiAward fightAward;		// 每次挑战奖励
 	MultiAward finalKillAward;	// 击杀者奖励
 	MultiAward firstRankAward;	// 伤害第一奖励
@@ -233,7 +230,7 @@ public:
 	uint32 GetGuanQiaStar(uint8 type);
 	void GuanQiaSaoDang(CUser* pUser, uint8 type, uint32 mapId, uint32 nodeId, CNetMessage &msg);
 	void GuanQiaReset(CUser* pUser, uint32 nodeId, CNetMessage &msg);
-	void GuanQiaWin(CUser* pUser, uint8 star, uint8 mode,
+	bool GuanQiaWin(CUser* pUser, uint8 star, uint8 mode,
 		uint8 chainIndex = 0, uint8 chainTotal = 0, uint32 chainNextNodeId = 0);
 	void AddNewSinggleGuanQia(uint8 type, uint32 mapId, uint32 nodeId);
 

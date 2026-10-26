@@ -60,13 +60,13 @@ unitydata/excel/*.xlsx
     -> unitydata/tools/vendor/xl转表.exe
     -> unitydata/tools/Export-UnityServerData.ps1
     -> unitydata/export/server/generated/json_server
-    -> unitydata/export/server/authoritative/json 覆盖 11 张服务端权威表
+    -> unitydata/export/server/authoritative/json 覆盖 8 张完整服务端权威表（item另走正式表合并）
     -> unityserver/config/json
 ```
 
 `unitydata/excel` 保存Unity正式Excel输入（截至2026-10-11递归共68个文件，其中8个为本轮新增工作簿）。旧通用转换器只处理其合同内的旧工作簿；`unity-owned-tables.json`登记的工作簿由`Export-UnityOwnedTables.ps1`处理，境界及角色外观沿用专用导出器，均不依赖外部`concept`路径。
 
-`unitydata/export/server/authoritative/json` 保存当前 Unity 服务端基线中的 11 张权威快照：`daily`、`drop_matching`、`function`、`item`、`level_reward`、`mission_dialog`、`reward`、`sevendays`、`shop_config`、`shop`、`xiulian`。这些表以现有服务器数据为准，覆盖原始 Excel 转换结果；原始 Excel 差异仍记录在 `.local/unityserver-export/latest.json`，但不会再阻断导表。使用 `-ApplyGeneratedJson` 会把合并后的结果同步到 `unityserver/config/json`。
+`unitydata/export/server/authoritative/json` 保存当前 Unity 服务端基线中的 8 张完整权威快照：`daily`、`drop_matching`、`level_reward`、`mission_dialog`、`sevendays`、`shop_config`、`shop`、`xiulian`。这些表以现有服务器数据为准，覆盖原始 Excel 转换结果；原始 Excel 差异仍记录在 `.local/unityserver-export/latest.json`，但不会再阻断导表。使用 `-ApplyGeneratedJson` 会把合并后的结果同步到 `unityserver/config/json`。
 
 已登记的35张服务端XML接入Unity工作簿；其余XML和地图仍保留历史基线。服务端运行所需的3个DLL位于`unityserver/runtime`，不属于策划数据表。
 
@@ -110,3 +110,42 @@ SQLite链：源表→`export/server/generated/sqlite/*.sql`→`unityserver/sql/s
 & .\unitydata\tools\Export-UnityServerData.ps1 -CleanOutput
 & .\unitydata\tools\Export-UnityServerData.ps1 -CleanOutput -ApplyGeneratedJson
 ```
+
+## 功能门槛统一维护（2026-10-26，P01）
+
+功能的唯一维护源为 `excel/function.xlsx / Sheet1`，以本次 Unity 当前体验为迁移基线，共121条服务端记录。原始51条旧表已在本轮本地备份保留；当前表补齐全部运行字段，修正重复的show列名为show_reward，并增加客户端目录元数据。境界function_id=22统一为1阶；1050名称按客户端统一为主角。其他运行条件及客户端目录的顺序、图标、路由、Steam排除标记保持原值。
+
+`unity-owned-tables.json` 的 `Function` 组经 `Export-UnityOwnedTables.ps1` 类型校验并导出服务端function.json、客户端function-unlocks.json和gameplay.json。客户端openLevel直接取同一行open_condition中的境界条件，不再独立维护；目录名称和图标仍可按各展示用途配置。旧authoritative/json/function.json仅保留历史参考，全量服务端导出已不再将其覆盖回来。
+
+定向入口：`Export-UnityOwnedTables.ps1 -Group Function -Mode Both`；或客户端/服务端入口的 `-DataGroup Function`。后者服务端仍需显式 `-ApplyGeneratedJson` 才同步运行配置。一般全量入口自动纳入Function组。校验模式 `-Group Function -ValidateOnly` 检查源、生成目录与当前运行输出一致且不写文件。
+
+功能门槛维护链已完成；用户随后确认保留现有洞府数据并修复道具覆盖链，详见下节。导出检查不代表真实Play验收或发行包已更新。
+
+## 道具导出覆盖链（2026-10-26，P01）
+
+道具统一通过现有Export-UnityOwnedTables.ps1中的Items入口，由UnityItemData.ps1进行类型读取和合并。唯一正式维护表为excel/item.xlsx；export/server/authoritative/json/item.json只为正式表尚未收录的历史ID提供兼容底座，同ID始终以正式表为准。当前正式表1884条，加13条历史兼容记录，完整重建1897条；本次不改变任何道具数值、名称、配方或引用。
+
+导出顺序：读取历史兼容底座 → 正式item.xlsx覆盖同ID及追加新ID → 校验字段与堆叠上限 → 用本批道具集合校验洞府引用 → 写生成目录或客户端源目录 → 按Mode及ApplyRuntime同步运行目录。构建不再把当前运行item.json当作输入，也不再向多出source层的旧权威路径写文件。
+
+All和DongFu入口在Server、Client、Both模式均纳入道具阶段。Items、ItemStacks、GardenItems、SpiritItems、LibraryItems、AlchemyItems兼容入口统一走同一条链；ValidateOnly实际检查输出差异而不写入，ApplyRuntime:false只生成指定端产物。单端导出不改另一端；客户端后置装备拷贝已移除item，避免将旧服务端产物写回客户端源；.meta保持原状。
+
+全量服务端通用转换器跳过主item.xlsx及同名历史副本，item不再被整表权威快照覆盖。最终运行目录复制发生在差异检查通过后。Function维护链保持上一阶段实现不变；reward现已转入下节的正式维护链，其余8张完整权威表继续沿用既有规则。
+
+定向导出：Export-UnityOwnedTables.ps1 -Group Items -Mode Both；定向只检验加-ValidateOnly。洞府入口及客户端/服务端的-DataGroup Items也使用同一实现。运行参数保持原有语义，服务端入口需-ApplyGeneratedJson才同步运行配置。
+
+回归入口：tools/tests/test_item_export_chain.py。它在.local隔离副本中覆盖全量通用转换器、单端/预生成、冷重建、非法输入无写入、防止失败后写运行目录、旧错误路径无效及重复导出。全量链测试只隔离了末尾无关的境界导出，不启动Unity Play或游戏服务端。
+
+## 关卡、战斗与奖励正式维护链（2026-10-26）
+
+- 正式维护源位于unitydata/excel：maplist.xlsx / maplist维护关卡与引用；fight_config.xlsx / Sheet1维护战斗、阵法、展示怪和站位；monster_boss_basic.xlsx / Sheet1维护怪物属性和技能；reward.xlsx / Sheet1维护奖励组。客户端和服务端输出均由正式表派生，不从当前运行JSON或客户端输出反向补值。
+- 本轮统一范围为bigmap.MapType=1的1266个主线副本/龙崖关卡。一次性核对Cocos客户端现有主线配置后，将1266个战斗、6264个怪物的原始数值纳入正式表。162个同号异内容战斗不覆盖原记录，主线使用空闲22001～23270号段，maplist.fightID同步更新；非主线引用保持原值。fight_config不恢复50000以上记录或team_buff。怪物原始属性、成长值、技能和阵法等级保持原值；zhenfa_level中的角色等级100沿用现有服务端行为。阵法运行输入以zhenfa为准；现有zhenfa_id、zhenfa_level辅助列保留，不反向覆盖zhenfa。
+- 定向入口：Export-UnityOwnedTables.ps1 -Group WorldRewards -Mode Both -ApplyRuntime:$false。预生成后检查，确认同步用-ApplyRuntime:$true；-ValidateOnly校验正式源与输出是否一致。全量、客户端和服务端入口复用同一类型校验和前置检查。
+- 服务端输出：generated/json_server与unityserver/config/json中的reward.json、maplist.json、fight_config.json、monster_boss_basic.json。通用转换器跳过这四张工作簿；上述输出不参与整表权威JSON覆盖。
+- 客户端输出：World/maplist_dat.txt、World/main_dungeon_fight_dat.txt（id、show）、World/main_dungeon_monster_dat.txt（id、pic、scale），同步到Resources/ProjectXData/World。WorldVisualCatalog最后读取这两份主线展示投影，与服务端使用同一个正式fightID和怪物展示字段。两份主线文件是自动生成结果，无需单独维护。保留原World/fight_config_dat.txt、monster_boss_basic_dat.txt供未统一的其他功能使用。
+- 运行同步检查只对本轮主线闭合负责：主线fightID、怪物引用、正生命/等级/展示字段、基础技能和阵法均须有效。非主线缺失fightID单独报告为deferredOtherFightIds，不生成占位战斗；支线6个缺失引用及其他功能的数据冲突后续按功能处理。此范围限制不表示其他玩法已一致或已验收。
+- drop_type=1为必掉，weight=0；drop_type=2为随机候选，weight为正整数。同组必掉行全部发，随机候选按权重抽1行。允许只有一种类型，不添加空的另一类型占位。
+- 单项奖励：[类型或道具ID,具体对象ID,数量]；四元组[类型或道具ID,具体对象ID,最小数量,最大数量]表示含上下限的随机整数数量。第二位不是品质。抽中候选行后发放该行全部奖励项。
+- 关卡主奖励只通过rewardID结算，首次与重复通关采用同一奖励规则；既有藏书来源和章节宝箱仍按各自规则结算。first_reward、money、exp_pet、add_reward及AttackCount不再作为单机关卡运行输入。Hope保持当前0；次数使用既有255无限次数协议标记；普通扫荡沿用一请求最多5次，龙崖连战不经过该分支。
+- export/server/authoritative/json/reward.json仅为正式表未维护的奖励编号提供兼容输入，当前7组、23条。正式表同编号完整覆盖整个兼容组，不拼接候选；当前运行JSON从不充当生成输入。
+- 公式实际解析本表整数引用、加减乘除、括号和文本拼接，并翻译共享公式相对引用；不信任Excel缓存。战斗整数列中既有20个小于1e-9的浮点存储尾差按整数还原，真实小数拒绝；原始单元格不改写。其他函数/外部引用、循环、非整数或溢出结果在写入前拒绝。重复ID、空奖励、非法类型/权重/数量范围和缺失奖励引用同样拒绝。
+- 定向回归：tools/tests/test_world_rewards.py。它用隔离、缩减的真实表引用夹具检查导出、拒绝非法输入、共享公式和主线/非主线边界，不模拟实际战斗。原生奖励规则为unityserver/tests/reward_rules_tests.cpp（kapai_reward_rules_tests）。2026-10-26已在高等级隔离Slot09实际验证前5章46关/58场，详情见.local/main-dungeon-acceptance-20261026/验证结果.md。该结果不代表新档体验或1266关逐关验收；随机藏书名称/图标显示链已在同日定向修正：副本奖励统一从正式客户端目录解析；第6章10场实际结算及通关奖励12项横向拖动通过，详见.local/world-reward-display-20261026/验证结果.md。最终画面仍待用户确认。配置同步与静态检查不能代替实际结算。

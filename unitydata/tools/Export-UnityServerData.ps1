@@ -26,20 +26,22 @@ $authoritativeRoot = Join-Path $source 'authoritative\json'
 $authoritativeNames = @(
     'daily.json',
     'drop_matching.json',
-    'function.json',
-    'item.json',
     'level_reward.json',
     'mission_dialog.json',
-    'reward.json',
     'sevendays.json',
     'shop_config.json',
     'shop.json',
     'xiulian.json'
 )
 $reportPath = Join-Path $Root '.local\unityserver-export\latest.json'
+if($ApplyGeneratedJson -and ((Get-Content (Join-Path $PSScriptRoot 'unity-owned-tables.json') -Raw -Encoding UTF8 | ConvertFrom-Json).groups.group -contains 'WorldRewards')){
+    . (Join-Path $PSScriptRoot 'Read-UnityVisualExcel.ps1')
+    . (Join-Path $PSScriptRoot 'UnityWorldRewardData.ps1')
+    Assert-UnityWorldRuntimeReady (Get-UnityWorldRewardData $Root)
+}
 $ownedManifest = Get-Content (Join-Path $PSScriptRoot 'unity-owned-tables.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-$ownedWorkbooks = @($ownedManifest.groups.workbook)
-$ownedJsonNames = @(foreach ($group in $ownedManifest.groups) {
+$ownedWorkbooks = @($ownedManifest.groups.workbook) + @($ownedManifest.groups.additionalWorkbooks | Where-Object { $_ })
+$ownedJsonNames = @('item.json') + @(foreach ($group in $ownedManifest.groups) {
     foreach ($sheet in $group.sheets) {
         if ($sheet.kind -eq 'json') { $sheet.output }
         if ($sheet.jsonOutput) { $sheet.jsonOutput }
@@ -57,7 +59,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $stage 'excel') | Out-Null
 Copy-Item -LiteralPath $vendor -Destination (Join-Path $stage 'xl转表.exe') -Force
 Get-ChildItem -LiteralPath $excel -Recurse -File | ForEach-Object {
     # JingJie uses the Unity-owned typed exporter; role visuals remain client-only.
-    if ($_.Name -in (@('jingjie_config.xlsx','role_visual.xlsx') + $ownedWorkbooks)) { return }
+    if ($_.Name -in (@('jingjie_config.xlsx','role_visual.xlsx','item.xlsx') + $ownedWorkbooks)) { return }
     $relative = $_.FullName.Substring($excel.Length).TrimStart('\', '/')
     $target = Join-Path (Join-Path $stage 'excel') $relative
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
@@ -168,6 +170,10 @@ $report = [ordered]@{
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $reportPath) | Out-Null
 [IO.File]::WriteAllText($reportPath, ($report | ConvertTo-Json -Depth 8) + "`n", [Text.UTF8Encoding]::new($false))
 
+if ($unresolvedDrift.Count -gt 0) {
+    throw "Unity server Excel output still differs from the current Unity baseline after authoritative overrides: $($unresolvedDrift.Count) files. Review $reportPath."
+}
+
 if ($ApplyGeneratedJson) {
     foreach ($file in Get-ChildItem -LiteralPath $generated -Recurse -File) {
         $relative = $file.FullName.Substring($generated.Length).TrimStart('\', '/')
@@ -182,9 +188,6 @@ if ($ApplyGeneratedJson) {
     [IO.File]::WriteAllText($reportPath, ($report | ConvertTo-Json -Depth 8) + "`n", [Text.UTF8Encoding]::new($false))
 }
 
-if ($unresolvedDrift.Count -gt 0) {
-    throw "Unity server Excel output still differs from the current Unity baseline after authoritative overrides: $($unresolvedDrift.Count) files. Review $reportPath."
-}
 
 Write-Output ("Unity server Excel export generated: {0} files; excelDrift={1}; authoritativeOverrides={2}; unresolved={3}; applied={4}; report={5}" -f $generatedFiles.Count, $excelDrift.Count, $authoritativeOverrides.Count, $unresolvedDrift.Count, $ApplyGeneratedJson.IsPresent, $reportPath)
 & (Join-Path $PSScriptRoot 'Export-UnityJingJieData.ps1') -Root $Root -Mode Server

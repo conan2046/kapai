@@ -342,12 +342,8 @@ namespace ProjectX.Core
         // 龙崖副本模式（fuben_AB == 2）：模式下发、自动挑战开关、连战续接
         public void SetWorldChainMode(bool enabled)
         {
+            // Mode snapshots classify the UI; the battle lifecycle owns pending settlement.
             worldChainMode = enabled;
-            if (enabled)
-            {
-                worldBattleRuntime.PendingResult = false;
-                worldBattleRuntime.PendingStars = 0;
-            }
             worldPresenter?.SetChainMode(enabled);
             worldOutcomePresenter?.SetChainMode(enabled);
             RefreshWorldRedDots();

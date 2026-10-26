@@ -38,7 +38,6 @@ namespace ProjectX.Data
         public int Hope { get; set; }
         public int LevelLimit { get; set; }
         public int MaxAttempts { get; set; }
-        public WorldConfiguredReward[] FirstRewards { get; set; } = Array.Empty<WorldConfiguredReward>();
         public WorldConfiguredReward[] ShowRewards { get; set; } = Array.Empty<WorldConfiguredReward>();
     }
 
@@ -75,7 +74,6 @@ namespace ProjectX.Data
             public int Hope;
             public int LevelLimit;
             public int MaxAttempts;
-            public WorldConfiguredReward[] FirstRewards;
             public WorldConfiguredReward[] ShowRewards;
         }
 
@@ -151,12 +149,15 @@ namespace ProjectX.Data
             string mapList = Load("maplist_dat");
             string fightConfig = Load("fight_config_dat");
             string monsters = Load("monster_boss_basic_dat");
+            string mainFights = Load("main_dungeon_fight_dat");
+            string mainMonsters = Load("main_dungeon_monster_dat");
             string experience = Load("exp_dat");
             string boxRewards = Load("reward_fixed_dat");
             string achievements = Load("map_achievement_dat");
             if (string.IsNullOrEmpty(bigMap) || string.IsNullOrEmpty(mapRes)
                 || string.IsNullOrEmpty(mapList) || string.IsNullOrEmpty(fightConfig)
-                || string.IsNullOrEmpty(monsters))
+                || string.IsNullOrEmpty(monsters) || string.IsNullOrEmpty(mainFights)
+                || string.IsNullOrEmpty(mainMonsters))
             {
                 Debug.LogError("[World] Unity world visual configuration is missing from Resources/ProjectXData/World.");
                 return;
@@ -169,14 +170,17 @@ namespace ProjectX.Data
             if (!string.IsNullOrEmpty(achievements)) ParseAchievements(achievements);
 
             var fightMonsters = new Dictionary<int, int>();
-            foreach (string entry in SplitEntries(fightConfig))
+            // Main dungeon projections are exported from the same formal Excel as the server.
+            foreach (string source in new[] { fightConfig, mainFights })
+            foreach (string entry in SplitEntries(source))
             {
                 if (TryGetInt(entry, "id", out int id) && TryGetInt(entry, "show", out int show))
                     fightMonsters[id] = show;
             }
 
             var monsterPictures = new Dictionary<int, MonsterSource>();
-            foreach (string entry in SplitEntries(monsters))
+            foreach (string source in new[] { monsters, mainMonsters })
+            foreach (string entry in SplitEntries(source))
             {
                 if (TryGetInt(entry, "id", out int id) && TryGetInt(entry, "pic", out int picture)
                     && TryGetInt(entry, "scale", out int scale))
@@ -186,8 +190,10 @@ namespace ProjectX.Data
             var stageSources = new Dictionary<uint, StageSource>();
             foreach (string entry in SplitEntries(mapList))
             {
-                if (!TryGetInt(entry, "ID", out int id) || !TryGetInt(entry, "quality", out int quality)
+                if (!TryGetInt(entry, "ID", out int id)
                     || !TryGetInt(entry, "fightID", out int fightId)) continue;
+                if (!TryGetInt(entry, "type", out int quality))
+                    TryGetInt(entry, "quality", out quality); // compatibility while a staged config is still deployed
                 TryGetString(entry, "Des", out string description);
                 TryGetString(entry, "Name", out string name);
                 TryGetInt(entry, "Hope", out int hope);
@@ -202,7 +208,6 @@ namespace ProjectX.Data
                     Hope = hope,
                     LevelLimit = hasLevelLimit ? levelLimit : int.MaxValue,
                     MaxAttempts = maxAttempts,
-                    FirstRewards = ParseTriples(GetBraceField(entry, "first_reward")),
                     ShowRewards = ParseTriples(GetBraceField(entry, "show_reward"))
                 };
             }
@@ -222,7 +227,6 @@ namespace ProjectX.Data
                     Hope = pair.Value.Hope,
                     LevelLimit = pair.Value.LevelLimit,
                     MaxAttempts = pair.Value.MaxAttempts,
-                    FirstRewards = pair.Value.FirstRewards ?? Array.Empty<WorldConfiguredReward>(),
                     ShowRewards = pair.Value.ShowRewards ?? Array.Empty<WorldConfiguredReward>()
                 };
             }

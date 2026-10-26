@@ -2,6 +2,18 @@
   "schemaVersion": 1,
   "groups": [
     {
+      "group": "WorldRewards",
+      "workbook": "reward.xlsx",
+      "additionalWorkbooks": ["maplist.xlsx", "fight_config.xlsx", "monster_boss_basic.xlsx"],
+      "customExporter": "UnityWorldRewardData.ps1",
+      "sheets": [
+        {"name": "reward", "kind": "json", "output": "reward.json"},
+        {"name": "maplist", "kind": "json", "output": "maplist.json"},
+        {"name": "fight_config", "kind": "json", "output": "fight_config.json"},
+        {"name": "monster_boss_basic", "kind": "json", "output": "monster_boss_basic.json"}
+      ]
+    },
+    {
       "group": "DongFu",
       "workbook": "dongfu_config.xlsx",
       "retiredJsonOutputs": ["dongfu_recipe.json"],
@@ -2346,6 +2358,99 @@
           "jsonKinds": {},
           "client": true,
           "output": "jingjie_realm.json"
+        }
+      ]
+    },
+    {
+      "group": "Function",
+      "workbook": "function.xlsx",
+      "sheets": [
+        {
+          "name": "function",
+          "sourceSheet": "Sheet1",
+          "kind": "json",
+          "columns": {
+            "function_id": "number",
+            "name": "string",
+            "open_condition": "json",
+            "Default_display": "number",
+            "type": "number",
+            "OPEN_TIPS": "number",
+            "Word_TIPS": "string",
+            "unopen_tips": "string",
+            "tips_cv": "string",
+            "show_icon": "number",
+            "before_time": "number",
+            "start_time": "number",
+            "end_time": "number",
+            "show_weekday": "json",
+            "show": "number",
+            "page": "number",
+            "icon": "string",
+            "show_reward": "json",
+            "des": "string",
+            "level_show": "number",
+            "unlock_order": "number",
+            "unlock_name": "string",
+            "unlock_icon": "string",
+            "unlock_show_upcoming": "number",
+            "gameplay_order": "number",
+            "gameplay_name": "string",
+            "gameplay_page": "number",
+            "gameplay_icon": "string",
+            "gameplay_description": "string",
+            "gameplay_route": "string",
+            "steam_enabled": "number",
+            "migration_ready": "number"
+          },
+          "sheetIndex": 1,
+          "primaryColumn": "function_id",
+          "integerColumns": [
+            "function_id",
+            "Default_display",
+            "type",
+            "OPEN_TIPS",
+            "show_icon",
+            "before_time",
+            "start_time",
+            "end_time",
+            "show",
+            "page",
+            "level_show",
+            "unlock_order",
+            "unlock_show_upcoming",
+            "gameplay_order",
+            "gameplay_page",
+            "steam_enabled",
+            "migration_ready"
+          ],
+          "jsonKinds": {
+            "open_condition": [
+              "array"
+            ],
+            "show_weekday": [
+              "array"
+            ],
+            "show_reward": [
+              "array"
+            ]
+          },
+          "clientOnlyColumns": [
+            "unlock_order",
+            "unlock_name",
+            "unlock_icon",
+            "unlock_show_upcoming",
+            "gameplay_order",
+            "gameplay_name",
+            "gameplay_page",
+            "gameplay_icon",
+            "gameplay_description",
+            "gameplay_route",
+            "steam_enabled",
+            "migration_ready"
+          ],
+          "client": false,
+          "output": "function.json"
         }
       ]
     }

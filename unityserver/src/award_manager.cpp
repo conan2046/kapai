@@ -125,34 +125,21 @@ bool AwardManager::LoadRankAwardConfig()
 
 bool AwardManager::LoadRewardConfig()
 {
-	m_weightRewards.clear();
-	const string file = "reward.json";
-	//                             0            1        2
-	const char* titleArrs[] = { "rewardid", "reward", "weight" };
-	const int typeArrs[] = { 0, 2, 0 };  // 0-int 1-string 2-array
-	rapidjson::Document d;
-	rapidjson::Value _para;
-	if (!LoadJosnValue(file, titleArrs, typeArrs, sizeof(typeArrs) / sizeof(int), d, _para))
-	{
-		cout << "AwardManager::LoadRewardConfig >> LoadJosnValue error " << endl;
-		return false;
-	}
-
-	for (uint32 i = 0; i < _para.Size(); i++)
-	{
-		const rapidjson::Value &data = _para[i];
-		int id = data[titleArrs[0]].GetInt();
-		AwardWeight rewardTmp;
-		pair<awardWeightMapIt, bool> bInsert = m_weightRewards.insert(make_pair(id, rewardTmp));
-		AwardWeight& reward = bInsert.first->second;
-
-		SingleAward saward;
-		ReadMultiAward(data[titleArrs[1]], saward.awards);
-		saward.weight = data[titleArrs[2]].GetInt();
-		reward.weightSum += saward.weight;
-		reward.awards.push_back(saward);
-	}
-	return true;
+    const char* titles[] = {"rewardid", "reward", "weight"};
+    const int types[] = {0, 2, 0};
+    rapidjson::Document document; rapidjson::Value rows;
+    if (!LoadJosnValue("reward.json", titles, types, 3, document, rows)) return false;
+    awardWeightMap loaded;
+    for (rapidjson::SizeType i = 0; i < rows.Size(); ++i) {
+        SingleAward row; int mode; std::string error;
+        if (!UnityRewards::ReadRow(rows[i], row, mode, error)
+            || !UnityRewards::AppendRow(loaded[rows[i]["rewardid"].GetInt()], row, mode)) {
+            cout << "reward.json invalid row " << i << ": " << error << endl;
+            return false;
+        }
+    }
+    m_weightRewards.swap(loaded);
+    return true;
 }
 
 bool AwardManager::LoadVitalityConfig()
@@ -427,7 +414,8 @@ int AwardManager::GetAwardPanal(uint32 aid, uint32 userlv, uint32 num, std::vect
 			break;
 
 		AwardWeight& aweight = wIt->second;
-		int tarWeight = Random(0, aweight.weightSum);
+		if (aweight.awards.empty() || aweight.weightSum <= 0) break;
+		int tarWeight = UnityRewards::RandomInclusive(1, aweight.weightSum);
 		int curWeight = 0;
 		std::vector<SAwardData> randPool;
 		SAwardData realAward;
@@ -440,15 +428,19 @@ int AwardManager::GetAwardPanal(uint32 aid, uint32 userlv, uint32 num, std::vect
 				continue;
 			}
 
+			std::vector<SAwardData> resolved;
+			auto rng = UnityRewards::RandomInclusive;
+			UnityRewards::RollRow(saward, resolved, rng);
+			if (resolved.empty()) resolved.push_back(saward.awards[0]);
 			curWeight += saward.weight;
 			if (!isGet && curWeight >= tarWeight)
 			{
-				realAward = saward.awards[0];
+				realAward = resolved[0];
 				isGet = true;
 			}
 			else
 			{
-				randPool.push_back(saward.awards[0]);
+				randPool.push_back(resolved[0]);
 			}
 		}
 
@@ -465,7 +457,7 @@ int AwardManager::GetAwardPanal(uint32 aid, uint32 userlv, uint32 num, std::vect
 			}
 			else
 			{
-				awvec.push_back(aweight.awards[seqs[i]].awards[0]);
+				awvec.push_back(randPool[seqs[i]]);
 			}
 		}
 		return iIdx;
@@ -489,7 +481,7 @@ void AwardManager::MakeAwardMsgAndSendAward(CUser* pUser, uint32 sceneId, CNetMe
 	::SendAndMakeAwardMsg(pUser, awvec, msg);
 }
 
-void AwardManager::SendAndMakeAwardMsg(CUser *pUser, uint16 aid, CNetMessage& msg, bool showMsg/* = false*/, uint16 addType/* = 0*/)
+void AwardManager::SendAndMakeAwardMsg(CUser *pUser, uint32 aid, CNetMessage& msg, bool showMsg/* = false*/, uint16 addType/* = 0*/)
 {
 	std::vector<SAwardData> awvec;
 	if (GetAwardById(aid, awvec))
@@ -514,58 +506,21 @@ void AwardManager::GetActivityDrop(CUser* pUser, uint32 activityId, int type, st
 
 // ---------------------------------------
 // 通过奖励id获取奖励
-bool AwardManager::GetAwardById(uint32 aid, std::vector<SAwardData> &awvec, int num/* = 1*/, bool isRepeat/* = true*/, bool clear/* = true*/, bool isMerge)
+bool AwardManager::GetAwardById(uint32 aid, std::vector<SAwardData> &awvec, int num, bool isRepeat, bool clear, bool isMerge)
 {
-	if (clear)
-		awvec.clear();
-	vector<SAwardData> award;
-	awardWeightMapIt wIt = m_weightRewards.find(aid);
-	if (wIt == m_weightRewards.end())
-		return false;
-
-	AwardWeight& aweight = wIt->second;
-	int size = aweight.awards.size();
-	if(num > size)
-		return false;
-	set<int> repeat;
-	int errorNum = 0;
-	for (int di = 0; di < num;)
-	{
-		bool isFind = false;
-		int tarWeight = Random(0, aweight.weightSum);
-		int curWeight = 0;
-		for (int wi = 0; wi < size; ++wi)
-		{
-			SingleAward& saward = aweight.awards[wi];
-			curWeight += saward.weight;
-
-			if (curWeight >= tarWeight)
-			{
-				if (!isRepeat || (isRepeat && repeat.insert(wi).second))
-				{
-					if(isMerge)
-						MergeAwardList(award, saward.awards);
-					else
-					{
-						if(!saward.awards.empty())
-							award.push_back(saward.awards[0]);
-					}
-					isFind = true;
-					++di;
-				}
-				break;
-			}
-		}
-		if(!isFind)
-			errorNum++;
-		if(errorNum >= 200)
-			return false;
-	}
-	if(isMerge)
-		MergeAwardList(awvec, award);
-	else
-		awvec.assign(award.begin(),award.end());
-	return true;
+    if (clear) awvec.clear(); // Preserve the public API on failed lookups as well.
+    if (aid == 0) return true;
+    awardWeightMapIt it = m_weightRewards.find(aid);
+    if (it == m_weightRewards.end()) return false;
+    std::vector<SAwardData> rolled;
+    // Preserve the legacy caller contract: isRepeat=true selects distinct candidates.
+    if (!UnityRewards::Roll(it->second, num, isRepeat, isMerge, rolled, UnityRewards::RandomInclusive)) return false;
+    std::vector<SAwardData> result = clear ? std::vector<SAwardData>() : awvec;
+    if (isMerge) {
+        if (!UnityRewards::MergeChecked(result, rolled)) return false;
+    } else result.insert(result.end(), rolled.begin(), rolled.end());
+    awvec.swap(result);
+    return true;
 }
 
 // ---------------------------------------

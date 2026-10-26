@@ -623,7 +623,7 @@ namespace ProjectX.Editor
             foreach (string configName in new[]
                      {
                          "bigmap_dat", "map_res_dat", "maplist_dat", "fight_config_dat",
-                         "monster_boss_basic_dat", "exp_dat", "reward_fixed_dat", "map_achievement_dat",
+                         "monster_boss_basic_dat", "main_dungeon_fight_dat", "main_dungeon_monster_dat", "exp_dat", "reward_fixed_dat", "map_achievement_dat",
                          "hero_dat", "star_dat",
                          "break_dat", "xiulian_dat"
                      })

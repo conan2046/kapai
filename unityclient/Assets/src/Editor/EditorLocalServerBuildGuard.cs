@@ -97,7 +97,7 @@ namespace ProjectX.Editor
                     {
                         UnityEngine.Debug.LogError(
                             $"[EditorLocalServerBuildGuard] 服务端自动构建失败（exit={process.ExitCode}），已取消 Play。\n"
-                            + Tail(errors.Length > 0 ? errors.ToString() : output.ToString(), 80));
+                            + Tail(output.ToString(), 80) + "\n" + Tail(errors.ToString(), 40));
                         return false;
                     }
                 }

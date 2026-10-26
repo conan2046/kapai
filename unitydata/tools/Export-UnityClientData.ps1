@@ -69,6 +69,10 @@ function Export-RoleVisuals {
     Write-Utf8IfChanged (Join-Path $destination 'Configs\role-visuals.json') $content
     Write-Output ('Role visual export: {0} paired Spine/avatar mappings.' -f $rows.Count)
 }
+if(-not ($OnlyRoleVisuals -or $OnlyJingJieVisuals -or $OnlyJingJie -or $OnlyWorldBoxRewards) -and ((Get-Content (Join-Path $PSScriptRoot 'unity-owned-tables.json') -Raw -Encoding UTF8 | ConvertFrom-Json).groups.group -contains 'WorldRewards')){
+    . (Join-Path $PSScriptRoot 'UnityWorldRewardData.ps1')
+    Assert-UnityWorldRuntimeReady (Get-UnityWorldRewardData $Root)
+}
 if ($OnlyRoleVisuals) { Export-RoleVisuals; return }
 if ($OnlyJingJieVisuals -or $OnlyJingJie) { Export-RoleVisuals; Export-JingJieVisuals; return }
 
@@ -116,7 +120,8 @@ Export-JingJieVisuals
 # Client visual metadata is independent from server operation costs and attributes.
 $equipmentVisuals = Get-Content -LiteralPath (Join-Path $Root 'unitydata\export\client\visuals\equipment-icons.json') -Raw -Encoding UTF8 | ConvertFrom-Json
 # Equipment reminders and operation UI share the active server's formal configuration.
-foreach ($table in @('equip','equip_qianghua','equip_jinglian','equip_juexing','equip_shenzhu','fabao','fabao_qianghua','fabao_jinglian','quality','item','hecheng')) {
+# item.json was already projected from item.xlsx by the Items phase; never overwrite it from server caches.
+foreach ($table in @('equip','equip_qianghua','equip_jinglian','equip_juexing','equip_shenzhu','fabao','fabao_qianghua','fabao_jinglian','quality','hecheng')) {
     $inputRows = @(Get-Content -LiteralPath (Join-Path $Root "unitydata\export\server\generated\json_server\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json)
     $activeRows = @(Get-Content -LiteralPath (Join-Path $Root "unityserver\config\json\$table.json") -Raw -Encoding UTF8 | ConvertFrom-Json)
     if (($inputRows | ConvertTo-Json -Depth 32 -Compress) -cne ($activeRows | ConvertTo-Json -Depth 32 -Compress)) {

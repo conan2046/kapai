@@ -242,7 +242,7 @@ namespace ProjectX.UI
             RequireText(root, "Popup/Image_1/description").text = definition?.Description ??
                 (state == FengShenStageState.Current ? "击败敌军，继续封神列传。" : "本关已通关");
             RequireText(root, "Popup/Btn_Confirm/tili/num").text = (definition?.Hope ?? 5).ToString();
-            RenderLevelRewards(definition?.FirstRewards);
+            RenderLevelRewards(definition?.ShowRewards);
             RenderEnemy(definition);
             SetVisible(root.Find("Popup/Pass_bg"), state == FengShenStageState.Passed);
             SetVisible(root.Find("Popup/Pass"), state == FengShenStageState.Passed);
@@ -280,7 +280,7 @@ namespace ProjectX.UI
             resumeLevelAfterModal = levelView?.GameObject?.activeSelf == true;
             if (resumeLevelAfterModal) levelView.SetVisible(false);
             SetViewText(itemSourceView, "Layer/Popup/Title/Title", "获取途径");
-            SetViewText(itemSourceView, "Layer/Popup/Panel_name/txt_name", "首通奖励");
+            SetViewText(itemSourceView, "Layer/Popup/Panel_name/txt_name", "关卡奖励");
             SetViewText(itemSourceView, "Layer/Popup/Panel_name/txt_tips", "挑战列传关卡可获得");
             SetViewText(itemSourceView, "Layer/Popup/Panel_name/txt_num", string.Empty);
             Image sourceIcon = FindViewNode(itemSourceView, "Layer/Popup/Panel_name/Panel_icon/Icon")?.GetComponent<Image>();

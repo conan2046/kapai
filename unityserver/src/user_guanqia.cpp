@@ -1,4 +1,5 @@
 #include "user_guanqia.h"
+#include "chapter_reward_rules.h"
 #include "library_unity.h"
 #include "user.h"
 #include "scene_manager.h"
@@ -8,6 +9,7 @@
 #include "rank.h"
 #include "config_para.h"
 #include <cstdlib>
+#include <algorithm>
 
 extern const char *gConfigFile;
 
@@ -149,59 +151,27 @@ bool CGuanQiaCfgMgr::LoadBigMapCfg()
 // 战斗节点数据
 bool CGuanQiaCfgMgr::LoadMapNodeCfg()
 {
-	const string file = "maplist.json";
-	//                           0      1        2      3       4         5           6            7             8
-	const char* titleArrs[] = { "ID", "mapid", "Name", "Des", "type", "fightID", "Levellimit", "Suggestpower", "UnlockID",
-		// 9       10                11          12           13           14           15            16
-		"Hope", "first_reward", "rewardID", "add_reward", "show_reward", "money", "AttackCount", "BattleMapName",
-		// 17                18          19         20         21          22
-		"DialogueId", "RecommendHero", "fight_reward", "final_kill", "kill_reward", "max_damage" };
-	const int typeArrs[] = { 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 2, 0, 0, 2, 2, 0, 1, 0, 2, 2, 2, 0, 2};  // 0-int 1-string 2-array
-	rapidjson::Document d;
-	rapidjson::Value _para;
-	if (!LoadJosnValue(file, titleArrs, typeArrs, sizeof(typeArrs) / sizeof(int), d, _para))
-	{
-		cout << "CGuanQiaCfgMgr::LoadMapNodeCfg >> LoadJosnValue error " << endl;
-		return false;
-	}
-	
-	for (uint32 i = 0; i < _para.Size(); i++)
-	{
-		const rapidjson::Value &data = _para[i];
-		uint16 mid = data[titleArrs[1]].GetInt();
-		SingleZhangJieCfg* cfg = GetZhangJieCfg(mid);
-		if (cfg == NULL)
-		{
-			cout << "CGuanQiaCfgMgr::LoadMapNodeCfg >> read map error, mapId: " << mid << endl;
-			continue;
-		}
-		MapNodeCfg nodeCfg;
-		nodeCfg.type = data[titleArrs[4]].GetInt();
-		nodeCfg.maxTimes = data[titleArrs[15]].GetInt();
-		nodeCfg.spiritCost = data[titleArrs[9]].GetInt();
-		nodeCfg.nodeId = data[titleArrs[0]].GetInt();
-		nodeCfg.fightId = data[titleArrs[5]].GetInt();
-		nodeCfg.levelLimit = data[titleArrs[6]].GetInt();
-		nodeCfg.nextNodeId = data[titleArrs[8]].GetInt();
-		nodeCfg.rewardId = data[titleArrs[11]].GetInt();
-		nodeCfg.fixId = data[titleArrs[12]].GetInt();
-		nodeCfg.allUserAwardId = data[titleArrs[21]].GetInt();
-		m_allNodeIds[nodeCfg.nodeId] = data[titleArrs[1]].GetInt();
-		
-		// MultiAward* award = QueryFixAward(nodeCfg.fixId);
-		// if (award != NULL)
-			// cfg->fixAwards[nodeCfg.fixId] = *award;
-		nodeCfg.mapId = data[titleArrs[1]].GetInt();
-		nodeCfg.name = data[titleArrs[2]].GetString();
-		ReadMultiAward(data[titleArrs[10]], nodeCfg.firstAward);
-		ReadMultiAward(data[titleArrs[13]], nodeCfg.normalAward);
-		ReadMultiAward(data[titleArrs[14]], nodeCfg.moneyAward);
-		ReadMultiAward(data[titleArrs[19]], nodeCfg.fightAward);
-		ReadMultiAward(data[titleArrs[20]], nodeCfg.finalKillAward);
-		ReadMultiAward(data[titleArrs[22]], nodeCfg.firstRankAward);
-		cfg->nodes[nodeCfg.nodeId] = nodeCfg;
-	}
-	return true;
+    const char* titles[] = {"ID","mapid","Name","Des","type","fightID","Levellimit","UnlockID","Hope","rewardID","show_reward","DialogueId"};
+    const int types[] = {0,0,1,1,0,0,0,0,0,0,2,0};
+    rapidjson::Document document; rapidjson::Value rows;
+    if (!LoadJosnValue("maplist.json", titles, types, 12, document, rows)) return false;
+    for (rapidjson::SizeType i = 0; i < rows.Size(); ++i) {
+        const auto& data = rows[i];
+        SingleZhangJieCfg* chapter = GetZhangJieCfg(data["mapid"].GetInt());
+        if (!chapter) { cout << "maplist.json missing chapter: " << data["mapid"].GetInt() << endl; return false; }
+        MapNodeCfg node{};
+        node.type = data["type"].GetInt();
+        node.maxTimes = 255; // Removed AttackCount means unlimited attempts, using the existing protocol sentinel.
+        node.spiritCost = data["Hope"].GetInt();
+        node.nodeId = data["ID"].GetInt(); node.mapId = data["mapid"].GetInt();
+        node.fightId = data["fightID"].GetInt(); node.levelLimit = data["Levellimit"].GetInt();
+        node.nextNodeId = data["UnlockID"].GetInt(); node.rewardId = data["rewardID"].GetInt();
+        node.name = data["Name"].GetString();
+        if (!ReadMultiAward(data["show_reward"], node.showAward)) return false;
+        m_allNodeIds[node.nodeId] = node.mapId;
+        chapter->nodes[node.nodeId] = node;
+    }
+    return true;
 }
 
 // 宝箱数据
@@ -705,7 +675,7 @@ void CUserGuanQia::MakeUserGuanQiaMsg(uint8 type, CNetMessage &msg)
 		SingleZhangJieCfg* cfg = sCGuanQiaCfgMgr.GetZhangJieCfg(it->first);
 		if (cfg == NULL)
 			continue;
-		msg << cfg->id << score.sumStar << (uint8)score.fixIds.size();
+		msg << cfg->id << score.sumStar << (uint8)ChapterRewardRules::PendingCount(cfg->starFix, score.fixIds, score.sumStar);
 	}
 	// 龙崖改造：模式下发（方案甲）—— op=1 载荷末尾带回 fuben_AB，客户端据此切 UI
 	msg << (uint8)GetFubenMode();
@@ -760,21 +730,9 @@ void CUserGuanQia::MakeSinggleGuanQiaMsg(uint8 type, uint32 mapId, CNetMessage &
 		if (rIt != m_nodeResetCnt.end())
 			curReset = rIt->second;
 		uint16 cost = sCGuanQiaCfgMgr.GetResetCost(curReset);
-		msg << curCnt << ncfg.spiritCost << (uint8)(maxReset - curReset) << cost << ncfg.nextNodeId << ncfg.fixId;
-		if (ncfg.fixId != 0)
-		{
-			FixGetStateIt fsit = gqScore->fixState.find(ncfg.fixId);
-			if (fsit == gqScore->fixState.end())
-			{
-				msg << (uint8)0;	// 未获得
-			}
-			else
-			{
-				msg << fsit->second;  // 领取状态
-			}
-		}
-		MakeMultiAwardMsg(ncfg.moneyAward, msg);
-		MakeMultiAwardMsg(ncfg.normalAward, msg);
+		msg << curCnt << ncfg.spiritCost << (uint8)(maxReset - curReset) << cost << ncfg.nextNodeId << (uint32)0;
+        msg << (uint8)0; // No separate money/first-win list in the unified reward schema.
+        MakeMultiAwardMsg(ncfg.showAward, msg);
 	}
 	
 	msg << (uint8)cfg->starFix.size();
@@ -862,6 +820,10 @@ void CUserGuanQia::GetFixAward(CUser* pUser, uint8 type, uint32 mapId, uint32 fi
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0152,TIPS_FAILURE_COLOR);
 		return;
 	}
+    SingleZhangJieCfg* chapter = sCGuanQiaCfgMgr.GetZhangJieCfg(mapId);
+    if (!chapter || !ChapterRewardRules::Eligible(chapter->starFix, fixId, userGuanqia->sumStar)) {
+        msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0153, TIPS_FAILURE_COLOR); return;
+    }
 	FixGetStateIt fsit = userGuanqia->fixState.find(fixId);
 	if (fsit == userGuanqia->fixState.end())
 	{
@@ -976,7 +938,10 @@ int CUserGuanQia::RunSingleNodeFight(CUser* pUser, uint8 type, uint32 mapId, uin
 		star = pFight->CalculateFightStar(CFight::EGT_GROUP1, result.win);
 		// BOSS（type==3）视为本章通关 → 不下发下一关（chainNextNodeId = 0）
 		uint32 chainNextNodeId = (cfg->type == 3) ? 0 : cfg->nextNodeId;
-		GuanQiaWin(pUser, star, mode, chainIndex, chainTotal, chainNextNodeId);
+        if (!GuanQiaWin(pUser, star, mode, chainIndex, chainTotal, chainNextNodeId)) {
+            msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0151, TIPS_FAILURE_COLOR);
+            return ENFR_Error;
+        }
 		sCMissionManager.UpdateQuestState(pUser, EMQCT_13, 1, type);
 		UpdateUserRecord(pUser->GetRoleId(), ERT_GuanQia, nodeId, star);
 		return ENFR_Win;
@@ -1084,7 +1049,7 @@ void CUserGuanQia::GuanQiaSaoDang(CUser* pUser, uint8 type, uint32 mapId, uint32
 	int curCnt = GetCurAttackCnt(nodeId);
 	if (cfg->maxTimes == 255)
 	{
-		curCnt = 255;
+		lessCnt = 5;
 	}
 	else
 	{
@@ -1099,37 +1064,33 @@ void CUserGuanQia::GuanQiaSaoDang(CUser* pUser, uint8 type, uint32 mapId, uint32
 	CUserSpirit& sp = pUser->GetUserSpirit();
 	// 龙崖改造：模式 2 下体力消耗按 0 处理 → 这里必须防除零（原 R13 的坑）。
 	// 模式 1 的 `spiritCost` 恒 > 0，行为与改前完全一致。
-	uint8 spiritCnt = cfg->spiritCost > 0 ? (uint8)(sp.GetCurSpirit() / cfg->spiritCost) : lessCnt;
-	uint8 realCnt = lessCnt > spiritCnt ? spiritCnt : lessCnt;
-	uint8 scnt = spiritCnt;
-	if (realCnt > scnt)
-		realCnt = scnt;
-	if (realCnt > 5)
-		realCnt = 5;
-	if (!sp.SubSpirit(pUser, realCnt * cfg->spiritCost))
-	{
-		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0150,TIPS_FAILURE_COLOR);
-		return;
-	}
-	m_nodeBeAttackCnt[nodeId] = curCnt + realCnt;
-	
-	// 发送奖励
-	msg << PRO_SUCCESS << (uint8)realCnt;
-	AwardManager& amgr = sAwardManager;
-	MultiAward awards;
-	for (size_t ci = 0; ci < realCnt; ++ci)
-	{
-		std::vector<SAwardData> awvec;
-		// 主角经验：按产品口径从副本产出中移除（改由后续「修炼系统」供给），
-		// 此处不再发放（原 pUser->AddMaterial(ad)）也不再展示。
-		amgr.GetAwardById(cfg->rewardId, awvec);
-        CUnityLibraryService::AddSourceAward(pUser,"world_sweep",awvec);
-		msg << (uint8)ci;
-		MakeMultiAwardMsg(cfg->moneyAward, msg);
-		MakeMultiAwardMsg(awvec, msg);
-		MergeAwardList(awards, cfg->moneyAward);
-		MergeAwardList(awards, awvec);
-	}
+    const int affordable = cfg->spiritCost > 0 ? sp.GetCurSpirit() / cfg->spiritCost : lessCnt;
+    const uint8 realCnt = static_cast<uint8>(std::min(5, std::min(lessCnt, affordable)));
+    if (realCnt == 0) {
+        msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0150, TIPS_FAILURE_COLOR); return;
+    }
+    std::vector<MultiAward> results;
+    MultiAward awards;
+    for (uint8 ci = 0; ci < realCnt; ++ci) {
+        MultiAward one;
+        if (!sAwardManager.GetAwardById(cfg->rewardId, one)) {
+            msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0151, TIPS_FAILURE_COLOR); return;
+        }
+        CUnityLibraryService::AddSourceAward(pUser, "world_sweep", one);
+        if (!UnityRewards::MergeChecked(awards, one)) {
+            msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0151, TIPS_FAILURE_COLOR); return;
+        }
+        results.push_back(one);
+    }
+    if (!sp.SubSpirit(pUser, realCnt * cfg->spiritCost)) {
+        msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0150, TIPS_FAILURE_COLOR); return;
+    }
+    m_nodeBeAttackCnt[nodeId] = curCnt + realCnt;
+    msg << PRO_SUCCESS << realCnt;
+    for (uint8 ci = 0; ci < realCnt; ++ci) {
+        msg << ci << (uint8)0; // Preserve the empty legacy separate-money array.
+        MakeMultiAwardMsg(results[ci], msg);
+    }
 	SingletonSocket::instance().SendMsg(pUser->GetSock(), msg);
 	pUser->AddMultiAward(awards);
 	sCMissionManager.UpdateQuestState(pUser, EMQCT_13, realCnt, type);
@@ -1231,8 +1192,39 @@ void CUserGuanQia::AddNewSinggleGuanQia(uint8 type, uint32 mapId, uint32 nodeId)
 	guanQia->curNodeId = nodeId;
 }
 
-void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainIndex, uint8 chainTotal, uint32 chainNextNodeId)
+bool CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainIndex, uint8 chainTotal, uint32 chainNextNodeId)
 {
+	SingleZhangJieCfg* zcfg = sCGuanQiaCfgMgr.GetZhangJieCfg(m_curMapId);
+	if (zcfg == NULL)
+		return false;
+	
+	MapNodeCfg * cfg = sCGuanQiaCfgMgr.GetMapNodeCfg(m_curMapId, m_curNodeId);
+	if (cfg == NULL)
+		return false;
+	
+	SingleGuanQiaScore* userGuanqia = GetUserGuanQia(m_curType, m_curMapId);
+	if (userGuanqia == NULL)
+		return false;
+	
+	uint32 nextNodeId = 0;
+	uint32 nextMapId = 0;
+	uint32 fixId = 0;
+	uint32 starFixId = 0;
+	uint8 addStar = 0;
+	bool firstClear = false;
+	CNetMessage msg;
+	msg.ReWrite();
+	msg.SetType(MSG_GUANQIA);
+	msg << (uint8)8;
+	NodeStarMapIt nit = userGuanqia->nodeStars.find(m_curNodeId);
+	if (nit == userGuanqia->nodeStars.end())
+	{
+		return false;
+	}
+	MultiAward awards;
+    if (!sAwardManager.GetAwardById(cfg->rewardId, awards)) {
+        cout << "Missing/invalid map reward " << cfg->rewardId << endl; return false;
+    }
 	// 关卡次数
 	NodeBeAttackCntIt it = m_nodeBeAttackCnt.find(m_curNodeId);
 	uint8 curCnt = 1;
@@ -1244,48 +1236,16 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainI
 	{
 		m_nodeBeAttackCnt[m_curNodeId] = 1;
 	}
-	SingleZhangJieCfg* zcfg = sCGuanQiaCfgMgr.GetZhangJieCfg(m_curMapId);
-	if (zcfg == NULL)
-		return;
-	
-	MapNodeCfg * cfg = sCGuanQiaCfgMgr.GetMapNodeCfg(m_curMapId, m_curNodeId);
-	if (cfg == NULL)
-		return;
-	
-	SingleGuanQiaScore* userGuanqia = GetUserGuanQia(m_curType, m_curMapId);
-	if (userGuanqia == NULL)
-		return;
-	
-	uint32 nextNodeId = 0;
-	uint32 nextMapId = 0;
-	uint32 fixId = 0;
-	uint32 starFixId = 0;
-	uint8 addStar = 0;
-	bool firstAward = false;
-	CNetMessage msg;
-	msg.ReWrite();
-	msg.SetType(MSG_GUANQIA);
-	msg << (uint8)8;
-	NodeStarMapIt nit = userGuanqia->nodeStars.find(m_curNodeId);
-	if (nit == userGuanqia->nodeStars.end())
-	{
-		return;
-	}
 	if (nit->second == 0)
 	{		
 		// 首通
-		firstAward = true;
+		firstClear = true;
 		nit->second = star;
 		addStar = star;
 		// 记录下一关
 		nextNodeId = cfg->nextNodeId;
 		nextMapId = sCGuanQiaCfgMgr.GetNodeMapId(cfg->nextNodeId);
-		fixId = cfg-> fixId;
-		if (fixId > 0)
-		{
-			userGuanqia->fixIds.insert(fixId);
-			userGuanqia->fixState[fixId] = 1;
-		}
+
 	}
 	else
 	{
@@ -1321,20 +1281,9 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainI
 		}
 	}
 	msg << curCnt << m_curNodeId << nextMapId << nextNodeId << fixId << starFixId;
-	MultiAward awards;
-	MergeAwardList(awards, cfg->moneyAward);
-    CUnityLibraryService::AddSourceAward(pUser,"world",awards);
-	if (firstAward)
-	{
-		AddNewSinggleGuanQia(m_curType, nextMapId, nextNodeId);
-		MergeAwardList(awards, cfg->firstAward);
-	}
-	else
-	{
-		MultiAward nma;
-		sAwardManager.GetAwardById(cfg->rewardId, nma);
-		MergeAwardList(awards, nma);
-	}
+    CUnityLibraryService::AddSourceAward(pUser, "world", awards);
+    if (firstClear) AddNewSinggleGuanQia(m_curType, nextMapId, nextNodeId);
+
 	sCMissionManager.UpdateQuestState(pUser, EMQCT_40, 1, m_curNodeId);
 	// Longya settles the current chapter's pending node/star boxes with its boss result.
 	// Claimed states remain authoritative across repeats and reconnects.
@@ -1344,6 +1293,7 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainI
 		for (FixGetStateIt box = userGuanqia->fixState.begin(); box != userGuanqia->fixState.end(); ++box)
 		{
 			if (box->second != 1) continue;
+            if (!ChapterRewardRules::Eligible(zcfg->starFix, box->first, userGuanqia->sumStar)) continue;
 			MultiAward* configured = sCGuanQiaCfgMgr.QueryFixAward(box->first);
 			if (configured == NULL) continue;
 			MergeAwardList(chapterBoxAwards, *configured);
@@ -1371,6 +1321,7 @@ void CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainI
 	if (!chapterBoxAwards.empty())
 		pUser->AddMultiAward(chapterBoxAwards, true, false, MUT_GuanQiaFix);
 
+    return true;
 }
 
 void CUserGuanQia::GetShiLianMsg(CUser* pUser, CNetMessage &msg)
@@ -1432,6 +1383,8 @@ void CUserGuanQia::TiaoZhanShiLian(CUser* pUser, CNetMessage &msg)
 	pFight->BeginFastFight(result, true, ptrUser->GetSock());
 	if (result.win)
 	{
+		MultiAward awards;
+        if (!sAwardManager.GetAwardById(cfg->rewardId, awards)) return;
 		CNetMessage trap;
 		trap.ReWrite();
 		trap.SetType(MSG_GUANQIA);
@@ -1441,8 +1394,7 @@ void CUserGuanQia::TiaoZhanShiLian(CUser* pUser, CNetMessage &msg)
 		sl.cnt = cfg->maxTimes;
 		trap << id << cfg->nextNodeId << sl.cnt;
 		m_curMapId = 0;
-		MultiAward awards = cfg->moneyAward;
-		MergeAwardList(awards, cfg->firstAward);
+
 		MakeFightEndMsg(pUser, 3, trap, &awards, MUT_ShiLian);
 		SingletonSocket::instance().SendMsg(pUser->GetSock(), trap);
 		sl.cnt = cfg->maxTimes;
@@ -1489,9 +1441,13 @@ void CUserGuanQia::SaoDangShiLian(CUser* pUser, CNetMessage &msg)
 		msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0151, TIPS_FAILURE_COLOR);
 		return;
 	}
-	msg << PRO_SUCCESS << --sl.cnt;
-	SendAndMakeAwardMsg(pUser, cfg->moneyAward, msg, false, MUT_ShiLian);
-	sAwardManager.SendAndMakeAwardMsg(pUser, cfg->rewardId, msg, false, MUT_ShiLian);
+    MultiAward awards;
+    if (!sAwardManager.GetAwardById(cfg->rewardId, awards)) {
+        msg << PRO_ERROR << MakeStringColor(LANGUAGE_ZQX_0151, TIPS_FAILURE_COLOR); return;
+    }
+    if (cfg->maxTimes != 255) --sl.cnt;
+    msg << PRO_SUCCESS << sl.cnt << (uint8)0;
+    SendAndMakeAwardMsg(pUser, awards, msg, false, MUT_ShiLian);
 	SendShiLianHotPointStatus(pUser);
 	sCMissionManager.UpdateQuestState(pUser, EMQCT_55);
 }
@@ -1562,32 +1518,25 @@ void CUserGuanQia::TiaoZhanLieZhuan(CUser* pUser, CNetMessage &msg)
 		MapNodeCfg* cfg = mgr.GetMapNodeCfg(m_lzGuanQia.curNodeId);
 		if (cfg == NULL)
 			return;
+		MultiAward awards;
+        if (!sAwardManager.GetAwardById(cfg->rewardId, awards)) return;
 		m_lzGuanQia.cnt--;
 		msg << m_lzGuanQia.cnt;
 		m_lzGuanQia.curNodeId = cfg->nextNodeId;
 		MapNodeCfg* ncfg = mgr.GetMapNodeCfg(m_lzGuanQia.curNodeId);
-		if (cfg != NULL && cfg->mapId != ncfg->mapId)
+		if (ncfg != NULL && cfg->mapId != ncfg->mapId)
 		{
 			m_lzGuanQia.curMapIdx++;
 		}
 		msg << m_lzGuanQia.curMapIdx << m_lzGuanQia.curNodeId;
-		MultiAward awards = cfg->moneyAward;
-		MergeAwardList(awards, cfg->firstAward);
+
 
 		// 主角经验：按产品口径从副本产出中移除（改由后续「修炼系统」供给）
         CUnityLibraryService::AddSourceAward(pUser,"liezhuan",awards);
 		MakeFightEndMsg(pUser, 3, msg, &awards, MUT_GuanQiaLieZhuan);
 		SingletonSocket::instance().SendMsg(pUser->GetSock(), msg);
 
-		MultiAward* award = sCGuanQiaCfgMgr.QueryFixAward(cfg->fixId);
-		if (award != NULL)
-		{
-			msg.ReWrite();
-			msg.SetType(MSG_GUANQIA);
-			msg << (uint8)26;
-			SendAndMakeAwardMsg(pUser, *award, msg, false, MUT_GuanQiaLieZhuan);
-			SingletonSocket::instance().SendMsg(pUser->GetSock(), msg);
-		}
+
 		sp.SubSpirit(pUser, cfg->spiritCost);
 		sCMissionManager.UpdateQuestState(pUser, EMQCT_12, 1);
 	}
@@ -1665,17 +1614,19 @@ uint8 CUserGuanQia::SendFixHotPointStatus(CUser* pUser)
 		GuanQiaMap& zhu = m_guanQiaZhuScore.guanQiaScores;
 		for (GuanQiaMapIt it = zhu.begin(); it != zhu.end(); ++it)
 		{
-			if (!it->second.fixIds.empty())
+            SingleZhangJieCfg* chapter = sCGuanQiaCfgMgr.GetZhangJieCfg(it->first);
+            if (chapter && ChapterRewardRules::PendingCount(chapter->starFix, it->second.fixIds, it->second.sumStar) > 0)
 			{
 				state = 1;
 				break;
 			}
 		}
 
-		GuanQiaMap& zhi = m_guanQiaZhuScore.guanQiaScores;
+		GuanQiaMap& zhi = m_guanQiaZhiScore.guanQiaScores;
 		for (GuanQiaMapIt it = zhi.begin(); it != zhi.end(); ++it)
 		{
-			if (!it->second.fixIds.empty())
+            SingleZhangJieCfg* chapter = sCGuanQiaCfgMgr.GetZhangJieCfg(it->first);
+            if (chapter && ChapterRewardRules::PendingCount(chapter->starFix, it->second.fixIds, it->second.sumStar) > 0)
 			{
 				state = 1;
 				break;
@@ -1792,11 +1743,6 @@ void CUserGuanQia::GuanQiaGM(CUser* pUser, uint8 type, uint16 num)
 					gc->sumStar += 3;
 					guanQia->allStar += 3;
 					gc->nodeStars[it->first] = 3;
-					if (it->second.fixId != 0)
-					{
-						gc->fixIds.insert(it->second.fixId);
-						gc->fixState[it->second.fixId] = 1;
-					}
 					nextMap = mgr.GetNodeMapId(it->second.nextNodeId);
 					if (nextMap != guanQia->curMapId)
 					{

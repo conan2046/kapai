@@ -8,6 +8,7 @@
 #include "xml.h"
 #include "utility.h"
 #include "self_typedef.h"
+#include "reward_rules.h"
 
 struct LvAwardData
 {
@@ -16,22 +17,8 @@ struct LvAwardData
 	bool isRepeat;		// 数量
 };
 
-struct SingleAward
-{
-	uint32 weight;
-	vector<SAwardData> awards;
-};
-
-struct AwardWeight
-{
-	AwardWeight()
-	{
-		weightSum = 0;
-		awards.clear();
-	}
-    uint32 weightSum;
-	vector<SingleAward> awards;
-};
+typedef UnityRewards::Row<SAwardData> SingleAward;
+typedef UnityRewards::Group<SAwardData> AwardWeight;
 
 typedef pair<uint32, uint32> levelInterval;
 struct levelReward
@@ -139,7 +126,7 @@ public:
 	void SendRankAwardMail(uint32 type, uint32 userId, uint32 rank, const char* buf);
 	void SendRankAwardMailExHb(uint32 type, uint32 userId, uint32 rank, const char* buf, SAwardData award);
 	void SendNotic(CUser *pUser, const char* fromStr, uint32 dropId, uint16 type, uint16 val, uint16 ext);
-	void SendAndMakeAwardMsg(CUser *pUser, uint16 aid, CNetMessage& msg, bool showMsg = false, uint16 addType = 0);
+	void SendAndMakeAwardMsg(CUser *pUser, uint32 aid, CNetMessage& msg, bool showMsg = false, uint16 addType = 0);
 
 public:
 	static void XiPai(uint32 baseNum, uint32 num, std::vector<uint32>& seqs);

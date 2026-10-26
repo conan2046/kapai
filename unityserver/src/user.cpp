@@ -7399,7 +7399,8 @@ int CUser::AddPetExp(int64 exp)
 {
 	CNetMessage msg;
 	msg.SetType(PRO_UPDATE_CHAR);
-	uint8 num = m_zhenfaMember.size();
+	// Count only serialized pet records; the formation can contain empty slots.
+	uint8 num = 0;
 	msg << (uint8)3;
 	uint16 pos = msg.GetDataLen();
 	msg << num;

@@ -871,7 +871,9 @@ namespace ProjectX.UI
         {
             GameObject list = Find(mapView, "bg/Panel_2/ListView_1");
             if (list == null) return;
-            Transform template = list.transform.Find("BagIcon1");
+            Transform content = list.transform.Find("Content");
+            if (content == null) return;
+            Transform template = content.Find("BagIcon1");
             if (template == null) return;
             List<RewardRecord> merged = new List<RewardRecord>();
             List<uint> totals = new List<uint>();
@@ -892,19 +894,21 @@ namespace ProjectX.UI
                     totals.Add(reward.Amount);
                 }
             }
-            for (int index = list.transform.childCount - 1; index >= 0; index--)
-            {
-                Transform child = list.transform.GetChild(index);
-                if (child != template && child.name != "BagIcon1")
-                    UnityEngine.Object.Destroy(child.gameObject);
-            }
+            // Reuse rows so ordinary refreshes retain the player's scroll position.
+            for (int index = 0; index < content.childCount; index++)
+                content.GetChild(index).gameObject.SetActive(false);
             for (int slot = 0; slot < merged.Count; slot++)
             {
-                Transform row = slot == 0 ? template
-                    : UnityEngine.Object.Instantiate(template, list.transform);
-                if (slot > 0) row.name = "Reward_" + (slot + 1);
+                string rowName = slot == 0 ? "BagIcon1" : "Reward_" + (slot + 1);
+                Transform row = content.Find(rowName);
+                if (row == null)
+                {
+                    row = UnityEngine.Object.Instantiate(template, content);
+                    row.name = rowName;
+                }
                 ApplyRewardRow(row, merged[slot], totals[slot]);
             }
+            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)content);
         }
 
         // BagIcon1 结构（用户预制体）：BagIcon1=品质底框，子节点 Icon=道具图标，子节点 Num=数量

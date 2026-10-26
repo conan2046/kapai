@@ -1,7 +1,4 @@
 local Protocol = require("Protocol")
-local itemCatalog = require("Data.ItemCatalog")
-local itemsById = {}
-for _, value in ipairs(itemCatalog) do itemsById[value.id] = value end
 
 -- The shipped item catalog starts the equipment-fragment sequence at 4605,
 -- while /320 still awards the four preceding 素心 fragments.  Their identity
@@ -161,21 +158,18 @@ local function claimAchievement(index)
     send(12, function(message) message:WriteByte(index) end)
 end
 
-local function rewardDefinition(id)
-    return itemsById[id] or worldMissingFragments[id] or {}
-end
-
 local function readReward(message)
     local rewardType = message:ReadWord()
     local rewardId = message:ReadUInt()
     local amount = message:ReadUInt()
-    -- Currency rewards use their 600xx award type with an authoritative payload id of 0.
-    -- Keep the payload id intact, but resolve display metadata through the type in that case.
-    local displayId = rewardId > 0 and rewardId or rewardType
-    local found = rewardDefinition(displayId)
-    local displayName = found.name or ""
-    if displayName == "" then displayName = "奖励 #" .. tostring(displayId) end
-    return rewardType, rewardId, amount, displayName, found.pic or 0, found.quality or 0
+    -- Resolve all World previews and settlements through the formal client catalogs.
+    -- Preserve the server payload type, id and quantity.
+    local metadata = Bridge:DescribeWorldReward(rewardType, rewardId, amount)
+    local fallback = worldMissingFragments[rewardId]
+    if metadata.Quality == 0 and fallback then
+        return rewardType, rewardId, amount, fallback.name, 0, fallback.quality
+    end
+    return rewardType, rewardId, amount, metadata.Name, metadata.Picture, metadata.Quality
 end
 
 local function fail(detail)
