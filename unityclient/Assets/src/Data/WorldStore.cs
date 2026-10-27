@@ -104,6 +104,8 @@ namespace ProjectX.Data
         public uint SelectedChapterId { get; private set; }
         public string SelectedChapterName { get; private set; } = string.Empty;
         public uint SelectedStageId { get; private set; }
+        public uint BossRewardId { get; private set; }
+        public void SetBossReward(uint rewardId) { BossRewardId = rewardId; Changed?.Invoke(); }
         public int ChapterCount => chapters.Count;
         public int StageCount => stages.Count;
         public WorldStageRecord SelectedStage => stages.FirstOrDefault(value => value.Id == SelectedStageId);
@@ -126,6 +128,7 @@ namespace ProjectX.Data
             MapType = mapType;
             SelectedChapterId = chapterId;
             SelectedChapterName = chapterName ?? string.Empty;
+            BossRewardId = 0;
             stages.Clear();
             if (values != null) stages.AddRange(values);
             starBoxes.Clear();
@@ -244,6 +247,7 @@ namespace ProjectX.Data
 
         public void Clear()
         {
+            BossRewardId = 0;
             HasChapterState = HasAchievementState = false;
             AchievementType = 1; AchievementBitmap = 0; PendingAchievementIndex = 0;
             PendingBoxId = PendingBoxChapterId = 0; knownBoxes.Clear();

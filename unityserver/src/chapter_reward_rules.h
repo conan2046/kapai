@@ -1,6 +1,10 @@
 #pragma once
 #include <cstddef>
 namespace ChapterRewardRules {
+inline unsigned BossPackage(unsigned mode, unsigned nodeType, unsigned packageId) {
+    return mode == 2 && nodeType == 3 ? packageId : 0;
+}
+
 template<class StarMap, class Id>
 bool Contains(const StarMap& configured, Id id) {
     if (id == 0) return false;

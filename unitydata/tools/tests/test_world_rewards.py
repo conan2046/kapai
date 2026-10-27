@@ -3,6 +3,7 @@ from pathlib import Path
 import json,shutil,subprocess,unittest,uuid,zipfile,xml.etree.ElementTree as E,hashlib
 ROOT=Path(__file__).resolve().parents[3];NS={'s':'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 OUT=[f'{base}/{name}.json' for base in ['unitydata/export/server/generated/json_server','unityserver/config/json'] for name in ['reward','maplist','fight_config','monster_boss_basic']]+[f'{base}/{name}.txt' for base in ['unitydata/export/client/source/World','unityclient/Assets/Resources/ProjectXData/World'] for name in ['maplist_dat','main_dungeon_fight_dat','main_dungeon_monster_dat']]
+OUT += [f'{base}/{name}.json' for base in ['unitydata/export/server/generated/json_server','unityserver/config/json'] for name in ['bigmap','reward_fixed']]+[f'{base}/{name}.txt' for base in ['unitydata/export/client/source/World','unityclient/Assets/Resources/ProjectXData/World'] for name in ['bigmap_dat','reward_fixed_dat']]
 def read(path):
  with zipfile.ZipFile(path) as z:
   parts={n:z.read(n) for n in z.namelist()}
@@ -42,7 +43,7 @@ def patch(path,address,value=None,formula=None,cached=None):
 class WorldRewardTests(unittest.TestCase):
  def setUp(self):
   self.root=ROOT/'.local/world-reward-tests'/uuid.uuid4().hex;self.root.mkdir(parents=True)
-  for name in ['reward','maplist','fight_config','monster_boss_basic','bigmap']:self.cp('unitydata/excel/'+name+'.xlsx')
+  for name in ['reward','maplist','fight_config','monster_boss_basic','bigmap','reward_fixed']:self.cp('unitydata/excel/'+name+'.xlsx')
   tools=self.root/'unitydata/tools';tools.mkdir(parents=True)
   for p in (ROOT/'unitydata/tools').glob('*.ps1'):shutil.copy2(p,tools/p.name)
   manifest=json.loads((ROOT/'unitydata/tools/unity-owned-tables.json').read_text(encoding='utf-8-sig'));manifest['groups']=[g for g in manifest['groups'] if g['group']=='WorldRewards']
@@ -53,18 +54,19 @@ class WorldRewardTests(unittest.TestCase):
   _,_,chapters=read(self.root/'unitydata/excel/bigmap.xlsx')
   kinds={int(r['A']):int(r['B']) for n,r in chapters.items() if n>=5 and r.get('A')}
   _,_,maps=read(self.root/'unitydata/excel/maplist.xlsx')
-  keep={10001,10002};seen=set()
+  keep=set(range(10001,10007));seen=set()
   for n,r in maps.items():
    if n<5 or not r.get('A'):continue
    kind=kinds[int(r['B'])]
    if kind!=1 and kind not in seen:keep.add(int(r['A']));seen.add(kind)
   trim(self.root/'unitydata/excel/maplist.xlsx',keep);self.mapCount=len(keep)
-  trim(self.root/'unitydata/excel/fight_config.xlsx',{22001,22002})
+  trim(self.root/'unitydata/excel/bigmap.xlsx',{int(r['B']) for n,r in maps.items() if n>=5 and r.get('A') and int(r['A']) in keep})
+  trim(self.root/'unitydata/excel/fight_config.xlsx',set(range(22001,22007)))
   _,_,fights=read(self.root/'unitydata/excel/fight_config.xlsx')
   enemies={int(r[k]) for n,r in fights.items() if n>=5 for k in ['G','H','I','J','K','L'] if r.get(k) and int(r[k])}
   trim(self.root/'unitydata/excel/monster_boss_basic.xlsx',enemies)
   self.battleMonsterIds=enemies
-  for name in ['reward','maplist','fight_config','monster_boss_basic']:(self.root/f'unitydata/excel/{name}.fixture.xlsx').write_bytes((self.root/f'unitydata/excel/{name}.xlsx').read_bytes())
+  for name in ['reward','maplist','fight_config','monster_boss_basic','bigmap']:(self.root/f'unitydata/excel/{name}.fixture.xlsx').write_bytes((self.root/f'unitydata/excel/{name}.xlsx').read_bytes())
   for rel in OUT:
    p=self.root/rel;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('sentinel',encoding='utf-8')
  def cp(self,rel):
@@ -85,7 +87,10 @@ class WorldRewardTests(unittest.TestCase):
   self.assertEqual([x for x in r if x['rewardid']==1010001],[{'rewardid':1010001,'drop_type':1,'reward':[[60000,0,1000],[60006,0,100]],'weight':0}])
   maps=json.loads((self.root/OUT[1]).read_text(encoding='utf-8'));self.assertEqual(len(maps),self.mapCount)
   for x in maps:self.assertFalse({'first_reward','add_reward','money','exp_pet','AttackCount'}&x.keys())
-  for n in OUT[4:]:self.assertEqual(before[n],self.hashes()[n])
+  for n in OUT:
+   if n not in OUT[:4]+OUT[14:16]:self.assertEqual(before[n],self.hashes()[n])
+  chapter=json.loads((self.root/OUT[14]).read_text(encoding='utf-8'))[0]
+  self.assertEqual(chapter['boss_reward'],20013);self.assertNotIn('star_reward',chapter)
  def test_range_and_formal_group_replaces_compatibility_whole_group(self):
   patch(self.root/'unitydata/excel/reward.xlsx','C121','[60000,0,10,100]')
   p=self.root/'unitydata/export/server/authoritative/json/reward.json';r=json.loads(p.read_text(encoding='utf-8-sig'))
@@ -106,11 +111,16 @@ class WorldRewardTests(unittest.TestCase):
    before=self.hashes();bad=self.run_export();self.assertNotEqual(bad.returncode,0);self.assertEqual(before,self.hashes())
  def test_runtime_scope_and_projection_match(self):
   self.ok(self.run_export(mode='Both',apply=True))
-  for a,b in [(0,4),(1,5),(2,6),(3,7),(8,11),(9,12),(10,13)]:self.assertEqual((self.root/OUT[a]).read_bytes(),(self.root/OUT[b]).read_bytes())
-  fights=json.loads((self.root/OUT[2]).read_text(encoding='utf-8'));self.assertEqual({r['id'] for r in fights},{22001,22002})
+  for a,b in [(0,4),(1,5),(2,6),(3,7),(8,11),(9,12),(10,13),(14,16),(15,17),(18,20),(19,21)]:self.assertEqual((self.root/OUT[a]).read_bytes(),(self.root/OUT[b]).read_bytes())
+  fights=json.loads((self.root/OUT[2]).read_text(encoding='utf-8'));self.assertEqual({r['id'] for r in fights},set(range(22001,22007)))
   client=(self.root/OUT[9]).read_text(encoding='utf-8')
   for f in fights:self.assertIn('id = '+str(f['id'])+',show = '+str(f['show']),client)
   self.ok(self.run_export(mode='Both',apply=True,validate=True))
+ def test_final_boss_package_contract_rejects_bad_source_without_writes(self):
+  for book,cell,value in [('bigmap','H5',0),('bigmap','H5',2140000000),('bigmap','H5','[18,20013]'),('maplist','E5',3),('maplist','E10',1)]:
+   with self.subTest(book=book,cell=cell):
+    self.restore('bigmap');self.restore('maplist');patch(self.root/f'unitydata/excel/{book}.xlsx',cell,value)
+    before=self.hashes();self.assertNotEqual(self.run_export(mode='Both',apply=True).returncode,0);self.assertEqual(before,self.hashes())
  def test_missing_main_refs_block_all_entrypoints(self):
   patch(self.root/'unitydata/excel/maplist.xlsx','F5',2140000000)
   for entry in ['Export-UnityOwnedTables.ps1','Export-UnityServerData.ps1','Export-UnityClientData.ps1']:

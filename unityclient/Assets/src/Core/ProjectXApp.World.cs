@@ -43,6 +43,7 @@ namespace ProjectX.Core
         private WorldStageRecord pendingWorldStage;
         private byte pendingWorldMapType;
         private uint pendingWorldChapterId;
+        private uint pendingWorldBossRewardId;
         private string pendingWorldChapterName;
         private bool worldFormationReturnPending;
         private bool worldFormationReturnToDetail;
@@ -181,6 +182,7 @@ namespace ProjectX.Core
             pendingWorldChapterName = chapterName ?? string.Empty;
             pendingWorldStages.Clear();
             pendingWorldStarBoxes.Clear();
+            pendingWorldBossRewardId = 0;
             pendingWorldStage = null;
             // 判定这次 op=2 是不是「只为喂通关奖励条」的后台预热请求，并立刻清掉挂起标记
             // （避免回包丢失时污染后续的章节行点击）。
@@ -225,6 +227,8 @@ namespace ProjectX.Core
             pendingWorldStage = null;
         }
 
+        public void SetWorldBossReward(double rewardId) => pendingWorldBossRewardId = checked((uint)rewardId);
+
         public void AddWorldStarBox(int requiredStars, double rewardId, int state)
         {
             pendingWorldStarBoxes.Add(new WorldStarBoxRecord
@@ -244,6 +248,7 @@ namespace ProjectX.Core
             }
             services.World.ReplaceStages(pendingWorldMapType, pendingWorldChapterId, pendingWorldChapterName,
                 pendingWorldStages, pendingWorldStarBoxes);
+            services.World.SetBossReward(pendingWorldBossRewardId);
             if (!IsWorldOpen) return;
             EnsureWorldPresenter();
             worldFormationReturnPending = false;

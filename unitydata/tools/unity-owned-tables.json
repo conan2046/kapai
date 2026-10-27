@@ -4,13 +4,15 @@
     {
       "group": "WorldRewards",
       "workbook": "reward.xlsx",
-      "additionalWorkbooks": ["maplist.xlsx", "fight_config.xlsx", "monster_boss_basic.xlsx"],
+      "additionalWorkbooks": ["maplist.xlsx", "fight_config.xlsx", "monster_boss_basic.xlsx", "bigmap.xlsx", "reward_fixed.xlsx"],
       "customExporter": "UnityWorldRewardData.ps1",
       "sheets": [
         {"name": "reward", "kind": "json", "output": "reward.json"},
         {"name": "maplist", "kind": "json", "output": "maplist.json"},
         {"name": "fight_config", "kind": "json", "output": "fight_config.json"},
-        {"name": "monster_boss_basic", "kind": "json", "output": "monster_boss_basic.json"}
+        {"name": "monster_boss_basic", "kind": "json", "output": "monster_boss_basic.json"},
+        {"name": "bigmap", "kind": "json", "output": "bigmap.json"},
+        {"name": "reward_fixed", "kind": "json", "output": "reward_fixed.json"}
       ]
     },
     {

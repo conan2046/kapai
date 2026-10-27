@@ -1,6 +1,7 @@
 #include "../src/reward_rules.h"
 #include "../src/chapter_reward_rules.h"
 #include <set>
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <iterator>
@@ -19,6 +20,11 @@ bool valid(const char* json) {
 }
 int main(int argc,char** argv) {
  try {
+    CHECK(ChapterRewardRules::BossPackage(2,1,20013)==0);
+    CHECK(ChapterRewardRules::BossPackage(2,2,20013)==0);
+    CHECK(ChapterRewardRules::BossPackage(1,3,20013)==0);
+    CHECK(ChapterRewardRules::BossPackage(2,3,0)==0);
+    for(int repeat=0;repeat<3;++repeat) CHECK(ChapterRewardRules::BossPackage(2,3,20013)==20013);
     const std::map<int,int> chapter{{3,100},{6,200}};
     const std::set<int> oldPending{100,999};
     CHECK(ChapterRewardRules::Contains(chapter,100));
@@ -61,7 +67,7 @@ int main(int argc,char** argv) {
     std::srand(42);bool minSeen=false,maxSeen=false,wideSeen=false;
     for(int i=0;i<20000;i++){int n=UnityRewards::RandomInclusive(10,100);CHECK(n>=10&&n<=100);minSeen|=n==10;maxSeen|=n==100;wideSeen|=UnityRewards::RandomInclusive(0,1000000)>32767;}
     CHECK(minSeen&&maxSeen&&wideSeen);CHECK(UnityRewards::RandomInclusive(INT_MAX,INT_MAX)==INT_MAX);
-    if(argc==3) {
+    if(argc>=3) {
         std::ifstream f(argv[1]);std::string text((std::istreambuf_iterator<char>(f)),{});rapidjson::Document d;d.Parse(text.c_str());CHECK(d.IsArray());
         std::map<int,Group> groups;
         for(auto it=d.Begin();it!=d.End();++it){Row r;int m;std::string error;CHECK(UnityRewards::ReadRow(*it,r,m,error));CHECK(UnityRewards::AppendRow(groups[(*it)["rewardid"].GetInt()],r,m));}
@@ -69,6 +75,30 @@ int main(int argc,char** argv) {
         int used=0;
         for(auto it=maps.Begin();it!=maps.End();++it){int id=(*it)["rewardID"].GetInt();if(!id)continue;CHECK(groups.count(id));CHECK(UnityRewards::Roll(groups[id],1,true,true,out,low));CHECK(UnityRewards::Roll(groups[id],1,true,true,out,high));used++;}
         std::cout<<"Actual config parsed rows="<<d.Size()<<" maps="<<maps.Size()<<" rewardGroupsUsed="<<used<<"\n";
+        if(argc==5) {
+            std::ifstream bf(argv[3]);text.assign(std::istreambuf_iterator<char>(bf),{});rapidjson::Document chapters;chapters.Parse(text.c_str());CHECK(chapters.IsArray());
+            std::ifstream ff(argv[4]);text.assign(std::istreambuf_iterator<char>(ff),{});rapidjson::Document fixed;fixed.Parse(text.c_str());CHECK(fixed.IsArray());
+            std::map<int,const rapidjson::Value*> packages;
+            for(auto it=fixed.Begin();it!=fixed.End();++it) packages[(*it)["ID"].GetInt()]=&*it;
+            int checkedChapters=0;
+            for(auto chapterIt=chapters.Begin();chapterIt!=chapters.End();++chapterIt) {
+                const auto& chapter=*chapterIt;
+                CHECK(!chapter.HasMember("star_reward"));
+                if(chapter["MapType"].GetInt()!=1)continue;
+                int reward=chapter["boss_reward"].GetInt();CHECK(reward>0&&packages.count(reward));
+                CHECK(!(*packages[reward])["reward"].Empty());
+                int bosses=0,last=0,boss=0;
+                for(auto nodeIt=maps.Begin();nodeIt!=maps.End();++nodeIt) if((*nodeIt)["mapid"].GetInt()==chapter["Id"].GetInt()) {
+                    const auto& node=*nodeIt;
+                    last=std::max(last,node["ID"].GetInt());
+                    if(node["type"].GetInt()==3){boss=node["ID"].GetInt();++bosses;}
+                }
+                CHECK(bosses==1&&boss==last);
+                for(int run=0;run<3;++run) CHECK(ChapterRewardRules::BossPackage(2,3,reward)==static_cast<unsigned>(reward));
+                ++checkedChapters;
+            }
+            std::cout<<"Final-boss repeatable packages checked: "<<checkedChapters<<" chapters, three wins each\n";
+        }
     }
     std::cout<<"reward rules: fixed-only, random-only, mixed, weighted boundaries, bundles, ranges, unique draws, invalid data, overflow passed\n";
     return 0;

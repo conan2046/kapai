@@ -589,10 +589,10 @@ namespace ProjectX.UI
         // bg/Panel_2/ListView_1 = 类型 1/2 共用的奖励条，两种模式都显示。
         private void ApplyChainEntryVisibility()
         {
-            bool normal = !chainMode || showChapterRewards;
+            bool normal = !chainMode && store.StarBoxes.Count > 0;
             SetActive(mapView, "Layer/Panel_1/Box1", normal);
             SetActive(mapView, "Layer/Panel_1/Box2", normal);
-            SetActive(mapView, "Layer/Panel_1/Box3", normal);
+            SetActive(mapView, "Layer/Panel_1/Box3", normal || (chainMode && store.BossRewardId > 0));
             SetActive(mapView, "Layer/Panel_1/xing_0", normal);
             SetActive(mapView, "Layer/Panel_1/xingshu", normal);
             SetActive(mapView, "Layer/Panel_1/xing", normal);
@@ -762,6 +762,12 @@ namespace ProjectX.UI
 
         private void ClaimBoxSlot(int slot)
         {
+            if (chainMode)
+            {
+                if (slot == 2 && store.BossRewardId > 0)
+                    showStarBox?.Invoke(new WorldStarBoxRecord { RewardId = store.BossRewardId });
+                return;
+            }
             WorldStarBoxRecord box = slot >= 0 && slot < store.StarBoxes.Count ? store.StarBoxes[slot] : null;
             if (box == null) return;
             showStarBox?.Invoke(box);
@@ -960,6 +966,16 @@ namespace ProjectX.UI
 
         private void RenderStarBoxes()
         {
+            if (chainMode)
+            {
+                // Reuse only the final authored box. This previews the package;
+                // the authoritative boss result opens it on every successful run.
+                SetActive(mapView, "Layer/Panel_1/Box3/Button", false);
+                SetActive(mapView, "Layer/Panel_1/Box3/Button1", store.BossRewardId > 0);
+                SetActive(mapView, "Layer/Panel_1/Box3/Button1/Image_1", false);
+                SetActive(mapView, "Layer/Panel_1/Box3/effect_tuitu_1", false);
+                return;
+            }
             WorldChapterRecord selectedChapter = store.Chapters.FirstOrDefault(
                 value => value.Id == store.SelectedChapterId);
             if (selectedChapter != null)

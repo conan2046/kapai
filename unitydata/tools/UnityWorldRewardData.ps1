@@ -35,12 +35,12 @@ function Convert-WorldBattleInteger([string]$Raw,[string]$Context,[long]$Max=214
     Convert-WorldInteger $Raw $Context -2147483648 $Max
 }
 
-function Read-WorldBattleSheet([string]$Root,[string]$Name) {
+function Read-WorldBattleSheet([string]$Root,[string]$Name,[string]$Identity='id',[string]$Sheet='Sheet1') {
     $path=Join-Path $Root ('unitydata/excel/'+$Name+'.xlsx')
-    $schema=@(Read-UnityVisualExcelRows $path -SheetName Sheet1 -FirstDataRow 4 -LastDataRow 4 -IgnoreCommentColumns)[0]
+    $schema=@(Read-UnityVisualExcelRows $path -SheetName $Sheet -FirstDataRow 4 -LastDataRow 4 -IgnoreCommentColumns)[0]
     $result=[Collections.Generic.List[object]]::new();$seen=@{}
-    foreach($r in @(Read-UnityVisualExcelRows $path -SheetName Sheet1 -ResolveIntegerFormulas -IgnoreCommentColumns)){
-        if(-not [string]$r.id){continue}
+    foreach($r in @(Read-UnityVisualExcelRows $path -SheetName $Sheet -ResolveIntegerFormulas -IgnoreCommentColumns)){
+        if(-not [string]$r[$Identity]){continue}
         $out=[ordered]@{}
         foreach($k in $schema.Keys) {
             $raw=[string]$r[$k]
@@ -66,8 +66,8 @@ function Read-WorldBattleSheet([string]$Root,[string]$Name) {
                 default {throw "Unsupported source type: $Name.$k"}
             }
         }
-        if($out.id -lt 1 -or $seen.ContainsKey([string]$out.id)){throw "Invalid/duplicate $Name id: $($out.id)"}
-        $seen[[string]$out.id]=$true
+        if($out[$Identity] -lt 1 -or $seen.ContainsKey([string]$out[$Identity])){throw "Invalid/duplicate $Name id: $($out[$Identity])"}
+        $seen[[string]$out[$Identity]]=$true
         $result.Add($out)
     }
     if(-not $result.Count){throw "Empty formal battle sheet: $Name"}
@@ -121,9 +121,23 @@ function Get-UnityWorldRewardData([string]$Root) {
     $fights=@{};$monsters=@{}
     foreach($r in $fightRows){$fights[[string]$r.id]=$r}
     foreach($r in $monsterRows){$monsters[[string]$r.id]=$r}
+    $chapters=Read-WorldBattleSheet $Root 'bigmap' 'Id' 'bigmap'
+    $fixedRewards=Read-WorldBattleSheet $Root 'reward_fixed' 'ID' 'reward_fixed'
+    $fixedById=@{}
+    foreach($r in $fixedRewards){
+        $null=Read-WorldAwardArray (ConvertTo-Json -InputObject $r.reward -Depth 16 -Compress) "reward_fixed $($r.ID)"
+        $fixedById[[string]$r.ID]=$r
+    }
     $chapterTypes=@{}
-    foreach($r in @(Read-UnityVisualExcelRows (Join-Path $Root 'unitydata/excel/bigmap.xlsx') -SheetName bigmap -ColumnMap @{A='Id';B='MapType'})){
-        if([string]$r.Id){$chapterTypes[[string]$r.Id]=Convert-WorldInteger $r.MapType 'bigmap.MapType' 1}
+    foreach($r in $chapters){
+        if($r.Contains('star_reward') -or -not $r.Contains('boss_reward')){throw 'bigmap requires boss_reward, not star_reward'}
+        $chapterTypes[[string]$r.Id]=$r.MapType
+        if($r.boss_reward -lt 0 -or $r.boss_reward -gt 65535 -or ($r.boss_reward -and -not $fixedById.ContainsKey([string]$r.boss_reward))){throw "Invalid boss_reward package: chapter $($r.Id)"}
+        if($r.MapType -eq 1){
+            $nodes=@($maps|Where-Object mapid -eq $r.Id|Sort-Object { [long]$_.ID })
+            $bosses=@($nodes|Where-Object type -eq 3)
+            if(-not $r.boss_reward -or $bosses.Count -ne 1 -or $nodes[-1].ID -ne $bosses[0].ID){throw "Main chapter must end with exactly one boss package: $($r.Id)"}
+        }
     }
     $mainFights=@{};$mainMonsters=@{};$missing=@{};$deferred=@{};$missingMonsters=@{}
     foreach($m in $maps) {
@@ -161,7 +175,7 @@ function Get-UnityWorldRewardData([string]$Root) {
             if($skill.Count -ne 2 -or $skill[1] -le 0 -or -not $skills.ContainsKey([string]$skill[0])){throw "Missing/invalid main dungeon basic skill: monster $id"}
         }
     }
-    return @{rewards=$rewardRows.ToArray();maps=$maps.ToArray();fights=$fightRows;monsters=$monsterRows;
+    return @{rewards=$rewardRows.ToArray();maps=$maps.ToArray();fights=$fightRows;monsters=$monsterRows;chapters=$chapters;fixedRewards=$fixedRewards;
         clientFights=@($mainFights.Values|Sort-Object { [long]$_.id });clientMonsters=@($mainMonsters.Values|Sort-Object { [long]$_.id });
         missingFightIds=@($missing.Keys|Sort-Object);missingMonsterIds=@($missingMonsters.Keys|Sort-Object);
         deferredFightIds=@($deferred.Keys|Sort-Object);compatibilityRows=$compatibility}
@@ -182,7 +196,7 @@ function Convert-WorldLua($Value) {
 function Add-UnityWorldRewardWrites($Data) {
     if($ApplyRuntime){Assert-UnityWorldRuntimeReady $Data}
     if($Mode -in @('Both','Server')){
-        foreach($pair in @(@('reward',$Data.rewards),@('maplist',$Data.maps),@('fight_config',$Data.fights),@('monster_boss_basic',$Data.monsters))){
+        foreach($pair in @(@('reward',$Data.rewards),@('maplist',$Data.maps),@('fight_config',$Data.fights),@('monster_boss_basic',$Data.monsters),@('bigmap',$Data.chapters),@('reward_fixed',$Data.fixedRewards))){
             $content=(Json @($pair[1]))+[Environment]::NewLine
             Add-Write ('unitydata/export/server/generated/json_server/'+$pair[0]+'.json') $content
             if($ApplyRuntime){Add-Write ('unityserver/config/json/'+$pair[0]+'.json') $content}
@@ -190,7 +204,7 @@ function Add-UnityWorldRewardWrites($Data) {
     }
     if($Mode -in @('Both','Client')){
         $nl=[Environment]::NewLine
-        foreach($pair in @(@('maplist_dat',$Data.maps),@('main_dungeon_fight_dat',$Data.clientFights),@('main_dungeon_monster_dat',$Data.clientMonsters))) {
+        foreach($pair in @(@('maplist_dat',$Data.maps),@('main_dungeon_fight_dat',$Data.clientFights),@('main_dungeon_monster_dat',$Data.clientMonsters),@('bigmap_dat',$Data.chapters),@('reward_fixed_dat',$Data.fixedRewards))) {
             $content=$pair[0]+' = {'+$nl+(@(foreach($r in $pair[1]){'    '+(Convert-WorldLua $r)+','}) -join $nl)+$nl+'}'+$nl
             Add-Write ('unitydata/export/client/source/World/'+$pair[0]+'.txt') $content
             if($ApplyRuntime){Add-Write ('unityclient/Assets/Resources/ProjectXData/World/'+$pair[0]+'.txt') $content}

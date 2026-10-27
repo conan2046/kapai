@@ -139,10 +139,10 @@ namespace ProjectX.UI
             HideSweep();
             HideStatistics();
             SetActive(battleView, "Layer/Panel/victorypanel", true);
-            SetActive(battleView, "Layer/Panel/firPanel", false);
+            SetActive(battleView, "Layer/Panel/firPanel", true);
             SetActive(battleView, "Layer/Panel/victorypanel/win_bg", false);
             for (int index = 1; index <= 3; index++)
-                SetActive(battleView, $"Layer/Panel/victorypanel/win_bg/starlayer/Star{index}", index <= stars);
+                SetActive(battleView, $"Layer/Panel/victorypanel/win_bg/starlayer/Star{index}", showStars && index <= stars);
             battleView.GameObject.SetActive(true);
             EnsureBattleBackdrop();
             ApplyVictoryTitle(stars, showStars);
@@ -470,188 +470,6 @@ namespace ProjectX.UI
             }
         }
 
-        private void RenderBattleRewards()
-        {
-            Transform host = battleView.GameObject.transform.Find("WorldBattleBackdrop/RewardPanel");
-            if (host == null) return;
-            ClearRuntimeChildren(host, "RuntimeBattleReward_");
-            IReadOnlyList<RewardRecord> values = AggregateRewards(rewards.Items);
-            RewardRecord heroExperience = values.FirstOrDefault(value => value.Type == 60052);
-            RewardRecord petExperience = values.FirstOrDefault(value => value.Type == 60006);
-            ProjectX.Diagnostics.ClientLog.Verbose($"[ProjectX][World] Settlement render: playerLevel={player.Level}, playerExperience={player.Experience}, playerRewardExperience={heroExperience.Amount}, petRewardExperience={petExperience.Amount}, rewardCount={values.Count}.");
-            RewardRecord[] money = values.Where(IsCocosMoneyReward).Take(4).ToArray();
-            renderedMoneyRewardCount = money.Length;
-            for (int index = 0; index < money.Length; index++)
-                CreateMoneyRewardEntry(host, money[index], index);
-            if (heroExperience.Amount > 0) CreatePlayerExperienceEntry(host, heroExperience);
-            renderedPetExperienceCount = petExperience.Amount > 0
-                ? CreatePetExperienceEntries(host, petExperience)
-                : 0;
-            RewardRecord[] items = values.Where(value => value.Type != 60052 && value.Type != 60006
-                && !IsCocosMoneyReward(value)).ToArray();
-            Transform chapterList = battleView.GameObject.transform.Find("ChapterRewardList");
-            if (chapterList != null) chapterList.gameObject.SetActive(chainMode);
-            host.Find("HeroRewardLabel")?.gameObject.SetActive(!chainMode);
-            if (chainMode)
-            {
-                renderedItemRewardCount = items.Length;
-                host.Find("ItemRewardLabel")?.gameObject.SetActive(false);
-                host.Find("HeroRewardLabel")?.gameObject.SetActive(false);
-                RenderChapterRewards(chapterList, items);
-                return;
-            }
-            items = items.Take(2).ToArray();
-            renderedItemRewardCount = items.Length;
-            Transform itemRewardLabel = host.Find("ItemRewardLabel");
-            if (itemRewardLabel != null) itemRewardLabel.gameObject.SetActive(items.Length > 0);
-            for (int index = 0; index < items.Length; index++)
-                CreateBattleItemEntry(host, items[index], index);
-        }
-
-        private void RenderChapterRewards(Transform list, RewardRecord[] items)
-        {
-            if (list == null) throw new InvalidOperationException("ChapterRewardList prefab binding is missing.");
-            ScrollRect scroll = list.GetComponent<ScrollRect>();
-            Transform content = scroll.content;
-            Transform template = content.Find("Item");
-            if (chapterRewardCells.Count == 0) chapterRewardCells.Add(template);
-            while (chapterRewardCells.Count < items.Length)
-                chapterRewardCells.Add(UnityEngine.Object.Instantiate(template.gameObject, content, false).transform);
-            for (int index = 0; index < chapterRewardCells.Count; index++)
-            {
-                Transform cell = chapterRewardCells[index];
-                cell.gameObject.SetActive(index < items.Length);
-                if (index >= items.Length) continue;
-                RewardRecord reward = items[index];
-                cell.Find("Name").GetComponent<Text>().text = reward.Name;
-                cell.Find("Amount").GetComponent<Text>().text = reward.Amount.ToString();
-                Image icon = cell.Find("QualityFrame/Icon").GetComponent<Image>();
-                icon.sprite = LoadRewardSprite(reward);
-                icon.enabled = icon.sprite != null;
-                Image frame = cell.Find("QualityFrame").GetComponent<Image>();
-                frame.sprite = reward.Quality > 0
-                    ? resources.LoadFirst($"Art/Hero/common_quality_{Mathf.Clamp(reward.Quality, 1, 7):00}") : null;
-                frame.enabled = frame.sprite != null;
-            }
-            LayoutRebuilder.ForceRebuildLayoutImmediate(scroll.content);
-            scroll.StopMovement();
-            scroll.verticalNormalizedPosition = 1f;
-        }
-
-        private int CreatePetExperienceEntries(Transform parent, RewardRecord reward)
-        {
-            HeroRecord[] formationHeroes = heroes.Items
-                .Where(value => value.FightPosition > 0)
-                .OrderBy(value => value.FightPosition)
-                .Take(5)
-                .ToArray();
-            if (formationHeroes.Length == 0)
-            {
-                Debug.LogWarning("[ProjectX][World] Settlement returned PetExp/60006 but /24 HeroStore has no deployed hero; no synthetic general data was rendered.");
-                return 0;
-            }
-
-            CreateBattleText(parent, "RuntimeBattleReward_PetExperienceLabel", "神\n将\n经\n验",
-                new Vector2(8f, -78f), new Vector2(40f, 116f), 20,
-                new Color(1f, 0.86f, 0.62f, 1f), TextAnchor.MiddleCenter);
-            for (int index = 0; index < formationHeroes.Length; index++)
-            {
-                HeroRecord hero = formationHeroes[index];
-                GameObject entry = new GameObject($"RuntimeBattleReward_PetExperience{index}", typeof(RectTransform));
-                RectTransform rect = entry.GetComponent<RectTransform>();
-                rect.SetParent(parent, false);
-                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-                rect.pivot = new Vector2(0.5f, 0.5f);
-                rect.anchoredPosition = new Vector2(-210f + index * 104f, -78f);
-                rect.sizeDelta = new Vector2(96f, 116f);
-
-                bool hasDefinition = HeroCatalog.TryGet(hero.Id, out HeroDefinition definition);
-                Sprite frameSprite = resources.LoadFirst(
-                    $"Art/Hero/common_quality_{Mathf.Clamp(hasDefinition ? definition.Quality : 1, 1, 7):00}");
-                GameObject frameObject = new GameObject("QualityFrame", typeof(RectTransform),
-                    typeof(CanvasRenderer), typeof(Image));
-                RectTransform frameRect = frameObject.GetComponent<RectTransform>();
-                frameRect.SetParent(rect, false);
-                frameRect.anchorMin = frameRect.anchorMax = new Vector2(0.5f, 1f);
-                frameRect.pivot = new Vector2(0.5f, 1f);
-                frameRect.anchoredPosition = Vector2.zero;
-                frameRect.sizeDelta = new Vector2(72f, 72f);
-                Image frame = frameObject.GetComponent<Image>();
-                frame.sprite = frameSprite;
-                frame.raycastTarget = false;
-
-                Sprite portrait = resources.LoadHeroPortrait(hasDefinition ? definition.Picture : 0);
-                GameObject portraitObject = new GameObject("Portrait", typeof(RectTransform),
-                    typeof(CanvasRenderer), typeof(Image));
-                RectTransform portraitRect = portraitObject.GetComponent<RectTransform>();
-                portraitRect.SetParent(frameRect, false);
-                portraitRect.anchorMin = new Vector2(0.12f, 0.12f);
-                portraitRect.anchorMax = new Vector2(0.88f, 0.88f);
-                portraitRect.offsetMin = portraitRect.offsetMax = Vector2.zero;
-                Image portraitImage = portraitObject.GetComponent<Image>();
-                portraitImage.sprite = portrait;
-                portraitImage.preserveAspect = true;
-                portraitImage.raycastTarget = false;
-
-                CreateBattleText(rect, "Gain", $"经验+{reward.Amount}", new Vector2(0f, -25f),
-                    new Vector2(96f, 20f), 15, new Color(1f, 0.88f, 0.48f, 1f), TextAnchor.MiddleCenter);
-                uint maximum = Math.Max(1u, hero.MaxExperience);
-                GameObject bar = new GameObject("ExperienceBar", typeof(RectTransform),
-                    typeof(CanvasRenderer), typeof(Image));
-                RectTransform barRect = bar.GetComponent<RectTransform>();
-                barRect.SetParent(rect, false);
-                barRect.anchorMin = barRect.anchorMax = new Vector2(0.5f, 0f);
-                barRect.pivot = new Vector2(0.5f, 0f);
-                barRect.anchoredPosition = new Vector2(0f, 2f);
-                barRect.sizeDelta = new Vector2(88f, 15f);
-                Image background = bar.GetComponent<Image>();
-                background.color = new Color(0.24f, 0.17f, 0.12f, 0.9f);
-                background.raycastTarget = false;
-                GameObject fill = new GameObject("Fill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                RectTransform fillRect = fill.GetComponent<RectTransform>();
-                fillRect.SetParent(barRect, false);
-                fillRect.anchorMin = Vector2.zero;
-                fillRect.anchorMax = new Vector2(Mathf.Clamp01((float)hero.Experience / maximum), 1f);
-                fillRect.offsetMin = fillRect.offsetMax = Vector2.zero;
-                Image fillImage = fill.GetComponent<Image>();
-                fillImage.color = new Color(0.45f, 0.88f, 0.12f, 1f);
-                fillImage.raycastTarget = false;
-                CreateBattleText(rect, "Level", hero.Level.ToString(), new Vector2(6f, 18f),
-                    new Vector2(28f, 20f), 16, Color.white, TextAnchor.MiddleCenter);
-            }
-            return formationHeroes.Length;
-        }
-
-        private void CreateMoneyRewardEntry(Transform parent, RewardRecord reward, int index)
-        {
-            GameObject entry = new GameObject("RuntimeBattleReward_Money" + index, typeof(RectTransform));
-            RectTransform rect = entry.GetComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0f, 0.5f);
-            rect.anchoredPosition = new Vector2(-326f + index * 165f, 115f);
-            rect.sizeDelta = new Vector2(155f, 44f);
-
-            Sprite sprite = LoadRewardSprite(reward);
-            if (sprite != null)
-            {
-                GameObject iconObject = new GameObject("Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-                iconRect.SetParent(rect, false);
-                iconRect.anchorMin = iconRect.anchorMax = new Vector2(0f, 0.5f);
-                iconRect.pivot = new Vector2(0f, 0.5f);
-                iconRect.anchoredPosition = Vector2.zero;
-                iconRect.sizeDelta = new Vector2(31f, 31f);
-                Image image = iconObject.GetComponent<Image>();
-                image.sprite = sprite;
-                image.preserveAspect = true;
-                image.raycastTarget = false;
-            }
-
-            CreateBattleText(rect, "Amount", reward.Amount.ToString(), new Vector2(37f, 0f),
-                new Vector2(112f, 30f), 22, new Color(1f, 0.9f, 0.55f, 1f), TextAnchor.MiddleLeft);
-        }
-
         private static bool IsCocosMoneyReward(RewardRecord value)
         {
             switch (value.Type)
@@ -665,134 +483,103 @@ namespace ProjectX.UI
             }
         }
 
-        private void CreatePlayerExperienceEntry(Transform parent, RewardRecord reward)
+        private void RenderBattleRewards()
         {
-            GameObject entry = new GameObject("RuntimeBattleReward_HeroExperience", typeof(RectTransform));
-            RectTransform rect = entry.GetComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0f, 0.5f);
-            rect.anchoredPosition = new Vector2(-267f, 34f);
-            rect.sizeDelta = new Vector2(520f, 94f);
-
-            Sprite portrait = resources.LoadPlayerRoundPortrait(player.Head);
-            if (portrait != null)
-            {
-                GameObject iconObject = new GameObject("Portrait", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-                iconRect.SetParent(rect, false);
-                iconRect.anchorMin = iconRect.anchorMax = new Vector2(0f, 0.5f);
-                iconRect.pivot = new Vector2(0f, 0.5f);
-                iconRect.anchoredPosition = new Vector2(4f, 0f);
-                iconRect.sizeDelta = new Vector2(80f, 80f);
-                Image image = iconObject.GetComponent<Image>();
-                image.sprite = portrait;
-                image.preserveAspect = true;
-                image.raycastTarget = false;
-
-                Sprite frameSprite = Find(battleView,
-                    "Layer/Panel/firPanel/zhujueayer/Icon_touxiangkuang")?.GetComponent<Image>()?.sprite;
-                if (frameSprite != null)
-                {
-                    GameObject frameObject = new GameObject("PortraitFrame", typeof(RectTransform),
-                        typeof(CanvasRenderer), typeof(Image));
-                    RectTransform frameRect = frameObject.GetComponent<RectTransform>();
-                    frameRect.SetParent(rect, false);
-                    frameRect.anchorMin = frameRect.anchorMax = new Vector2(0f, 0.5f);
-                    frameRect.pivot = new Vector2(0f, 0.5f);
-                    frameRect.anchoredPosition = new Vector2(1f, 0f);
-                    frameRect.sizeDelta = new Vector2(86f, 86f);
-                    Image frame = frameObject.GetComponent<Image>();
-                    frame.sprite = frameSprite;
-                    frame.type = Image.Type.Sliced;
-                    frame.fillCenter = false;
-                    frame.raycastTarget = false;
-                    frameObject.transform.SetAsLastSibling();
-                }
-            }
-
-            CreateBattleText(rect, "Level", CultivationDisplay.Name(player.Level), new Vector2(100f, 18f),
-                new Vector2(92f, 30f), 24, new Color(0.2f, 1f, 0.25f, 1f), TextAnchor.MiddleLeft);
-            CreateBattleText(rect, "Gain", $"经验+{reward.Amount}", new Vector2(395f, 18f),
-                new Vector2(145f, 30f), 20, new Color(1f, 0.9f, 0.55f, 1f), TextAnchor.MiddleRight);
-
-            int limit = Math.Max(1, WorldVisualCatalog.GetPlayerExperienceLimit(player.Level));
-            // PRO_UPDATE_CHAR/502 is sent before the World settlement packet and
-            // PlayerStore already contains this battle's experience gain here.
-            ulong current = player.Experience;
-            GameObject bar = new GameObject("ExperienceBar", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            RectTransform barRect = bar.GetComponent<RectTransform>();
-            barRect.SetParent(rect, false);
-            barRect.anchorMin = barRect.anchorMax = new Vector2(0f, 0.5f);
-            barRect.pivot = new Vector2(0f, 0.5f);
-            barRect.anchoredPosition = new Vector2(100f, -21f);
-            barRect.sizeDelta = new Vector2(460f, 22f);
-            Image barImage = bar.GetComponent<Image>();
-            barImage.color = new Color(0.78f, 0.75f, 0.70f, 1f);
-            barImage.raycastTarget = false;
-            GameObject fill = new GameObject("Fill", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            RectTransform fillRect = fill.GetComponent<RectTransform>();
-            fillRect.SetParent(barRect, false);
-            fillRect.anchorMin = Vector2.zero;
-            fillRect.anchorMax = new Vector2(Mathf.Clamp01((float)current / limit), 1f);
-            fillRect.offsetMin = fillRect.offsetMax = Vector2.zero;
-            Image fillImage = fill.GetComponent<Image>();
-            fillImage.color = new Color(0.55f, 0.9f, 0.12f, 1f);
-            fillImage.raycastTarget = false;
-            CreateBattleText(barRect, "Value", $"{current}/{limit}", Vector2.zero,
-                new Vector2(460f, 22f), 18, new Color(0.18f, 0.13f, 0.10f, 1f), TextAnchor.MiddleCenter);
+            IReadOnlyList<RewardRecord> values = AggregateRewards(rewards.Items);
+            RewardRecord petExperience = values.FirstOrDefault(value => value.Type == 60006);
+            renderedMoneyRewardCount = 0;
+            SetActive(battleView, "Layer/Panel/firPanel/huobilayer", false);
+            SetActive(battleView, "Layer/Panel/firPanel/zhujueayer", false);
+            SetActive(battleView, "ChapterRewardList", false);
+            SetActive(battleView, "baseItem", false);
+            RewardRecord[] items = values.Where(value => value.Type != 60052 && value.Type != 60006
+                && !IsCocosMoneyReward(value)).ToArray();
+            renderedItemRewardCount = items.Length;
+            RenderNativeItemRewards(items);
+            renderedPetExperienceCount = RenderNativeHeroExperience(petExperience);
         }
 
-        private void CreateBattleItemEntry(Transform parent, RewardRecord reward, int index)
+        private void RenderNativeItemRewards(RewardRecord[] items)
         {
-            GameObject entry = new GameObject("RuntimeBattleReward_Item" + index, typeof(RectTransform));
-            RectTransform rect = entry.GetComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = new Vector2(-225f + index * 110f, -82f);
-            rect.sizeDelta = new Vector2(110f, 112f);
-
-            Sprite sprite = LoadRewardSprite(reward);
-            Sprite frameSprite = !IsCocosSpecialReward(reward.Type) && reward.Quality > 0
-                ? resources.LoadFirst($"Art/Hero/common_quality_{Mathf.Clamp(reward.Quality, 1, 7):00}")
-                : null;
-            Transform iconParent = rect;
-            if (frameSprite != null)
+            Transform layer = Find(battleView, "Layer/Panel/firPanel/itemlayer")?.transform;
+            if (layer == null) throw new InvalidOperationException("itemlayer prefab binding is missing.");
+            layer.gameObject.SetActive(items.Length > 0);
+            ScrollRect scroll = layer.Find("itemList").GetComponent<ScrollRect>();
+            Transform content = scroll.content;
+            Transform template = Find(battleView, "baseItem").transform;
+            while (chapterRewardCells.Count < items.Length)
             {
-                GameObject frameObject = new GameObject("QualityFrame", typeof(RectTransform),
-                    typeof(CanvasRenderer), typeof(Image));
-                RectTransform frameRect = frameObject.GetComponent<RectTransform>();
-                frameRect.SetParent(rect, false);
-                frameRect.anchorMin = frameRect.anchorMax = new Vector2(0.5f, 1f);
-                frameRect.pivot = new Vector2(0.5f, 1f);
-                frameRect.anchoredPosition = Vector2.zero;
-                frameRect.sizeDelta = new Vector2(88f, 88f);
-                Image frame = frameObject.GetComponent<Image>();
-                frame.sprite = frameSprite;
-                frame.raycastTarget = false;
-                iconParent = frameRect;
+                Transform cell = UnityEngine.Object.Instantiate(template.gameObject, content, false).transform;
+                cell.name = "Reward_" + chapterRewardCells.Count;
+                chapterRewardCells.Add(cell);
             }
-            if (sprite != null)
+            for (int index = 0; index < chapterRewardCells.Count; index++)
             {
-                GameObject iconObject = new GameObject("Icon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-                RectTransform iconRect = iconObject.GetComponent<RectTransform>();
-                iconRect.SetParent(iconParent, false);
-                iconRect.anchorMin = frameSprite == null ? new Vector2(0.5f, 1f) : new Vector2(0.12f, 0.12f);
-                iconRect.anchorMax = frameSprite == null ? new Vector2(0.5f, 1f) : new Vector2(0.88f, 0.88f);
-                iconRect.pivot = new Vector2(0.5f, frameSprite == null ? 1f : 0.5f);
-                iconRect.anchoredPosition = Vector2.zero;
-                iconRect.sizeDelta = frameSprite == null ? new Vector2(77f, 77f) : Vector2.zero;
-                Image image = iconObject.GetComponent<Image>();
-                image.sprite = sprite;
-                image.preserveAspect = true;
-                image.raycastTarget = false;
+                Transform cell = chapterRewardCells[index];
+                cell.gameObject.SetActive(index < items.Length);
+                if (index >= items.Length) continue;
+                RewardRecord reward = items[index];
+                cell.Find("name").GetComponent<Text>().text = reward.Name;
+                cell.Find("Amount").GetComponent<Text>().text = reward.Amount.ToString();
+                Image icon = cell.Find("IconBg").GetComponent<Image>();
+                icon.sprite = LoadRewardSprite(reward);
+                icon.enabled = icon.sprite != null;
+                Image frame = cell.GetComponent<Image>();
+                frame.sprite = reward.Quality > 0
+                    ? resources.LoadFirst($"Art/Hero/common_quality_{Mathf.Clamp(reward.Quality, 1, 7):00}") : null;
+                frame.enabled = frame.sprite != null;
             }
+            LayoutRebuilder.ForceRebuildLayoutImmediate(scroll.content);
+            scroll.StopMovement();
+            scroll.horizontalNormalizedPosition = 0f;
+        }
 
-            CreateBattleText(rect, "Amount", reward.Amount.ToString(), new Vector2(71f, -22f),
-                new Vector2(32f, 20f), 17, Color.white, TextAnchor.MiddleRight);
-            CreateBattleText(rect, "Name", reward.Name, new Vector2(0f, -50f),
-                new Vector2(110f, 22f), 18, new Color(1f, 0.75f, 0.45f, 1f), TextAnchor.MiddleCenter);
+        private int RenderNativeHeroExperience(RewardRecord reward)
+        {
+            Transform layer = Find(battleView, "Layer/Panel/firPanel/shenjianglayer")?.transform;
+            if (layer == null) throw new InvalidOperationException("shenjianglayer prefab binding is missing.");
+            HeroRecord[] formationHeroes = heroes.Items.Where(value => value.FightPosition > 0)
+                .OrderBy(value => value.FightPosition).Take(5).ToArray();
+            layer.gameObject.SetActive(reward.Amount > 0 && formationHeroes.Length > 0);
+            for (int index = 0; index < 5; index++)
+            {
+                Transform slot = layer.Find("IconColor" + (index + 1));
+                bool active = reward.Amount > 0 && index < formationHeroes.Length;
+                slot.gameObject.SetActive(active);
+                if (!active) continue;
+                HeroRecord hero = formationHeroes[index];
+                bool hasDefinition = HeroCatalog.TryGet(hero.Id, out HeroDefinition definition);
+                int quality = Mathf.Clamp(hasDefinition ? definition.Quality : 1, 1, 7);
+                Image frame = slot.GetComponent<Image>();
+                frame.sprite = resources.LoadFirst($"Art/Hero/common_quality_{quality:00}");
+                frame.enabled = frame.sprite != null;
+                Image portrait = slot.Find("Icon").GetComponent<Image>();
+                portrait.sprite = resources.LoadHeroPortrait(hasDefinition ? definition.Picture : 0);
+                portrait.enabled = portrait.sprite != null;
+                Image rating = slot.Find("Quality").GetComponent<Image>();
+                WorldOutcomeBindings bindings = battleView.GameObject.GetComponent<WorldOutcomeBindings>();
+                rating.sprite = bindings != null
+                    ? bindings.GetHeroQualityRating(hasDefinition ? definition.Quality : 1) : null;
+                rating.enabled = rating.sprite != null;
+                slot.Find("Text").GetComponent<Text>().text = hero.Level.ToString();
+                slot.Find("Text_jiang" + (index + 1)).GetComponent<Text>().text = $"经验值+{reward.Amount}";
+                slot.Find("LoadingBar_2").GetComponent<Image>().fillAmount =
+                    Mathf.Clamp01((float)hero.Experience / Math.Max(1u, hero.MaxExperience));
+                WorldBattleUnitRecord previous = replay?.Units.FirstOrDefault(unit =>
+                    !unit.IsEnemy && hasDefinition && unit.Picture == definition.Picture);
+                slot.Find("Image_27_0").gameObject.SetActive(previous != null && hero.Level > previous.Level);
+                Transform stars = slot.Find("StarsList");
+                Transform starTemplate = stars.Find("Star");
+                while (stars.childCount < hero.Star)
+                {
+                    Transform star = UnityEngine.Object.Instantiate(starTemplate.gameObject, stars, false).transform;
+                    star.name = "Star" + stars.childCount;
+                }
+                for (int starIndex = 0; starIndex < stars.childCount; starIndex++)
+                    stars.GetChild(starIndex).gameObject.SetActive(starIndex < hero.Star);
+                LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)stars);
+            }
+            return reward.Amount > 0 ? formationHeroes.Length : 0;
         }
 
         private void CreateBattleText(Transform parent, string name, string value, Vector2 position,
@@ -999,11 +786,19 @@ namespace ProjectX.UI
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
-            layer.transform.SetAsLastSibling();
+            // Keep the authored reward row above the settlement wash, like the
+            // hero experience entries created inside this backdrop after it.
+            Transform chapterRewards = root.Find("ChapterRewardList");
+            if (chapterRewards != null)
+                layer.transform.SetSiblingIndex(chapterRewards.GetSiblingIndex());
+            else
+                layer.transform.SetAsLastSibling();
             GameObject wash = new GameObject("SettlementWash", typeof(RectTransform),
                 typeof(CanvasRenderer), typeof(Image));
             RectTransform washRect = wash.GetComponent<RectTransform>();
-            washRect.SetParent(layer.transform, false);
+            Transform nativePanel = Find(battleView, "Layer/Panel").transform;
+            washRect.SetParent(nativePanel, false);
+            wash.transform.SetSiblingIndex(nativePanel.Find("firPanel").GetSiblingIndex());
             washRect.anchorMin = new Vector2(0f, 0.196f);
             washRect.anchorMax = new Vector2(1f, 0.897f);
             washRect.offsetMin = washRect.offsetMax = Vector2.zero;
@@ -1050,17 +845,6 @@ namespace ProjectX.UI
                     new Vector2(0.255f, 0.252f), new Vector2(0.34f, 0.432f));
             }
 
-            GameObject rewardPanel = new GameObject("RewardPanel", typeof(RectTransform));
-            RectTransform rewardRect = rewardPanel.GetComponent<RectTransform>();
-            rewardRect.SetParent(layer.transform, false);
-            rewardRect.anchorMin = new Vector2(0.43f, 0.37f);
-            rewardRect.anchorMax = new Vector2(0.93f, 0.86f);
-            rewardRect.offsetMin = rewardRect.offsetMax = Vector2.zero;
-            CreateBattleHeader(rewardRect);
-            CreateBattleText(rewardRect, "HeroRewardLabel", "主\n角\n经\n验", new Vector2(8f, 22f),
-                new Vector2(40f, 116f), 20, new Color(1f, 0.86f, 0.62f, 1f), TextAnchor.MiddleCenter);
-            CreateBattleText(rewardRect, "ItemRewardLabel", "物\n品\n奖\n励", new Vector2(8f, -106f),
-                new Vector2(40f, 116f), 20, new Color(1f, 0.86f, 0.62f, 1f), TextAnchor.MiddleCenter);
             CreateBattleFooter(layer.transform);
         }
 

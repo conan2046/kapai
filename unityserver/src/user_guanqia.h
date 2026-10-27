@@ -47,6 +47,7 @@ struct SingleZhangJieCfg
 	set<uint8> openWeek;
 	CurMapNodeCfgMap nodes;
 	StarFixMap starFix;
+	uint32 bossRewardId = 0; // One repeatable package on the chapter's final boss.
 };
 typedef map<uint32, SingleZhangJieCfg> CAllZhangJieMap;
 typedef map<uint32, SingleZhangJieCfg>::iterator CAllZhangJieMapIt;

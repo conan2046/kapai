@@ -159,7 +159,7 @@ namespace ProjectX.Core
                 worldPresenter?.ReleaseStageWalkHold();
                 worldPresenter?.EndChainStage();
             }
-            worldOutcomePresenter.ShowBattle(stars, !fengShenStory);
+            worldOutcomePresenter.ShowBattle(stars, !fengShenStory && !worldChainMode);
             SetStatus($"{(fengShenStory ? "FengShenStory" : "World")} battle result active: stars={stars}, rewards={services.Rewards.Count}.");
             // 龙崖 Boss 胜利：任一自动流程开启时，结算面板展示 2 秒后自动执行“继续”。
             // 普通关和失败不走这里；两个自动开关都关闭时必须等待玩家点击。

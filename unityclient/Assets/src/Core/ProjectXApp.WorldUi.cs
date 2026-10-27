@@ -246,6 +246,11 @@ namespace ProjectX.Core
             selectedWorldBoxChapterId = services.World.SelectedChapterId;
             selectedWorldBoxStageId = 0;
             selectedWorldStarBoxRewardId = box.RewardId;
+            if (worldChainMode)
+            {
+                ShowWorldBoxAward(box.RewardId, "Boss通关宝箱", "每次击败本章Boss后自动开启", false);
+                return;
+            }
             ShowWorldBoxAward(box.RewardId, "星级宝箱", box.State == 1 ? "星级宝箱可领取"
                 : box.State >= 2 ? "该宝箱已领取" : $"达到{box.RequiredStars}星后可领取", box.State == 1);
         }

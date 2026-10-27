@@ -390,6 +390,8 @@ local function readChapter(message)
         local state = message:ReadByte()
         Bridge:AddWorldStarBox(requiredStars, boxId, state)
     end
+    -- One package on the final boss, independent of stars and historical claims.
+    Bridge:SetWorldBossReward(message:ReadUInt())
     if message.Remaining ~= 0 then
         finishPreload()
         fail("World/320 op=2 unread bytes: " .. tostring(message.Remaining))

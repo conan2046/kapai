@@ -135,6 +135,15 @@ All和DongFu入口在Server、Client、Both模式均纳入道具阶段。Items�
 
 回归入口：tools/tests/test_item_export_chain.py。它在.local隔离副本中覆盖全量通用转换器、单端/预生成、冷重建、非法输入无写入、防止失败后写运行目录、旧错误路径无效及重复导出。全量链测试只隔离了末尾无关的境界导出，不启动Unity Play或游戏服务端。
 
+## 龙崖最终Boss宝箱（2026-10-27）
+
+- 正式维护源为`excel/bigmap.xlsx / bigmap`的`boss_reward`列，直接填写`reward_fixed.xlsx / reward_fixed`的奖励包ID，类型为整数；不再填写星数与奖励ID二元组，`star_reward`列退役。0表示该章节没有宝箱；127个主线章节必须填写有效奖励包。
+- 本次每章仅保留原最后一档奖励包，未合并前两档、未修改包内数值。第一章1001填写20013，内容仍由reward_fixed维护。原10000、10011等历史奖励包不恢复挂点。
+- 每章仅最后一个Boss关联该包，每次龙崖Boss胜利均随权威结算自动开箱发放；普通关、精英关、失败和非龙崖挑战不发本包。关卡rewardID常规掉落、藏书来源奖励与Boss宝箱各计算一次。旧存档的星数和已领取星箱状态不再作为宝箱资格或防重依据；重复结算仍由当前战斗生命周期拦截。
+- 客户端只保留最后一个宝箱作为奖励预览，提示每次Boss胜利自动开启；前三档星箱、星数进度与龙崖结算星星隐藏。预览不发送旧op4领取请求；服务端也拒绝历史星箱领取。op2尾部在零个星箱后下发boss奖励包ID，由当前Unity Lua/C#同步解析。
+- WorldRewards组统一读取、校验并导出bigmap和reward_fixed的JSON、客户端DAT及运行副本，全量旧转换器跳过这两张正式表。导出检查每章恰好一个最终Boss、奖励包存在、奖励项有效，失败时不写输出。维护入口仍为`Export-UnityOwnedTables.ps1 -Group WorldRewards -Mode Both`，只检验加`-ValidateOnly`。
+- 旧存档结构与.meta、Prefab布局均保持原状。数据同步、规则测试、服务端构建、Unity编译与真实Play验证分别报告；前一天基于星级箱的收益验证不能当作本规则的验收证据。
+
 ## 关卡、战斗与奖励正式维护链（2026-10-26）
 
 - 正式维护源位于unitydata/excel：maplist.xlsx / maplist维护关卡与引用；fight_config.xlsx / Sheet1维护战斗、阵法、展示怪和站位；monster_boss_basic.xlsx / Sheet1维护怪物属性和技能；reward.xlsx / Sheet1维护奖励组。客户端和服务端输出均由正式表派生，不从当前运行JSON或客户端输出反向补值。
@@ -145,7 +154,7 @@ All和DongFu入口在Server、Client、Both模式均纳入道具阶段。Items�
 - 运行同步检查只对本轮主线闭合负责：主线fightID、怪物引用、正生命/等级/展示字段、基础技能和阵法均须有效。非主线缺失fightID单独报告为deferredOtherFightIds，不生成占位战斗；支线6个缺失引用及其他功能的数据冲突后续按功能处理。此范围限制不表示其他玩法已一致或已验收。
 - drop_type=1为必掉，weight=0；drop_type=2为随机候选，weight为正整数。同组必掉行全部发，随机候选按权重抽1行。允许只有一种类型，不添加空的另一类型占位。
 - 单项奖励：[类型或道具ID,具体对象ID,数量]；四元组[类型或道具ID,具体对象ID,最小数量,最大数量]表示含上下限的随机整数数量。第二位不是品质。抽中候选行后发放该行全部奖励项。
-- 关卡主奖励只通过rewardID结算，首次与重复通关采用同一奖励规则；既有藏书来源和章节宝箱仍按各自规则结算。first_reward、money、exp_pet、add_reward及AttackCount不再作为单机关卡运行输入。Hope保持当前0；次数使用既有255无限次数协议标记；普通扫荡沿用一请求最多5次，龙崖连战不经过该分支。
+- 关卡主奖励只通过rewardID结算，首次与重复通关采用同一奖励规则；藏书继续按来源规则结算。龙崖章节宝箱由下节的boss_reward维护，每次Boss胜利发放一次。first_reward、money、exp_pet、add_reward及AttackCount不再作为单机关卡运行输入。Hope保持当前0；次数使用既有255无限次数协议标记；普通扫荡沿用一请求最多5次，龙崖连战不经过该分支。
 - export/server/authoritative/json/reward.json仅为正式表未维护的奖励编号提供兼容输入，当前7组、23条。正式表同编号完整覆盖整个兼容组，不拼接候选；当前运行JSON从不充当生成输入。
 - 公式实际解析本表整数引用、加减乘除、括号和文本拼接，并翻译共享公式相对引用；不信任Excel缓存。战斗整数列中既有20个小于1e-9的浮点存储尾差按整数还原，真实小数拒绝；原始单元格不改写。其他函数/外部引用、循环、非整数或溢出结果在写入前拒绝。重复ID、空奖励、非法类型/权重/数量范围和缺失奖励引用同样拒绝。
 - 定向回归：tools/tests/test_world_rewards.py。它用隔离、缩减的真实表引用夹具检查导出、拒绝非法输入、共享公式和主线/非主线边界，不模拟实际战斗。原生奖励规则为unityserver/tests/reward_rules_tests.cpp（kapai_reward_rules_tests）。2026-10-26已在高等级隔离Slot09实际验证前5章46关/58场，详情见.local/main-dungeon-acceptance-20261026/验证结果.md。该结果不代表新档体验或1266关逐关验收；随机藏书名称/图标显示链已在同日定向修正：副本奖励统一从正式客户端目录解析；第6章10场实际结算及通关奖励12项横向拖动通过，详见.local/world-reward-display-20261026/验证结果.md。最终画面仍待用户确认。配置同步与静态检查不能代替实际结算。

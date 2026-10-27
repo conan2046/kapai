@@ -73,8 +73,8 @@ bool CGuanQiaCfgMgr::LoadBigMapCfg()
 {
 	const string file = "bigmap.json";
 	//                           0        1        2        3        4         5           6            7
-	const char* titleArrs[] = { "Id", "MapType", "Name", "Desc", "OpenLv", "BundleId", "OpenTime", "star_reward" };
-	const int typeArrs[] = { 0, 0, 1, 1, 0, 0, 2, 2 };  // 0-int 1-string 2-array
+	const char* titleArrs[] = { "Id", "MapType", "Name", "Desc", "OpenLv", "BundleId", "OpenTime", "boss_reward" };
+	const int typeArrs[] = { 0, 0, 1, 1, 0, 0, 2, 0 };  // 0-int 1-string 2-array
 	rapidjson::Document d;
 	rapidjson::Value _para;
 	if (!LoadJosnValue(file, titleArrs, typeArrs, sizeof(typeArrs) / sizeof(int), d, _para))
@@ -100,28 +100,7 @@ bool CGuanQiaCfgMgr::LoadBigMapCfg()
 		}
 		{
 			
-			const rapidjson::Value &_arr = data[titleArrs[7]];
-			for(uint32 j=0; j < _arr.Size() ; j++)
-			{
-				const rapidjson::Value &_pArr = _arr[j];
-				if(!_pArr.IsArray())
-				{
-					cout<<">> CGuanQiaCfgMgr::LoadBigMapCfg cfg  error , j="<<j<<endl;
-					continue;
-				}
-				uint32 size = _pArr.Size();
-				if(size != 2)
-				{
-					cout<<">> CGuanQiaCfgMgr::LoadBigMapCfg cfg size error , j="<<j<<endl;
-					continue;
-				}
-				uint8 star = _pArr[0].GetInt();
-				uint16 fixId = _pArr[1].GetInt();
-				cfg.starFix[star] = fixId;
-				// MultiAward* award = QueryFixAward(_pArr[1].GetInt());
-				// if (award != NULL)
-					// cfg.fixAwards[fixId] = *award;
-			}
+			cfg.bossRewardId = data[titleArrs[7]].GetUint();
 		}
 		m_allMapCfg.insert(make_pair(cfg.id, cfg));
 		
@@ -196,6 +175,15 @@ bool CGuanQiaCfgMgr::LoadFixCfg()
 		uint16 fixId = data[titleArrs[0]].GetInt();
 		ReadMultiAward(data[titleArrs[1]], awards);
 		m_allFixs[fixId] = awards;
+	}
+	for (const auto& entry : m_allMapCfg) {
+		const auto& cfg = entry.second;
+		if (cfg.type != 1) continue;
+		if (cfg.bossRewardId == 0 || !QueryFixAward(cfg.bossRewardId)
+			|| cfg.nodes.empty() || cfg.nodes.rbegin()->second.type != 3) {
+			cout << "Invalid final boss package for chapter " << cfg.id << endl;
+			return false;
+		}
 	}
 	return true;
 }
@@ -732,23 +720,17 @@ void CUserGuanQia::MakeSinggleGuanQiaMsg(uint8 type, uint32 mapId, CNetMessage &
 		uint16 cost = sCGuanQiaCfgMgr.GetResetCost(curReset);
 		msg << curCnt << ncfg.spiritCost << (uint8)(maxReset - curReset) << cost << ncfg.nextNodeId << (uint32)0;
         msg << (uint8)0; // No separate money/first-win list in the unified reward schema.
-        MakeMultiAwardMsg(ncfg.showAward, msg);
+        MultiAward preview = ncfg.showAward;
+        uint32 packageId = ChapterRewardRules::BossPackage(GetFubenMode(), ncfg.type, cfg->bossRewardId);
+        if (packageId != 0) {
+            MultiAward* package = sCGuanQiaCfgMgr.QueryFixAward(packageId);
+            if (package != NULL) MergeAwardList(preview, *package);
+        }
+        MakeMultiAwardMsg(preview, msg);
 	}
 	
-	msg << (uint8)cfg->starFix.size();
-	for (StarFixMapIt fit = cfg->starFix.begin(); fit != cfg->starFix.end(); ++fit)
-	{
-		msg << fit->first << fit->second;
-		FixGetStateIt fsit = gqScore->fixState.find(fit->second);
-		if (fsit == gqScore->fixState.end())
-		{
-			msg << (uint8)0;	// 未获得
-		}
-		else
-		{
-			msg << fsit->second;  // 领取状态
-		}
-	}
+	msg << (uint8)0; // No star boxes; the final boss has one repeatable package.
+	msg << (uint32)(GetFubenMode() == FUBEN_MODE_LONGYA ? cfg->bossRewardId : 0);
 }
 
 int8_t CUserGuanQia::GetNodeStar(uint8 type, uint32 mapId, uint32 nodeId)
@@ -1225,6 +1207,13 @@ bool CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainI
     if (!sAwardManager.GetAwardById(cfg->rewardId, awards)) {
         cout << "Missing/invalid map reward " << cfg->rewardId << endl; return false;
     }
+    MultiAward chapterBoxAwards;
+    uint32 bossPackage = ChapterRewardRules::BossPackage(mode, cfg->type, zcfg->bossRewardId);
+    if (bossPackage != 0) {
+        MultiAward* package = sCGuanQiaCfgMgr.QueryFixAward(bossPackage);
+        if (package == NULL || package->empty()) return false;
+        chapterBoxAwards = *package;
+    }
 	// 关卡次数
 	NodeBeAttackCntIt it = m_nodeBeAttackCnt.find(m_curNodeId);
 	uint8 curCnt = 1;
@@ -1285,22 +1274,8 @@ bool CUserGuanQia::GuanQiaWin(CUser* pUser, uint8 star, uint8 mode, uint8 chainI
     if (firstClear) AddNewSinggleGuanQia(m_curType, nextMapId, nextNodeId);
 
 	sCMissionManager.UpdateQuestState(pUser, EMQCT_40, 1, m_curNodeId);
-	// Longya settles the current chapter's pending node/star boxes with its boss result.
-	// Claimed states remain authoritative across repeats and reconnects.
-	MultiAward chapterBoxAwards;
-	if (mode == FUBEN_MODE_LONGYA && cfg->type == 3)
-	{
-		for (FixGetStateIt box = userGuanqia->fixState.begin(); box != userGuanqia->fixState.end(); ++box)
-		{
-			if (box->second != 1) continue;
-            if (!ChapterRewardRules::Eligible(zcfg->starFix, box->first, userGuanqia->sumStar)) continue;
-			MultiAward* configured = sCGuanQiaCfgMgr.QueryFixAward(box->first);
-			if (configured == NULL) continue;
-			MergeAwardList(chapterBoxAwards, *configured);
-			box->second = 2;
-			userGuanqia->fixIds.erase(box->first);
-		}
-	}
+	// Open the final box for every authoritative boss win. Historical star-box
+	// claim states do not grant packages or suppress repeat wins.
 	// 主角经验：按产品口径从副本产出中移除（改由后续「修炼系统」供给）
 	// 连战序号：chainIndex / chainTotal（0 表示非连战），chainNextNodeId = 下一关（0 = 本章已通关）
 	msg << star << chainIndex << chainTotal << chainNextNodeId;
