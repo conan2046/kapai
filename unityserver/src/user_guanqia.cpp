@@ -1,4 +1,6 @@
 #include "user_guanqia.h"
+#include "story_unity.h"
+#include "global_event.h"
 #include "chapter_reward_rules.h"
 #include "library_unity.h"
 #include "user.h"
@@ -895,6 +897,7 @@ int CUserGuanQia::RunSingleNodeFight(CUser* pUser, uint8 type, uint32 mapId, uin
 		}
 	}
 
+    if(!CUnityStoryService::AllowsChapter(pUser,mapId)){msg<<PRO_ERROR<<"请先完成当前剧情与穿戴教学";return ENFR_Error;}
 	ApplyLocalTestFightSeed(nodeId);
 	ShareFightPtr pFight = SingletonFightManager::instance().CreateFight();
 	if (pFight.get() == NULL)
@@ -913,6 +916,7 @@ int CUserGuanQia::RunSingleNodeFight(CUser* pUser, uint8 type, uint32 mapId, uin
 //	pFight->SetPlaySpeed(1);
 
 	SFastFightResult result;
+    GlobalEvents().Publish(pUser,1010,1,mapId);
 	pFight->BeginFastFight(result, true, pUser->GetSock());
 	uint8 star = 0;
 	if (result.win)

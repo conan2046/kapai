@@ -318,6 +318,8 @@ namespace ProjectX.UI
             if (mapView.GameObject != worldView.GameObject)
                 ReparentOverlay(mapView, worldView.GameObject.transform, true);
             SetActive(worldView, "bg", false);
+            // Chapter navigation belongs to the root, which remains visible when map overlays close.
+            Find(worldView, "ChapterNavigation")?.transform.SetAsLastSibling();
             Transform barTransform = mapView.GameObject.transform.Find("bg");
             if (barTransform != null)
             {
@@ -355,6 +357,12 @@ namespace ProjectX.UI
                 showDropdown = !showDropdown;
                 Render();
                 Mark("WORLD-04-CHAPTER-DROPDOWN");
+            });
+            Bind(worldView, "ChapterNavigation/CloseBtn", () =>
+            {
+                leaveCurrentChapter?.Invoke();
+                close();
+                Mark("WORLD-CHAPTER-EXIT");
             });
             Bind(mapView, "Layer/Title/CloseBtn", () =>
             {
@@ -592,7 +600,8 @@ namespace ProjectX.UI
             bool normal = !chainMode && store.StarBoxes.Count > 0;
             SetActive(mapView, "Layer/Panel_1/Box1", normal);
             SetActive(mapView, "Layer/Panel_1/Box2", normal);
-            SetActive(mapView, "Layer/Panel_1/Box3", normal || (chainMode && store.BossRewardId > 0));
+            // Chain rewards are previewed in the bottom bar and granted by the boss result.
+            SetActive(mapView, "Layer/Panel_1/Box3", normal);
             SetActive(mapView, "Layer/Panel_1/xing_0", normal);
             SetActive(mapView, "Layer/Panel_1/xingshu", normal);
             SetActive(mapView, "Layer/Panel_1/xing", normal);
@@ -612,6 +621,7 @@ namespace ProjectX.UI
             // chapterPage 常驻显示（prefab 默认关闭，这里恒定激活）：自带全屏章节底图 +
             // 章节按钮，大底图/连战态由上层（kapaiguaiwu / Dadituui）覆盖
             SetActive(worldView, "chapterPage", true);
+            SetActive(worldView, "ChapterNavigation", showChapters && !showDetail);
             mapView.GameObject.SetActive(!showDetail);
             ApplyChainEntryVisibility();
             SetActive(mapView, "bg", chainMode && !showChapterRewards);

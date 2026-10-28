@@ -668,7 +668,7 @@ namespace ProjectX.Core
                 StartCoroutine(RefreshWorldInteractionsAfterVisibilityChange());
                 SetStatus("World chain stopped after defeat: returned to chapter page.");
             }
-            else if (worldChainMode && worldChainAutoNext)
+            else if (worldChainMode && worldChainAutoNext && !StoryBlocksAutoNext)
             {
                 // nextNodeId == 0 表示本章 Boss 胜利；此时才允许「自动挑战下一章」切章。
                 uint nextChapter = services.World.CurrentChapterId;
@@ -686,7 +686,7 @@ namespace ProjectX.Core
                     SetStatus("World chain auto next chapter: no further chapter, staying put.");
                 }
             }
-            else if (worldChainMode && worldChainAuto)
+            else if (worldChainMode && worldChainAuto && !StoryBlocksAutoNext)
             {
                 // Boss 胜利、只勾「自动挑战」：从本章第一关重新开始，不切下一章。
                 worldPresenter?.BeginChainStage();

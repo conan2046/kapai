@@ -617,6 +617,7 @@ namespace ProjectX.Core
         {
             localServerSupervisor?.Tick();
             services?.Tick();
+            TickStory();
             TickCultivationPresentation();
             loadingPresenter?.Tick();
             MaintainHeroEquipmentCultivationState();

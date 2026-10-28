@@ -408,6 +408,7 @@ struct QuestCfg
 {
 	QuestCfg()
 		: id(0)
+		, eventId(0)
 		, type(0)
 		, hdcnd(0)
 		, preId(0)
@@ -419,6 +420,7 @@ struct QuestCfg
 		nextIds.clear();
 	}
 	uint16 id;
+	uint32 eventId;
 	uint16 qtype;
 	uint16 type;
 	uint16 hdcnd;
@@ -435,8 +437,8 @@ typedef map<uint16, QuestCfg> QuestCfgMap;
 typedef map<uint16, QuestCfg>::iterator QuestCfgMapIt;
 typedef map<uint8, QuestCfgMap> TypeQuestCfgMap;
 typedef map<uint8, QuestCfgMap>::iterator TypeQuestCfgMapIt;
-typedef map<uint8, vector<TypeValue> > CondTypeIdMap;
-typedef map<uint8, vector<TypeValue> >::iterator CondTypeIdMapIt;
+typedef map<uint16, vector<TypeValue> > CondTypeIdMap;
+typedef map<uint16, vector<TypeValue> >::iterator CondTypeIdMapIt;
 typedef map<uint8, vector<uint16> > NextQuestMap;
 typedef map<uint8, vector<uint16> >::iterator NextQuestMapIt;
 
@@ -813,6 +815,7 @@ public:
 	void SendNewBranchTrackMsg(SMissionDoingContent &con,  SAcceptMission *pMiss,vector<SReplaceStringData>& replace);
 	void VerifyNewBranchMissionFinish(CUser *pUser, int mid, int num = 1, int cond = 0);  // 在其他模块调用
 	void UpdateQuestState(CUser* pUser, uint16 cond, int num = 1, int condex = 0);
+	void OnGlobalEvent(CUser* pUser, uint16 cond, int num, int condex);
 	//bool  AwardNewBranchAndDeleteMission(CUser *pUser, int mid, SMissionConfig &cfg , CNetMessage& msg); // 新分支任务领奖并删除任务
 	void DoVerifyNewBranchMission(CUser *pUser, int mid, int cur, int isum);
 	int GetSMissionDoingContentLevelVal(CUser *pUser, int mid); // 得到任务完成条件的等级要求
@@ -832,19 +835,19 @@ public:
 	bool IsMeiRiQuest(uint16 tid);
 	QuestCfgMap& GetAllQuest() { return m_questCfg; }
 	QuestCfgMap* GetTypeQuest(uint16 type);
-	vector<TypeValue>* GetCondTypeIds(uint8 cond);
+	vector<TypeValue>* GetCondTypeIds(uint16 cond);
 	QuestCfg* GetQuestCfg(uint16 id);
 
 public:
 	QuestCfgMap& GetHDQuestMap() { return m_hdQuestCfg; }
 	QuestCfgMap* GetDayQuestMap(uint8 day);
 	QuestCfg* GetHDQuestCfg(uint16 id);
-	vector<TypeValue>* GetHDCondTypeIds(uint8 cond);
+	vector<TypeValue>* GetHDCondTypeIds(uint16 cond);
 
 public:
 	QuestCfgMap* GetJiJinQuestMap(uint8 type);
 	QuestCfg* GetJiJinQuestCfg(uint16 id);
-	vector<TypeValue>* GetJiJinCondTypeIds(uint8 cond);
+	vector<TypeValue>* GetJiJinCondTypeIds(uint16 cond);
 	void UpdateJJQuestState(CUser* pUser, uint8 type, uint16 qtype, int num, int cond);
 
 private:

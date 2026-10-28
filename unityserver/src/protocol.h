@@ -442,6 +442,7 @@ const int MSG_BLOOD_FIGHT = 323;       // 血战
 const int MSG_UNITY_GARDEN = 324;      // Unity/Steam 灵园
 const int MSG_UNITY_DONGFU_SPIRIT = 325; // Unity/Steam 聚灵阵
 const int MSG_UNITY_DONGFU_LIBRARY = 326; // Unity/Steam 藏书阁
+const int MSG_UNITY_STORY = 328; // Unity/Steam 公共事件剧情引导
 const int MSG_UNITY_DONGFU_ALCHEMY = 327; // Unity/Steam 炼丹及材料商店
 
 

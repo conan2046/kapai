@@ -11,6 +11,12 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'ItemStackRules.ps1')
 . (Join-Path $PSScriptRoot 'UnityFunctionData.ps1')
 $worldOnly=$Group -eq 'WorldRewards'
+$eventOnly=$Group -eq 'GlobalEvents'
+$storyOnly=$Group -eq 'Story'
+$includeStory=$storyOnly -or $Group -eq 'All'
+if($includeStory){. (Join-Path $PSScriptRoot 'UnityStoryData.ps1')}
+$includeEvents=$eventOnly -or $storyOnly -or $Group -eq 'All'
+if($includeEvents){. (Join-Path $PSScriptRoot 'UnityGlobalEventData.ps1')}
 $itemOnly=$Group -in @('Items','ItemStacks','GardenItems','SpiritItems','LibraryItems','AlchemyItems')
 $includeItems=$itemOnly -or $Group -in @('All','DongFu')
 if($includeItems){. (Join-Path $PSScriptRoot 'UnityItemData.ps1')}
@@ -18,8 +24,8 @@ $manifest = Get-Content (Join-Path $PSScriptRoot 'unity-owned-tables.json') -Raw
 $worldRegistered=@($manifest.groups | Where-Object group -eq 'WorldRewards').Count -gt 0
 $includeWorld=$worldOnly -or ($worldRegistered -and $Group -eq 'All')
 if($includeWorld){. (Join-Path $PSScriptRoot 'UnityWorldRewardData.ps1')}
-$groups=@($manifest.groups | Where-Object { -not $itemOnly -and $_.group -ne 'WorldRewards' -and ($Group -eq 'All' -or $_.group -eq $Group -or ($Group -eq 'DongFu' -and $_.group -eq 'LibraryRealm')) })
-if(-not $groups.Count -and -not $itemOnly -and -not $worldOnly){throw "Unknown Unity data group: $Group"}
+$groups=@($manifest.groups | Where-Object { -not $itemOnly -and $_.group -notin @('WorldRewards','GlobalEvents','Story') -and ($Group -eq 'All' -or $_.group -eq $Group -or ($Group -eq 'DongFu' -and $_.group -eq 'LibraryRealm')) })
+if(-not $groups.Count -and -not $itemOnly -and -not $worldOnly -and -not $eventOnly -and -not $storyOnly){throw "Unknown Unity data group: $Group"}
 $writes = [Collections.Generic.List[object]]::new()
 $deletes = [Collections.Generic.List[string]]::new()
 $schemaPath = Join-Path $Root 'unityserver/sql/sqlite/001_initial_schema.sql'
@@ -35,6 +41,8 @@ function Add-Write([string]$Relative, [string]$Content, [string]$Reference) {
 $itemRows=$null
 if($includeItems){$itemRows=Get-UnityItemRows $Root;Add-UnityItemWrites $itemRows}
 if($includeWorld){$worldData=Get-UnityWorldRewardData $Root;Add-UnityWorldRewardWrites $worldData}
+if($includeEvents){$eventData=Get-UnityGlobalEventData $Root;Add-UnityGlobalEventWrites $eventData}
+if($includeStory){$storyData=Get-UnityStoryData $Root $eventData;Add-UnityStoryWrites $storyData}
 function Xml-Signature([string]$Value) {
     $xml = [xml]$Value
     $rows = @($xml.DocumentElement.ChildNodes | Where-Object NodeType -eq Element | ForEach-Object {
@@ -347,4 +355,4 @@ foreach ($w in $writes) {
     [IO.File]::WriteAllBytes($w.path,$bytes)
 }
 if (-not $ValidateOnly) { foreach ($path in $deletes) { if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path } } }
-Write-Output ('Unity data groups={0}; mode={1}; outputs={2}; validated={3}' -f $(if($itemOnly -or $worldOnly){$Group}else{(@($groups.group)+$(if($includeWorld){'WorldRewards'})) -join ','}),$Mode,$writes.Count,$ValidateOnly.IsPresent)
+Write-Output ('Unity data groups={0}; mode={1}; outputs={2}; validated={3}' -f $(if($itemOnly -or $worldOnly -or $eventOnly -or $storyOnly){$Group}else{(@($groups.group)+$(if($includeWorld){'WorldRewards'})+$(if($includeEvents){'GlobalEvents'})) -join ','}),$Mode,$writes.Count,$ValidateOnly.IsPresent)

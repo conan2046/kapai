@@ -1,6 +1,13 @@
 {
   "schemaVersion": 1,
   "groups": [
+    {"group":"Story","workbook":"story_config.xlsx","customExporter":"UnityStoryData.ps1","sheets":[]},
+    {
+      "group": "GlobalEvents",
+      "workbook": "event_config.xlsx",
+      "additionalWorkbooks": ["daily.xlsx"],
+      "sheets": []
+    },
     {
       "group": "WorldRewards",
       "workbook": "reward.xlsx",

@@ -6,6 +6,7 @@ namespace ProjectX.Core
     {
         public bool HandleBack()
         {
+            if(IsStoryDialogueOpen){if(storyLines[storyLineIndex].Value<int>("showskip")==1)FinishStoryDialogue();else NextStoryLine();return true;}
             if (heroBuildSelectionView?.TryHandleBack() == true) return true;
             if(IsAlchemyShopOpen){if(IsErrorVisible)errorPresenter.Hide();else CloseAlchemyShop();return true;}
             if(IsAlchemyOpen){if(IsErrorVisible)errorPresenter.Hide();else alchemyScreen.Back();return true;}

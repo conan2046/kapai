@@ -44,6 +44,13 @@ namespace ProjectX.UI
 
         internal IEnumerable<UiPrefabCatalogEntry> CatalogEntries => entriesByKey.Values;
 
+        // Read-only lookup: never instantiate a UI just to attach a story overlay.
+        public GameObject FindExisting(string key)
+        {
+            if(disposed||string.IsNullOrWhiteSpace(key))return null;
+            return singletons.TryGetValue(key,out GameObject existing)&&IsAlive(existing)?existing:null;
+        }
+
         public UnityUiView GetUnityOrCreate(string key, Transform parent = null)
         {
             ThrowIfDisposed();

@@ -670,8 +670,7 @@ namespace ProjectX.UI
         {
             TaskRecord search = tasks.XunBaoItems
                 .Where(item => item.Definition != null && item.Definition.daily == 1
-                    && item.Definition.condition != null && item.Definition.condition.Length > 0
-                    && item.Definition.condition[0] == 14)
+                    && item.Definition.Event != null && item.Definition.Event.Type == 14)
                 .OrderByDescending(item => item.Id)
                 .FirstOrDefault();
             return search.Definition == null ? "0" : Math.Min(search.Progress, (uint)search.Target).ToString();

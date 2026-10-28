@@ -23,7 +23,8 @@ namespace ProjectX.Core
             Config = AppConfig.LocalTest(Options);
             Configs = new ConfigService();
             EquipmentCatalog = new EquipmentCatalog();
-            Tasks = new TaskStore(Configs, EquipmentCatalog);
+            GlobalEvents = new GlobalEventCatalog();
+            Tasks = new TaskStore(Configs, EquipmentCatalog, GlobalEvents);
             Player = new PlayerStore();
             Currencies = new CurrencyStore();
             Bag = new BagStore();
@@ -89,6 +90,7 @@ namespace ProjectX.Core
         public AppStateMachine State { get; }
         public AppConfig Config { get; }
         public ConfigService Configs { get; }
+        public GlobalEventCatalog GlobalEvents { get; }
         public TaskStore Tasks { get; }
         public PlayerStore Player { get; }
         public CurrencyStore Currencies { get; }

@@ -24,7 +24,6 @@ $baseline = Join-Path $Root 'unityserver\config\json'
 $generated = Join-Path $source 'generated\json_server'
 $authoritativeRoot = Join-Path $source 'authoritative\json'
 $authoritativeNames = @(
-    'daily.json',
     'drop_matching.json',
     'level_reward.json',
     'mission_dialog.json',

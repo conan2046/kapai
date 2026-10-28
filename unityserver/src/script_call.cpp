@@ -1,3 +1,4 @@
+#include "global_event.h"
 #include "singleton.h"
 #include "protocol.h"
 #include "online_user.h"
@@ -5093,6 +5094,7 @@ bool AddPet(CUser *pUser,int petId,int level,int star,bool isShow,uint8 *pType, 
 {
 	if(pUser == NULL || petId == 0)
 		return false;
+	const bool hadHero=pUser->HavePet(petId);
 	SharePetPtr pet = CreatePet(petId,level,star,pUser);
 	if(pet.get() == NULL)
 		return false;
@@ -5119,6 +5121,7 @@ bool AddPet(CUser *pUser,int petId,int level,int star,bool isShow,uint8 *pType, 
 	{
 		PlayPetDrawCartoon(pUser,petId,pet->level,pet->star,toItemId,toItemNum);
 	}
+	if(res&&!hadHero&&pUser->HavePet(petId))GlobalEvents().Publish(pUser,1005,1,petId);
 	return res;
 }
 

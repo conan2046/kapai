@@ -62,18 +62,27 @@ namespace ProjectX.Core
         private void TickCultivationPresentation()
         {
             if(services==null || CurrentAppState!=AppState.Main)return;
-            if(cultivationOfflineNotice!=null && cultivationOfflineNotice.Id!=cultivationOfflineShown
-                && errorPresenter?.IsVisible!=true)
+            if(cultivationOfflineNotice!=null && cultivationOfflineNotice.Id!=cultivationOfflineShown)
             {
-                EnsureErrorPresenter();
-                if(errorPresenter==null)return;
-                JingJieOfflineNotice notice=cultivationOfflineNotice;
-                TimeSpan duration=TimeSpan.FromSeconds(notice.Seconds);
-                string elapsed=$"{(int)duration.TotalHours}小时{duration.Minutes}分{duration.Seconds}秒";
-                ulong earned=ulong.Parse(notice.Experience,CultureInfo.InvariantCulture);
-                errorPresenter.Show("离线收益",$"离线时长：{elapsed}\n获得经验：{earned:N0}\n经验已自动到账");
-                cultivationOfflineShown=notice.Id;
-                AcknowledgeCultivation(notice.Id,true);
+                // The realm packet may arrive before /328; never flash the offline modal before story is known.
+                if(!TryResolveOfflineStoryPriority(out bool suppressOffline))return;
+                if(suppressOffline)
+                {
+                    cultivationOfflineShown=cultivationOfflineNotice.Id;
+                    AcknowledgeCultivation(cultivationOfflineNotice.Id,true);
+                }
+                else if(errorPresenter?.IsVisible!=true)
+                {
+                    EnsureErrorPresenter();
+                    if(errorPresenter==null)return;
+                    JingJieOfflineNotice notice=cultivationOfflineNotice;
+                    TimeSpan duration=TimeSpan.FromSeconds(notice.Seconds);
+                    string elapsed=$"离线时长：{(int)duration.TotalHours}小时{duration.Minutes}分{duration.Seconds}秒";
+                    ulong earned=ulong.Parse(notice.Experience,CultureInfo.InvariantCulture);
+                    errorPresenter.Show("离线收益",$"{elapsed}\n获得经验：{earned:N0}\n经验已自动到账");
+                    cultivationOfflineShown=notice.Id;
+                    AcknowledgeCultivation(notice.Id,true);
+                }
             }
             if(errorPresenter?.IsVisible==true || cultivationTrial?.Big!=true
                 || cultivationTrial.Id==cultivationLastResultHandled || cultivationPresenter?.IsRunning==true)return;

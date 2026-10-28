@@ -32,6 +32,7 @@ namespace ProjectX.UI
 
     public interface IUiAssetProvider : IDisposable
     {
+        GameObject FindExisting(string key);
         UnityUiView GetUnityOrCreate(string key, Transform parent = null);
         UnityUiView InstantiateUnity(string key, Transform parent);
         bool Release(UnityUiView view);

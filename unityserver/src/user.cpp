@@ -1,3 +1,4 @@
+#include "global_event.h"
 #include "user.h"
 #include "jingjie_unity.h"
 #include "arena.h"
@@ -6475,6 +6476,7 @@ bool CUser::ZhenFa_SetPetState(uint16 petId,uint8 pos,bool synPower)
 		else
 			SingletonCRankMgr::instance().RemoveRankByValue(CRankMgr::ERT_Pet, m_roleId, otherPetId);
 	}
+	GlobalEvents().Publish(this,1006,1,petId);
 	return true;
 }
 

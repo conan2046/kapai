@@ -1,5 +1,6 @@
 #include <string.h>
 #include "mission_manager.h"
+#include "global_event.h"
 #include "utility.h"
 #include "xml.h"
 #include "script_call.h"
@@ -251,6 +252,14 @@ static bool ReadMissionDoingContent(SMissionDoingContent &content,string &str)
 
 void CMissionManager::UpdateQuestState(CUser* pUser, uint16 cond, int num/* = 1*/, int condex/* = 0*/)
 {
+	GlobalEvents().Publish(pUser, cond, num, condex);
+}
+
+void CMissionManager::OnGlobalEvent(CUser* pUser, uint16 cond, int num, int condex)
+{
+    // Reconcile only configured current/history subscriptions; cumulative goals
+    // must never receive synthetic increments when another business event fires.
+    for(auto type:GlobalEvents().SnapshotTypes())UpdateNormalQuestState(pUser,type,0,-1);
 	UpdateNormalQuestState(pUser, cond, num, condex);
 	UpdateHDQuestState(pUser, cond, num, condex);
 }
@@ -267,6 +276,10 @@ void CMissionManager::UpdateNormalQuestState(CUser* pUser, uint16 qtype, int num
 		QuestCfg* cfg = GetQuestCfg(tv.value);
 		if (cfg == NULL)
 			continue;
+        if(cond<0){
+            auto e=GlobalEvents().Get(cfg->eventId);
+            if(!e || e->countStart!=1)continue;
+        }
 		UserQuest* quest = pUser->m_missList.GetUserQuest(tv.type, tv.value);
 		if (quest == NULL)
 			continue;
@@ -414,176 +427,17 @@ void CMissionManager::UpdateJJQuestState(CUser* pUser, uint8 type, uint16 qtype,
 
 bool CMissionManager::CheckQuestState(CUser* pUser, UserQuest* quest, QuestCfg* cfg, int num, int cond)
 {
-	switch (cfg->type)
-	{
-	case EMQCT_1:
-	case EMQCT_2:
-	case EMQCT_3:
-	case EMQCT_4:
-	case EMQCT_5:
-	case EMQCT_6:
-	case EMQCT_7:
-	case EMQCT_8:
-	case EMQCT_9:
-	case EMQCT_10:
-	case EMQCT_11:
-	case EMQCT_12:
-	case EMQCT_13:
-	case EMQCT_14:
-	case EMQCT_16:
-	case EMQCT_17:
-	case EMQCT_18:
-	case EMQCT_32:
-	case EMQCT_35:
-	case EMQCT_36:
-	case EMQCT_40:
-	case EMQCT_54:
-	case EMQCT_55:
-	case EMQCT_56:
-	case EMQCT_59:
-	case EMQCT_60:
-	{// 累加型
-		if (cfg->cond == (uint32)cond)
-			quest->num += num;
-	}
-	break;
-
-	case EMQCT_50:
-	case EMQCT_46:
-	case EMQCT_34:
-	{// 包含累加型
-		if ((uint32)cond >= cfg->cond)
-			quest->num += num;
-	}
-	break;
-
-	case EMQCT_33:
-	case EMQCT_38:
-	case EMQCT_39:
-	case EMQCT_44:
-	case EMQCT_47:
-	case EMQCT_51:
-	case EMQCT_30:
-	case EMQCT_52:
-	case EMQCT_31:
-	case EMQCT_57:
-	{// 直接算当前型
-		if (quest->num > (uint32)num)
-			return false;
-		quest->num = num;
-	}
-	break;
-
-	case EMQCT_43:
-	{// 直接算当前型
-		if (cfg->num < (uint32)num)
-			return false;
-		quest->num = cfg->num;
-	}
-	break;
-
-	case EMQCT_19:
-	{
-
-	}
-	break;
-	case EMQCT_22:
-	{
-
-	}
-	break;
-	case EMQCT_23:
-	{
-
-	}
-	break;
-	case EMQCT_24:
-	{
-
-	}
-	break;
-	case EMQCT_25:
-	{
-		quest->num = pUser->GetPowerPetCnt(cfg->cond);
-	}
-	break;
-	case EMQCT_26:
-	{
-
-	}
-	break;
-	case EMQCT_27:
-	{
-
-	}
-	break;
-	case EMQCT_28:
-	{
-
-	}
-	break;
-	case EMQCT_29:
-	{
-
-	}
-	break;
-
-	case EMQCT_37:
-	{
-		if ((uint32)cond > cfg->cond)
-			return false;
-		quest->num += num;
-	}
-	break;
-
-	case EMQCT_41:
-	{
-		quest->num = pUser->GetQualityPetCnt(cfg->cond);
-	}
-	break;
-
-	case EMQCT_20:
-	{
-		quest->num = pUser->GetHeroBreakNum(cfg->cond);
-	}
-	break;
-	case EMQCT_21:
-	{
-		quest->num = pUser->GetHeroStarNum(cfg->cond);
-	}
-	break;
-	case EMQCT_42:
-	{
-		CEquipManeger& mgr = pUser->GetPetEquipMgr();
-		quest->num = mgr.GetYCLevelCnt(EST_QIANGHUA, cfg->cond);
-	}
-	break;
-
-	case EMQCT_45:
-	{
-		CEquipManeger& mgr = pUser->GetPetEquipMgr();
-		quest->num = mgr.GetYCLevelCnt(EST_JINGLIAN, cfg->cond);
-	}
-	break;
-
-	case EMQCT_48:
-	{
-		CEquipManeger& mgr = pUser->GetPetEquipMgr();
-		quest->num = mgr.GetYCLevelCnt(EST_FBQIANGHUA, cfg->cond);
-	}
-	break;
-
-	case EMQCT_49:
-	{
-		CEquipManeger& mgr = pUser->GetPetEquipMgr();
-		quest->num = mgr.GetYCLevelCnt(EST_FBJINGLIAN, cfg->cond);
-	}
-	break;
-
-	default:
-		return false;
-	}
-	return true;
+    if(cfg->eventId){
+        auto e=GlobalEvents().Get(cfg->eventId);
+        if(!e)return false;
+        if(e->countStart==1)return GlobalEvents().ReadCurrent(pUser,*e,quest->num);
+        return GlobalEvents().Advance(pUser,*e,quest->num,num,cond);
+    }
+    // Disabled legacy activity/fund loaders retain their transport adapter only;
+    // they use the same evaluator and cannot introduce a second active daily definition.
+    GlobalEventDefinition legacy;legacy.type=cfg->type;legacy.num=cfg->num;
+    legacy.param1=cfg->cond;legacy.param2=cfg->condex;
+    return GlobalEvents().Advance(pUser,legacy,quest->num,num,cond);
 }
 /////////////////////////////////////////////////////////////////////////////////////
 
@@ -1648,8 +1502,8 @@ bool CMissionManager::InitQuestCfg()
 	{
 		const string file = "daily.json";
 		//                            0     1        2       3         4           5        6
-		const char* titleArrs[] = { "id", "type", "daily", "show", "condition", "reward", "level" };
-		const int typeArrs[] = { 0, 0, 0, 0, 2, 2 };  // 0-int 1-string 2-array
+		const char* titleArrs[] = { "id", "type", "daily", "show", "event_id", "reward", "level" };
+		const int typeArrs[] = { 0, 0, 0, 0, 0, 2 };  // event_id is the only public condition reference
 		rapidjson::Document d;
 		rapidjson::Value _para;
 		if (!LoadJosnValue(file, titleArrs, typeArrs, sizeof(typeArrs) / sizeof(int), d, _para))
@@ -1666,16 +1520,13 @@ bool CMissionManager::InitQuestCfg()
 			uint8 meiRi = data[titleArrs[2]].GetInt();
 			cfg.preId = data[titleArrs[3]].GetInt();
 			cfg.level = data.HasMember(titleArrs[6]) ? data[titleArrs[6]].GetInt() : 0;
-			const rapidjson::Value &condArr = data[titleArrs[4]];
-			uint8 cSize = condArr.Size();
-			if (cSize < 2)
-				continue;
-			cfg.type = condArr[0].GetInt();
-			cfg.num = condArr[1].GetInt();
-			if (cSize > 2)
-				cfg.cond = condArr[2].GetInt();
-			if (cSize > 3)
-				cfg.condex = condArr[3].GetInt();
+            if(data.HasMember("condition")){cout<<"daily.condition is retired"<<endl;return false;}
+            cfg.eventId=data["event_id"].GetUint();
+            const GlobalEventDefinition* event=GlobalEvents().Get(cfg.eventId);
+            if(!event || ((meiRi==1)!=(event->cycle==1))) {
+                cout<<"Invalid global event reference for task "<<cfg.id<<endl;return false;
+            }
+            cfg.type=event->type;cfg.num=event->num;cfg.cond=event->param1;cfg.condex=event->param2;
 			ReadMultiAward(data[titleArrs[5]], cfg.awards);
 			m_questCfg[cfg.id] = cfg;
 			if (meiRi == 1)
@@ -1836,7 +1687,7 @@ bool CMissionManager::Init()
 	ReadMissionDialogConfig();
 	ReadMubiaoConfig();*/
 	m_questCfg.clear();
-	return InitQuestCfg() &&
+	return GlobalEvents().Init() && InitQuestCfg() &&
 		InitJiJinCfg();
 }
 
@@ -5773,7 +5624,7 @@ QuestCfg* CMissionManager::GetQuestCfg(uint16 tid)
 	return NULL;
 }
 
-vector<TypeValue>* CMissionManager::GetCondTypeIds(uint8 cond)
+vector<TypeValue>* CMissionManager::GetCondTypeIds(uint16 cond)
 {
 	CondTypeIdMapIt it = m_condTypeIds.find(cond);
 	if (it != m_condTypeIds.end())
@@ -5800,7 +5651,7 @@ QuestCfg* CMissionManager::GetHDQuestCfg(uint16 id)
 	return NULL;
 }
 
-vector<TypeValue>* CMissionManager::GetHDCondTypeIds(uint8 cond)
+vector<TypeValue>* CMissionManager::GetHDCondTypeIds(uint16 cond)
 {
 	CondTypeIdMapIt it = m_hdCondTypeIds.find(cond);
 	if (it != m_hdCondTypeIds.end())
@@ -5827,7 +5678,7 @@ QuestCfg* CMissionManager::GetJiJinQuestCfg(uint16 id)
 	return NULL;
 }
 
-vector<TypeValue>* CMissionManager::GetJiJinCondTypeIds(uint8 cond)
+vector<TypeValue>* CMissionManager::GetJiJinCondTypeIds(uint16 cond)
 {
 	CondTypeIdMapIt it = m_jjCondTypeIds.find(cond);
 	if (it != m_jjCondTypeIds.end())

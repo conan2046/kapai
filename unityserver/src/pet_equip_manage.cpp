@@ -1,4 +1,5 @@
 #include "pet_equip_manage.h"
+#include "global_event.h"
 #include "init.h"
 #include "award_manager.h"
 #include "pet.h"
@@ -1806,6 +1807,7 @@ bool CEquipManeger::AddEquip(CUser* user, uint16 equipId)
 	equip.MakeMsg(trap);
 	sock.SendMsg(user->GetSock(), trap);
 	SendPetEquipAffixList(user);
+	GlobalEvents().Publish(user,1007,1,equipId);
 	return true;
 }
 
@@ -2702,6 +2704,7 @@ void CEquipManeger::WearPetEquip(CUser* user, CNetMessage& msg)
 	if (suit != NULL)
 		suit->CalcAttr(*this);
 	user->UpdateZhenFaPetInfo(equip->fpos);
+	GlobalEvents().Publish(user,1008,1,fpos);
 	return;
 }
 

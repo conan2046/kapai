@@ -11,6 +11,7 @@
 | 主界面 HUD | `PLAYERHUD.md` |
 | 背包 | `BAG.md` |
 | 任务 | `TASK.md` |
+| 开局剧情与引导 | `OPENING_STORY.md` |
 | 神将/阵容 | `HERO.md` |
 | 神将重生 | `HEROREBIRTH.md` |
 | 强化大师 | `ENHANCEMASTER.md` |

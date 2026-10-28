@@ -643,9 +643,9 @@ namespace ProjectX.Core
         public bool IsTaskOpen => taskBackgroundView != null && services?.UiStack.Current == taskBackgroundView;
         public bool IsGuildOpen => guildView != null && services?.UiStack.Current == guildView;
         public bool IsWorldOpen => worldView != null &&
-            (services?.UiStack.Current == worldView || worldView.GameObject.activeSelf ||
-             worldStageView?.GameObject.activeSelf == true || worldMapView?.GameObject.activeSelf == true ||
-             worldDetailView?.GameObject.activeSelf == true);
+            (services?.UiStack.Current == worldView || worldView.GameObject.activeInHierarchy ||
+             worldStageView?.GameObject.activeInHierarchy == true || worldMapView?.GameObject.activeInHierarchy == true ||
+             worldDetailView?.GameObject.activeInHierarchy == true);
         public bool IsWelfareOpen => welfareView != null && services?.UiStack.Current == welfareView;
         public int WorldChapterCount => services?.World.ChapterCount ?? 0;
         public int WorldStageCount => services?.World.StageCount ?? 0;
@@ -4166,6 +4166,7 @@ namespace ProjectX.Core
             if (command == 325) { ApplySpiritPacket(message); return; }
             if (command == 326) { ApplyLibraryPacket(message); return; }
             if (command == 327) { ApplyAlchemyPacket(message); return; }
+            if (command == 328) { ApplyStoryPacket(message); return; }
             if (command == 38 && message.Remaining > 0)
             {
                 int start = message.Position;

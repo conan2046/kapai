@@ -60,13 +60,13 @@ unitydata/excel/*.xlsx
     -> unitydata/tools/vendor/xl转表.exe
     -> unitydata/tools/Export-UnityServerData.ps1
     -> unitydata/export/server/generated/json_server
-    -> unitydata/export/server/authoritative/json 覆盖 8 张完整服务端权威表（item另走正式表合并）
+    -> unitydata/export/server/authoritative/json 覆盖 7 张完整服务端权威表（item另走正式表合并）
     -> unityserver/config/json
 ```
 
 `unitydata/excel` 保存Unity正式Excel输入（截至2026-10-11递归共68个文件，其中8个为本轮新增工作簿）。旧通用转换器只处理其合同内的旧工作簿；`unity-owned-tables.json`登记的工作簿由`Export-UnityOwnedTables.ps1`处理，境界及角色外观沿用专用导出器，均不依赖外部`concept`路径。
 
-`unitydata/export/server/authoritative/json` 保存当前 Unity 服务端基线中的 8 张完整权威快照：`daily`、`drop_matching`、`level_reward`、`mission_dialog`、`sevendays`、`shop_config`、`shop`、`xiulian`。这些表以现有服务器数据为准，覆盖原始 Excel 转换结果；原始 Excel 差异仍记录在 `.local/unityserver-export/latest.json`，但不会再阻断导表。使用 `-ApplyGeneratedJson` 会把合并后的结果同步到 `unityserver/config/json`。
+`unitydata/export/server/authoritative/json` 保存当前 Unity 服务端基线中的 7 张完整权威快照：`drop_matching`、`level_reward`、`mission_dialog`、`sevendays`、`shop_config`、`shop`、`xiulian`。这些表以现有服务器数据为准，覆盖原始 Excel 转换结果；原始 Excel 差异仍记录在 `.local/unityserver-export/latest.json`，但不会再阻断导表。使用 `-ApplyGeneratedJson` 会把合并后的结果同步到 `unityserver/config/json`。
 
 已登记的35张服务端XML接入Unity工作簿；其余XML和地图仍保留历史基线。服务端运行所需的3个DLL位于`unityserver/runtime`，不属于策划数据表。
 
@@ -158,3 +158,22 @@ All和DongFu入口在Server、Client、Both模式均纳入道具阶段。Items�
 - export/server/authoritative/json/reward.json仅为正式表未维护的奖励编号提供兼容输入，当前7组、23条。正式表同编号完整覆盖整个兼容组，不拼接候选；当前运行JSON从不充当生成输入。
 - 公式实际解析本表整数引用、加减乘除、括号和文本拼接，并翻译共享公式相对引用；不信任Excel缓存。战斗整数列中既有20个小于1e-9的浮点存储尾差按整数还原，真实小数拒绝；原始单元格不改写。其他函数/外部引用、循环、非整数或溢出结果在写入前拒绝。重复ID、空奖励、非法类型/权重/数量范围和缺失奖励引用同样拒绝。
 - 定向回归：tools/tests/test_world_rewards.py。它用隔离、缩减的真实表引用夹具检查导出、拒绝非法输入、共享公式和主线/非主线边界，不模拟实际战斗。原生奖励规则为unityserver/tests/reward_rules_tests.cpp（kapai_reward_rules_tests）。2026-10-26已在高等级隔离Slot09实际验证前5章46关/58场，详情见.local/main-dungeon-acceptance-20261026/验证结果.md。该结果不代表新档体验或1266关逐关验收；随机藏书名称/图标显示链已在同日定向修正：副本奖励统一从正式客户端目录解析；第6章10场实际结算及通关奖励12项横向拖动通过，详见.local/world-reward-display-20261026/验证结果.md。最终画面仍待用户确认。配置同步与静态检查不能代替实际结算。
+
+
+## 公共事件与任务条件（2026-10-27）
+
+- 唯一维护源为excel/event_config.xlsx的event页；daily.xlsx/Sheet1只维护任务及event_id引用，不再维护condition数组。原148条任务的ID、类型、前置、境界、奖励和跳转保持；daily每日标记由公共事件cycle派生。
+- GlobalEvents组通过UnityGlobalEventData.ps1统一类型校验/导出event.json、daily.json及客户端公共目录。All、客户端与服务端DataGroup入口均接入；daily不再被旧转换器或authoritative快照覆盖。旧快照仅留作迁移基线，不能回写。
+- 入口：Export-UnityOwnedTables.ps1 -Group GlobalEvents -Mode Both；加-ValidateOnly只校验输出。禁用草案不导出；启用不支持的类型、周期或参数会拒绝，不能默默忽略。
+- 当前162条事件启用，开局V1已接界面、对白、神将、装备、阵容、穿戴和章节事件；1015/1017任务示例仍禁用。任务与剧情引用同一个事件ID，进度仍各自归属存档。
+- 当前公共层支持周期0/1；周重置和新增类型未接入前禁止启用。count_start=3与每日周期一致；类型参数沿用EMQCT语义，不混用休眠EMISS_DC任务动作。
+- 现有业务UpdateQuestState作为兼容入口转发至GlobalEvents.Publish；现任务的条件判定走同一个公共Advance。存档任务编号与保存格式不变，不修改玩家SQLite。
+- 客户端TaskStore读取Configs/daily，并从GlobalEventCatalog取得目标；Tasks/daily_tasks仅保留无condition的派生ID投影，已不是运行维护源。
+
+- 当前启用162条事件（原任务147种条件+开局15条），另2条任务示例禁用。主表配置id/name/type/num/param1/param2/count_start/cycle/enabled；event_type解释程序规则，不能任意新增行为。
+- count_start=1支持境界、指定关卡已通关一次、当前阵容和穿戴；其他历史累计禁止启用。count_start=2按订阅者生效后累积，3与每日重置一致。
+- 定向回归入口：tools/tests/test_global_events.py；服务端离线命令kapai.exe --validate-global-events在InitDB之前返回，实际加载公共目录且不连接数据库。Unity Editor回归GlobalEventCatalogTests.Run读取真实Resources配置，验证148条任务引用同一个目录对象。上述检查不替代真实入口操作/领奖持久化验收。
+
+## 开局剧情流程V1（2026-10-27）
+
+正式维护源为excel/story_config.xlsx，触发/完成只引用公共event_config；奖励包40004（57×1）/40005（1001绿武器×1）在reward_fixed.xlsx。Story定向组统一导出步骤、对白及公共事件，新增奖励包先导出WorldRewards。参数、存档与11步流程以docs/unityclient/modules/OPENING_STORY.md为准。该组不会从旧mission_dialog或生成JSON反向取源。

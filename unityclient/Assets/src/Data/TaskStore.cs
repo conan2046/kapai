@@ -20,7 +20,8 @@ namespace ProjectX.Data
         public int daily;
         public int show;
         public string des;
-        public int[] condition;
+        public int event_id;
+        [NonSerialized] public GlobalEventDefinition Event;
         public TaskRewardDefinition[] rewards;
         public int jump;
     }
@@ -46,7 +47,7 @@ namespace ProjectX.Data
         [JsonProperty("daily")] public int Daily { get; set; }
         [JsonProperty("show")] public int Show { get; set; }
         [JsonProperty("des")] public string Description { get; set; }
-        [JsonProperty("condition")] public int[] Condition { get; set; }
+        [JsonProperty("event_id")] public int EventId { get; set; }
         [JsonProperty("reward")] public int[][] Rewards { get; set; }
         [JsonProperty("jump")] public int Jump { get; set; }
     }
@@ -66,8 +67,7 @@ namespace ProjectX.Data
         public byte State { get; }
         public TaskDefinition Definition { get; }
         public int Type => Definition?.type ?? 2;
-        public int Target => Math.Max(1, Definition?.condition != null && Definition.condition.Length > 1
-            ? Definition.condition[1] : 1);
+        public int Target => Math.Max(1, Definition?.Event?.Target ?? 1);
         public int Jump => Definition?.jump ?? 0;
         public string Title => Type == 0 ? "活跃度奖励" : Type == 3 ? "寻宝奖励" : "每日任务";
         public string Description => string.IsNullOrEmpty(Definition?.des) ? $"任务 {Id}" : Definition.des;
@@ -78,18 +78,23 @@ namespace ProjectX.Data
     public sealed class TaskStore
     {
         private readonly Dictionary<int, TaskDefinition> definitions;
+        private readonly GlobalEventCatalog events;
         private readonly Dictionary<int, TaskRecord> dailyRecords = new Dictionary<int, TaskRecord>();
         private readonly Dictionary<int, TaskRecord> activityBoxes = new Dictionary<int, TaskRecord>();
         private readonly Dictionary<int, TaskRecord> xunBaoRecords = new Dictionary<int, TaskRecord>();
         private readonly Dictionary<int, string> trackedMissions = new Dictionary<int, string>();
 
         public TaskStore(ConfigService configs, EquipmentCatalog equipmentCatalog)
+            : this(configs, equipmentCatalog, new GlobalEventCatalog())
         {
-            TaskDefinitionCollection collection = configs.Load<TaskDefinitionCollection>("ProjectXData/Tasks/daily_tasks");
-            definitions = (collection.items ?? Array.Empty<TaskDefinition>())
-                .GroupBy(item => item.id)
-                .ToDictionary(group => group.Key, group => group.First());
-            LoadFormalXunBaoDefinitions(equipmentCatalog ?? throw new ArgumentNullException(nameof(equipmentCatalog)));
+        }
+
+        public TaskStore(ConfigService configs, EquipmentCatalog equipmentCatalog, GlobalEventCatalog globalEvents)
+        {
+            if (configs == null) throw new ArgumentNullException(nameof(configs));
+            events = globalEvents ?? throw new ArgumentNullException(nameof(globalEvents));
+            definitions = new Dictionary<int, TaskDefinition>();
+            LoadFormalTaskDefinitions(equipmentCatalog ?? throw new ArgumentNullException(nameof(equipmentCatalog)));
         }
 
         public event Action Changed;
@@ -206,14 +211,14 @@ namespace ProjectX.Data
         private Dictionary<int, TaskRecord> RecordsFor(int type) =>
             type == 0 ? activityBoxes : type == 3 ? xunBaoRecords : dailyRecords;
 
-        private void LoadFormalXunBaoDefinitions(EquipmentCatalog equipmentCatalog)
+        private void LoadFormalTaskDefinitions(EquipmentCatalog equipmentCatalog)
         {
             TextAsset asset = ProjectX.Foundation.ResourceLoader.Load<TextAsset>("ProjectXData/Configs/daily");
             if (asset == null)
                 throw new InvalidOperationException("Formal task config is missing: Resources/ProjectXData/Configs/daily.json");
             FormalTaskDefinition[] values = JsonConvert.DeserializeObject<FormalTaskDefinition[]>(asset.text)
                 ?? Array.Empty<FormalTaskDefinition>();
-            foreach (FormalTaskDefinition value in values.Where(item => item != null && item.Type == 3))
+            foreach (FormalTaskDefinition value in values.Where(item => item != null))
             {
                 definitions[value.Id] = new TaskDefinition
                 {
@@ -222,7 +227,8 @@ namespace ProjectX.Data
                     daily = value.Daily,
                     show = value.Show,
                     des = value.Description,
-                    condition = value.Condition,
+                    event_id = value.EventId,
+                    Event = events.Get(value.EventId),
                     rewards = (value.Rewards ?? Array.Empty<int[]>()).Select(reward =>
                         CreateReward(reward, equipmentCatalog)).Where(reward => reward != null).ToArray(),
                     jump = value.Jump,
@@ -249,6 +255,9 @@ namespace ProjectX.Data
                     isFaBao = true,
                 };
             }
+            if (id == CurrencyIds.Activity)
+                return new TaskRewardDefinition { id = id, subtype = subtype,
+                    amount = unchecked((uint)Math.Max(0, reward[2])), name = "活跃度", picture = 556, quality = 3 };
             EquipmentMaterialDefinition item = equipmentCatalog.GetItem(id);
             return new TaskRewardDefinition
             {

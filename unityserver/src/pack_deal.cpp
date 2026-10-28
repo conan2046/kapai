@@ -1,5 +1,6 @@
 #include "pack_deal.h"
 #include "jingjie_unity.h"
+#include "story_unity.h"
 #include "garden_unity.h"
 #include "spirit_unity.h"
 #include "library_unity.h"
@@ -441,6 +442,7 @@ CPackageDeal::CPackageDeal():
 	cmdFun.push_back(SCommand{MSG_UNITY_DONGFU_SPIRIT,boost::bind(&CPackageDeal::DongFuSpiritOption,this,_1,_2)});
     cmdFun.push_back(SCommand{MSG_UNITY_DONGFU_LIBRARY,boost::bind(&CPackageDeal::DongFuLibraryOption,this,_1,_2)});
     cmdFun.push_back(SCommand{MSG_UNITY_DONGFU_ALCHEMY,boost::bind(&CPackageDeal::DongFuAlchemyOption,this,_1,_2)});
+    cmdFun.push_back(SCommand{MSG_UNITY_STORY,boost::bind(&CPackageDeal::StoryOption,this,_1,_2)});
 	cmdFun.push_back(SCommand{MSG_NEW_SHENQI,boost::bind(&CPackageDeal::ServerNewShenQi,this,_1,_2)});
 	cmdFun.push_back(SCommand{MSG_TRANSFORM,boost::bind(&CPackageDeal::ServerTransFormOption,this,_1,_2)});
 	cmdFun.push_back(SCommand{MSG_WEIXIN_SHARE_REWARD,boost::bind(&CPackageDeal::SendWeiXinReward,this,_1,_2)});
@@ -1419,6 +1421,7 @@ void CPackageDeal::CreateRole(CNetMessage *pMsg,int sock)
 		m_socketServer.SendMsg(pUser->GetSock(),msg);
 		return;
 	}
+	if(pDb->IsSqlite() && formalSinglePlayerSeed && !CUnityStoryService::Create(roleId,pDb)){pDb->Query(("DELETE FROM role_info WHERE id="+std::to_string(roleId)).c_str());msg<<PRO_ERROR<<"引导存档创建失败";m_socketServer.SendMsg(pUser->GetSock(),msg);return;}
 	string userTab = GetUserInfoTab(pUser->GetServerId());
 	if(localTest == "1")
 	{
@@ -1640,7 +1643,7 @@ void CPackageDeal::SelectRole(CNetMessage *pMsg,int sock)
 			pUser->SetBitSet(2);
 		}*/
 		uint16 bornPet = 57;
-		if (!pUser->HavePet(bornPet))
+		if (!CUnityStoryService::Enabled(pUser) && !pUser->HavePet(bornPet))
 		{
 			if(localTestLog)
 				cout << "[local] SelectRole: add born pet roleId=" << roleId << endl;
@@ -26540,3 +26543,6 @@ void CPackageDeal::DealYouLi(CNetMessage *pMsg, int sock)
 //	//}
 //	m_socketServer.SendMsg(sock, msg);
 //}
+
+void CPackageDeal::StoryOption(CNetMessage *pMsg,int sock)
+{GET_MSG GET_USER uint8 op=0;std::string payload;msg>>op>>payload;CUnityStoryService::Handle(pUser,op,payload);}

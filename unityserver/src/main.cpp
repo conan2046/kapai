@@ -13,6 +13,9 @@
 #include "huo_dong.h"
 #include "utility.h"
 #include "mission_manager.h"
+#include "global_event.h"
+#include "story_unity.h"
+int ValidateStoryCounters();
 #include "init.h"
 #include "pet_equip_manage.h"
 #include "role_simple_mgr.h"
@@ -3964,6 +3967,9 @@ static void WaitForLocalShutdownCommand()
 
 int main(int argc,char **argv)
 {
+    if(argc==2 && strcmp(argv[1],"--validate-story-counters")==0)return ValidateStoryCounters();
+    if(argc==2 && strcmp(argv[1],"--validate-story")==0)return CUnityStoryService::Validate();
+    if(argc==2 && strcmp(argv[1],"--validate-global-events")==0)return ValidateGlobalEventConfiguration();
 	if(argc==3 && strcmp(argv[1],"--migrate-hero-selections")==0)
 	{
 		// Offline maintenance only: do not initialize gameplay, listeners or fixtures.
